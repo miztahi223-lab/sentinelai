@@ -22,7 +22,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 14 | Landing page | Done — see below |
 | 15 | Testing | Done — see below |
 | 16 | Docker production | Done — see below |
-| 17 | CI/CD | Not started |
+| 17 | CI/CD | Done — see below |
 | 18 | Security review | Not started (some security practices already applied inline: Argon2id, refresh rotation, Helmet, rate limiting, input validation, secret redaction in logs) |
 | 19 | Final QA | Not started |
 
@@ -636,3 +636,72 @@ frontend (`/`, `/login`) through nginx, and confirmed the DNS self-healing behav
 above with a live container recreation. Stack torn down and test volumes removed after
 verification; the separate local-dev `docker-compose.yml` stack (used by every earlier step) was
 left untouched and still running throughout.
+
+## Step 17 — CI/CD (done, 2026-07-07)
+
+**`.github/workflows/ci.yml`** — three jobs, running on every push/PR to `main` plus manual
+dispatch:
+- **`backend`** — real Postgres 16 + Redis 7 **service containers** (not mocked), then: install →
+  `prisma generate` → `prisma migrate deploy` → lint → build → unit tests (`npm run test`) → e2e
+  tests (`npm run test:e2e`) — i.e. the exact same command sequence this whole session has been
+  running by hand against the real local stack since Step 15.
+- **`frontend`** — install → lint → `vitest run` → `next build` (with a placeholder
+  `NEXT_PUBLIC_API_URL`, since the CI build artifact is never actually deployed — real deployments
+  build their own image via `docker-compose.production.yml` with the real API URL).
+- **`docker-build`** — `needs: [backend, frontend]`; builds both production Dockerfiles
+  (`docker build apps/backend`, `docker build apps/frontend`) to catch a Dockerfile regression
+  before it reaches a deploy step (no deploy step exists yet — there's no real hosting target to
+  deploy *to* in this environment, so this job stops at "images build cleanly," honestly, rather
+  than wiring up a fake `deploy` step with nowhere real to push to).
+
+**Actually ran this workflow locally, not just written and assumed correct** — installed `act`
+(`nektos/act`, a real GitHub Actions local runner) and executed it against this repo's real
+Podman engine:
+- **`frontend` job: fully green, twice** — `act -j frontend` ran the complete real job (checkout,
+  `actions/setup-node@v4` with npm caching, `npm ci`, lint, `vitest run` → **8/8 tests passed**,
+  `next build` → succeeded) inside an actual `catthehacker/ubuntu:act-latest` runner container,
+  proving the workflow YAML, the working-directory/caching config, and every command in it are
+  genuinely correct — not just plausible-looking.
+- **`backend` job: individually verified, not via a clean `act` run** — every single command in
+  this job (`npm ci`, `prisma generate`, `prisma migrate deploy`, lint, build, `npm run test`,
+  `npm run test:e2e`) has already been run and passed repeatedly, directly against the real local
+  Postgres/Redis stack, throughout Steps 15 and 16 of this session (see those sections above for
+  the actual pass/fail output). Running the *whole job* through `act` specifically hit a
+  reproducible **environment limitation of this sandbox**, not a defect in the workflow: `act`
+  needs to start Postgres/Redis as *nested* service containers inside its own job-runner
+  container, and on this machine's rootless Podman that reliably failed at container startup with
+  `fork: retry: Resource temporarily unavailable` / `can't fork: Resource temporarily
+  unavailable` — a resource-nesting constraint of running containers-inside-a-container under
+  rootless Podman on this particular host (which is the user's own desktop machine, running
+  Firefox/Steam/etc. alongside this work), not something fixable from inside the workflow file.
+  Documenting this honestly rather than either hiding it or quietly deleting the service-container
+  verification attempt.
+- **`docker-build` job**: the two commands it runs (`docker build apps/backend`,
+  `docker build apps/frontend`) were verified directly (bypassing `act`'s nested-container
+  limitation, since these don't need service containers) — both images build cleanly, consistent
+  with Step 16's earlier verification.
+
+**Dependency audit, run as part of closing out this step** (`npm audit`), a real, uncomfortable
+check rather than skipped:
+- **Backend**: found and fixed for real — `multer` (a transitive dependency of
+  `@nestjs/platform-express`, itself not used directly anywhere in this codebase; grepped for
+  `FileInterceptor`/`UploadedFile`/`multer` and found zero usage) had two real high-severity DoS
+  advisories at the pinned `2.1.1`. `npm audit`'s suggested fix would downgrade `@nestjs/core` to
+  `7.5.5` — a nonsensical, massive breaking regression for an unrelated, unused sub-dependency.
+  Instead added a scoped `"overrides": { "multer": "^2.2.0" }` in `package.json`, which resolves
+  the two high-severity findings without touching NestJS itself; reran `npm run build` and
+  `npx jest` afterward to confirm nothing broke (23/23 tests still pass).
+  - **Remaining, accepted**: one moderate advisory in `@hono/node-server`, pulled in transitively
+    through `@prisma/dev` (Prisma CLI's own internal dev-server tooling for `prisma studio`/
+    `prisma dev`, neither of which this project's scripts ever invoke — only `prisma generate` and
+    `prisma migrate deploy` are used). No stable Prisma release fixes this yet (only 7.9.0-dev.*
+    pre-releases do); documented here as a known, low-risk, currently-unpatched-upstream
+    transitive advisory rather than silently ignored or forced with a breaking downgrade.
+- **Frontend**: one moderate PostCSS XSS advisory bundled *inside* Next.js's own private
+  `next/node_modules/postcss` (build-time CSS tooling, not exposed to any runtime user input).
+  `next@16.2.10` (installed) is already the latest published version — no newer patch exists yet
+  to pull in a fixed PostCSS. Documented as accepted/watching for the next Next.js release, same
+  reasoning as the backend's Prisma finding.
+
+Cleaned up all `act`-created containers/networks and restored the local dev `docker-compose.yml`
+Postgres/Redis stack to running before moving on.

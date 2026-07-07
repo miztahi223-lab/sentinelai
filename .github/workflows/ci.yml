@@ -1,0 +1,135 @@
+name: CI
+
+# Runs on every push and PR against main, plus manually via the Actions tab.
+# Two independent jobs (backend/frontend) run in parallel since they have
+# no build dependency on each other — faster feedback than one linear job.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend (lint, build, unit + e2e tests)
+    runs-on: ubuntu-latest
+
+    # Real Postgres + Redis service containers, not mocked — the same
+    # e2e suite that was manually verified against a live local stack
+    # throughout this build needs the real thing in CI too.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sentinel
+          POSTGRES_PASSWORD: sentinel_ci_password
+          POSTGRES_DB: sentinelai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sentinel -d sentinelai_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    defaults:
+      run:
+        working-directory: apps/backend
+
+    env:
+      DATABASE_URL: postgresql://sentinel:sentinel_ci_password@localhost:5432/sentinelai_test?schema=public
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+      JWT_ACCESS_SECRET: ci-only-access-secret-not-a-real-production-value
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-not-a-real-production-value
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+  frontend:
+    name: Frontend (lint, test, build)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit/component tests
+        run: npm run test
+
+      - name: Build
+        # Baked-in placeholder — same reasoning as the Dockerfile's
+        # NEXT_PUBLIC_API_URL build ARG: this only affects what the CI
+        # build artifact points at, never a real deployment (which builds
+        # its own image with the real API URL via docker-compose.production.yml).
+        env:
+          NEXT_PUBLIC_API_URL: /api
+        run: npm run build
+
+  docker-build:
+    name: Production Docker images build
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t sentinelai-backend:ci apps/backend
+
+      - name: Build frontend image
+        run: docker build -t sentinelai-frontend:ci apps/frontend
