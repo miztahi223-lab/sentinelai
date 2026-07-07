@@ -19,6 +19,7 @@ import { ReportsModule } from './reports/reports.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { RiskEngineModule } from './risk-engine/risk-engine.module';
 import { AiModule } from './ai/ai.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { AiModule } from './ai/ai.module';
     MonitoringModule,
     RiskEngineModule,
     AiModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

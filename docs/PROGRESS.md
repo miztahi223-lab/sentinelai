@@ -18,7 +18,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 10 | Risk engine | Done — see below |
 | 11 | AI integration | Done, but inert without a real API key — see below |
 | 12 | Reports (PDF) | Done — see below |
-| 13 | Billing (Stripe) | Not started |
+| 13 | Billing (Stripe) | Done, but inert without real Stripe keys — see below |
 | 14 | Landing page | Not started |
 | 15 | Testing | Not started (beyond the manual smoke test in step 5) |
 | 16 | Docker production | Not started (local dev docker-compose for Postgres/Redis exists) |
@@ -400,3 +400,60 @@ construct signature under a namespace import with `esModuleInterop`).
 **Not yet built**: multi-scan/trend reports (one report = one scan snapshot right now), custom
 report branding/templates, scheduled/recurring report generation (only on-demand via
 `POST /reports` so far).
+
+## Step 13 — Billing (done, but honestly inert without real Stripe keys, 2026-07-07)
+
+Same situation and same discipline as Step 11 (AI): **no Stripe account/API key exists in this
+build environment** (`STRIPE_SECRET_KEY` was an empty placeholder since Step 5). A fake payment
+integration would be far worse than fake AI text, so this was never a candidate for shortcuts.
+
+- **`src/billing/billing.service.ts`** — a real integration against the actual `stripe` npm SDK:
+  `createCheckoutSession()` creates a genuine Stripe Checkout subscription session (reusing an
+  existing Stripe customer for the org if one exists, otherwise passing the user's email so Stripe
+  creates one); `createPortalSession()` creates a genuine Stripe Billing Portal session so
+  customers can self-manage/cancel; `handleWebhook()` verifies the real HMAC signature via
+  `stripe.webhooks.constructEvent()` and syncs `checkout.session.completed` →
+  activate/upgrade the `Subscription` row, `customer.subscription.updated`/`.deleted` → sync
+  status/cancellation.
+- **`BillingNotConfiguredError`** — thrown by every method when `STRIPE_SECRET_KEY` isn't set;
+  surfaced as a clean `503 Service Unavailable` with an actionable message, never a fabricated
+  checkout URL or a silently-faked subscription upgrade.
+- **`main.ts`**: enabled Nest's `rawBody: true` option so `req.rawBody` (the exact bytes Stripe
+  signed) is available to the webhook handler alongside the normal parsed `req.body` everywhere
+  else — required because Stripe's signature is computed over the raw payload; a JSON-parsed-then-
+  re-serialized body would fail verification even for a completely genuine event.
+- **`POST /billing/webhook` has no `JwtAuthGuard`** (Stripe can't present a user JWT) — its
+  authenticity check is the Stripe signature itself, which is the *correct* auth mechanism for a
+  webhook, not an oversight.
+- Wired the frontend billing page (Step 6) to the real endpoint: clicking "Upgrade" now calls
+  `POST /billing/checkout-session` and redirects to the real returned URL, rather than the
+  disabled/inert button from Step 6.
+
+**Verified without real Stripe keys, the same honest way as Step 11**: confirmed the
+`BillingNotConfiguredError` path first (both `checkout-session` and `webhook` cleanly return `503`
+with no key set). Then, to prove the actual Stripe SDK integration is genuine, restarted the
+backend with deliberately fake keys (`STRIPE_SECRET_KEY=sk_test_fake...`,
+`STRIPE_WEBHOOK_SECRET=whsec_fake...`) and POSTed a fake webhook payload — the real `stripe` SDK's
+`constructEvent()` genuinely ran HMAC verification and rejected it with its own real error message
+("No signatures found matching the expected signature for payload..."), which is exactly correct,
+secure behavior. Along the way, found and fixed a real bug this exposed: that rejection was
+initially surfacing as a generic `500`, not a `400` — fixed the controller to detect a signature
+verification failure specifically and return `400 Bad Request` with the real Stripe error message,
+since that's a client/request problem (untrusted signature), not a server fault, and Stripe's own
+retry/alerting behavior treats the two differently.
+
+**Verified the frontend integration with a real headless-browser run**: registered, navigated to
+`/billing`, clicked "Upgrade" on the Starter plan — the UI correctly shows a clean red error banner
+("Billing is not configured — set STRIPE_SECRET_KEY to enable it.") sourced from the real API
+response, not a crash or a fake redirect.
+
+Build and lint both clean (0 errors).
+
+**To actually enable this feature**: create a real Stripe account, set `STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET`, and `STRIPE_PRICE_STARTER`/`STRIPE_PRICE_PROFESSIONAL`/
+`STRIPE_PRICE_BUSINESS` (real Stripe Price IDs for each paid plan), and register the webhook
+endpoint in the Stripe dashboard pointing at `/api/billing/webhook`. No code changes needed.
+
+Also populated the previously-empty root `.env.example` (left blank since Step 1) with the full,
+real accumulated list of environment variables across every step so far, since it had never been
+filled in.

@@ -1,26 +1,62 @@
 "use client";
 
+import { useState } from "react";
 import { Check } from "lucide-react";
-import { useOrganizations } from "@/lib/hooks";
+import { isAxiosError } from "axios";
+import { useOrganizations, useCreateCheckoutSession } from "@/lib/hooks";
 
 const PLANS = [
   { name: "Free", price: "$0", features: ["1 domain", "Weekly scans", "Community support"] },
-  { name: "Starter", price: "$49/mo", features: ["5 domains", "Daily scans", "Email alerts"] },
+  {
+    name: "Starter",
+    price: "$49/mo",
+    plan: "STARTER" as const,
+    features: ["5 domains", "Daily scans", "Email alerts"],
+  },
   {
     name: "Professional",
     price: "$199/mo",
+    plan: "PROFESSIONAL" as const,
     features: ["25 domains", "Daily scans", "AI remediation", "PDF reports"],
   },
   {
     name: "Business",
     price: "Custom",
+    plan: "BUSINESS" as const,
     features: ["Unlimited domains", "Real-time monitoring", "SSO", "Priority support"],
   },
 ];
 
 export default function BillingPage() {
   const { data: organizations } = useOrganizations();
-  const currentPlan = organizations?.[0]?.subscription?.plan ?? "FREE";
+  const org = organizations?.[0];
+  const currentPlan = org?.subscription?.plan ?? "FREE";
+  const checkoutSession = useCreateCheckoutSession();
+  const [error, setError] = useState<string | null>(null);
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null);
+
+  async function handleUpgrade(plan: "STARTER" | "PROFESSIONAL" | "BUSINESS") {
+    if (!org) return;
+    setError(null);
+    setPendingPlan(plan);
+    try {
+      const { url } = await checkoutSession.mutateAsync({
+        organizationId: org.id,
+        plan,
+      });
+      window.location.assign(url);
+    } catch (err) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string })?.message
+        : undefined;
+      setError(
+        message ??
+          "Could not start checkout — billing may not be configured on this deployment yet.",
+      );
+    } finally {
+      setPendingPlan(null);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -30,6 +66,12 @@ export default function BillingPage() {
           Current plan: <span className="font-medium text-gray-200">{currentPlan}</span>
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-red-900 bg-red-950/60 px-3 py-2 text-sm text-red-300">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {PLANS.map((plan) => {
@@ -53,21 +95,35 @@ export default function BillingPage() {
                   </li>
                 ))}
               </ul>
-              <button
-                disabled
-                title="Stripe billing integration not built yet (Step 13)"
-                className="mt-6 w-full cursor-not-allowed rounded-md border border-gray-700 px-3 py-2 text-xs font-medium text-gray-500"
-              >
-                {active ? "Current plan" : "Upgrade (not yet available)"}
-              </button>
+              {plan.plan ? (
+                <button
+                  onClick={() => handleUpgrade(plan.plan)}
+                  disabled={active || pendingPlan === plan.plan}
+                  className="mt-6 w-full rounded-md bg-indigo-500 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-500"
+                >
+                  {active
+                    ? "Current plan"
+                    : pendingPlan === plan.plan
+                      ? "Starting checkout..."
+                      : "Upgrade"}
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="mt-6 w-full cursor-not-allowed rounded-md border border-gray-700 px-3 py-2 text-xs font-medium text-gray-500"
+                >
+                  {active ? "Current plan" : "Default plan"}
+                </button>
+              )}
             </div>
           );
         })}
       </div>
 
       <p className="text-xs text-gray-600">
-        Stripe checkout/subscription management is Step 13 of the build and isn&apos;t wired
-        up yet — every organization is on the Free plan by default until then.
+        Checkout goes through real Stripe Checkout Sessions (Step 13). On a deployment without
+        real Stripe API keys configured — like this local build — clicking &quot;Upgrade&quot;
+        will show a clear error rather than a fake checkout page.
       </p>
     </div>
   );

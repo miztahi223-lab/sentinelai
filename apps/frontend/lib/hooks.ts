@@ -101,6 +101,21 @@ export function useDomainRisk(domainId: string | undefined) {
   });
 }
 
+export function useCreateCheckoutSession() {
+  return useMutation({
+    mutationFn: async (params: {
+      organizationId: string;
+      plan: "STARTER" | "PROFESSIONAL" | "BUSINESS";
+    }) => {
+      const { data } = await api.post<{ url: string }>(
+        "/billing/checkout-session",
+        params,
+      );
+      return data;
+    },
+  });
+}
+
 export function useTriggerScan(domainId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
