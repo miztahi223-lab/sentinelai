@@ -4,28 +4,7 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { isAxiosError } from "axios";
 import { useOrganizations, useCreateCheckoutSession } from "@/lib/hooks";
-
-const PLANS = [
-  { name: "Free", price: "$0", features: ["1 domain", "Weekly scans", "Community support"] },
-  {
-    name: "Starter",
-    price: "$49/mo",
-    plan: "STARTER" as const,
-    features: ["5 domains", "Daily scans", "Email alerts"],
-  },
-  {
-    name: "Professional",
-    price: "$199/mo",
-    plan: "PROFESSIONAL" as const,
-    features: ["25 domains", "Daily scans", "AI remediation", "PDF reports"],
-  },
-  {
-    name: "Business",
-    price: "Custom",
-    plan: "BUSINESS" as const,
-    features: ["Unlimited domains", "Real-time monitoring", "SSO", "Priority support"],
-  },
-];
+import { PLANS } from "@/lib/plans";
 
 export default function BillingPage() {
   const { data: organizations } = useOrganizations();
@@ -97,7 +76,7 @@ export default function BillingPage() {
               </ul>
               {plan.plan ? (
                 <button
-                  onClick={() => handleUpgrade(plan.plan)}
+                  onClick={() => handleUpgrade(plan.plan!)}
                   disabled={active || pendingPlan === plan.plan}
                   className="mt-6 w-full rounded-md bg-indigo-500 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-500"
                 >

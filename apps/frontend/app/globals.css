@@ -1,26 +1,24 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/*
+ * SentinelAI is intentionally always-dark-themed (not adaptive to system
+ * light/dark preference) — the dark background/text color is applied
+ * explicitly via Tailwind utility classes (`bg-gray-950 text-gray-100`) on
+ * `<body>` in app/layout.tsx. Deliberately not setting `background`/`color`
+ * here (the create-next-app template default did, tied to
+ * `prefers-color-scheme`) because in Tailwind v4, any plain CSS rule
+ * written outside an `@layer` block always wins over `@layer utilities`
+ * regardless of selector specificity — so a leftover `body { background:
+ * ... }` rule here would silently override the intended dark theme classes
+ * whenever the browser's/OS's color scheme preference is "light", which is
+ * exactly the bug this comment is here to prevent someone from
+ * reintroducing.
+ */
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

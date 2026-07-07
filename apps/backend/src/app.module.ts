@@ -20,6 +20,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { RiskEngineModule } from './risk-engine/risk-engine.module';
 import { AiModule } from './ai/ai.module';
 import { BillingModule } from './billing/billing.module';
+import { ContactModule } from './contact/contact.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { BillingModule } from './billing/billing.module';
     RiskEngineModule,
     AiModule,
     BillingModule,
+    ContactModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

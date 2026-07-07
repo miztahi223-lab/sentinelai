@@ -105,6 +105,27 @@ export class EmailService implements OnModuleInit {
     );
   }
 
+  async sendContactMessage(params: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }) {
+    const recipient = this.configService.get<string>('CONTACT_EMAIL');
+    if (!recipient) {
+      this.logger.warn(
+        'CONTACT_EMAIL is not configured — logging this contact form submission instead of routing it to anyone. ' +
+          'Set CONTACT_EMAIL to receive these.',
+      );
+    }
+    await this.send(
+      recipient ?? 'unconfigured-contact-recipient@sentinelai.local',
+      `[Contact form] ${params.subject}`,
+      `<p><strong>From:</strong> ${params.name} &lt;${params.email}&gt;</p><p>${params.message}</p>`,
+      `From: ${params.name} <${params.email}>\n\n${params.message}`,
+    );
+  }
+
   async sendReportEmail(to: string, reportTitle: string, pdfPath: string) {
     await this.send(
       to,

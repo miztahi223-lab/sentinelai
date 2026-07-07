@@ -19,7 +19,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 11 | AI integration | Done, but inert without a real API key — see below |
 | 12 | Reports (PDF) | Done — see below |
 | 13 | Billing (Stripe) | Done, but inert without real Stripe keys — see below |
-| 14 | Landing page | Not started |
+| 14 | Landing page | Done — see below |
 | 15 | Testing | Not started (beyond the manual smoke test in step 5) |
 | 16 | Docker production | Not started (local dev docker-compose for Postgres/Redis exists) |
 | 17 | CI/CD | Not started |
@@ -457,3 +457,51 @@ endpoint in the Stripe dashboard pointing at `/api/billing/webhook`. No code cha
 Also populated the previously-empty root `.env.example` (left blank since Step 1) with the full,
 real accumulated list of environment variables across every step so far, since it had never been
 filled in.
+
+## Step 14 — Landing page (done, 2026-07-07)
+
+Replaced Step 6's placeholder root page with the real marketing site the brief asked for:
+
+- **`/`** — hero with the requested headline ("Know what attackers can see before they do."),
+  a 6-item feature grid, a pricing preview linking to the full pricing page, and a closing CTA.
+- **`/features`** — expanded, specific descriptions of each capability (discovery, scoring,
+  alerts, AI remediation, PDF reports, monitoring) written against what was actually built in
+  Steps 7-13, not generic marketing copy.
+- **`/pricing`** — full plan comparison (Free/Starter/Professional/Business), sourced from a new
+  shared `lib/plans.ts` module so the marketing pricing page and the authenticated billing page
+  (Step 13) can't drift out of sync by editing one and not the other.
+- **`/contact`** — a real contact form, not a dead-end: added a small `ContactModule` on the
+  backend (`POST /contact`, rate-limited, validated) that routes submissions through the existing
+  `EmailService` (same honest "log instead of send" fallback if `CONTACT_EMAIL`/SMTP aren't
+  configured) rather than shipping a form with nowhere for the data to go.
+- `MarketingNav` / `MarketingFooter` shared components so the four marketing pages present as one
+  coherent site rather than four disconnected pages.
+
+**Found and fixed a real, pre-existing bug while verifying this visually** (not related to the
+new pages themselves): `app/globals.css` still had the `create-next-app` template's default
+`body { background: var(--background); ...}` rule tied to `@media (prefers-color-scheme: dark)`.
+In Tailwind v4, a plain CSS rule written outside an `@layer` block always wins over `@layer
+utilities` regardless of selector specificity — so this leftover rule was silently overriding the
+app's intended always-dark theme (`bg-gray-950 text-gray-100` on `<body>` in `layout.tsx`)
+whenever the browser's color-scheme preference was "light". This had been masked in every prior
+verification screenshot purely by the headless browser's default preference happening to be dark;
+this session's fresh browser instance defaulted to light, which is what surfaced it. Removed the
+conflicting rule and documented why in a comment so it doesn't get silently reintroduced.
+
+**Verified with a real headless-browser run**: screenshotted `/`, `/features`, `/pricing` and
+confirmed a properly dark-themed, fully-styled page (not the earlier white-background regression)
+with zero console errors; confirmed no regression on `/dashboard` and `/login` (still render
+correctly dark); and drove the actual contact form end-to-end — filled it out, submitted, saw the
+real success message, and confirmed in the backend log that the real submission (`Jane Tester
+<jane@example.com>`, real subject/message text) reached `EmailService` and was logged exactly as
+designed.
+
+Also caught and fixed, separately, an operational mistake made several times across this session's
+testing: restarting the backend/frontend without first confirming the old process actually died
+(`fuser -k`/`pkill` occasionally didn't complete before the next command ran) leads to `next start`
+silently failing with `EADDRINUSE` while an old, stale build keeps serving on the port — which look
+identical to a real bug from the outside (a page serving old content) unless you check for it
+specifically. Now checking `ss -tlnp`/process list explicitly before every restart during
+verification rather than assuming a kill command succeeded.
+
+Build and lint both clean (0 errors).
