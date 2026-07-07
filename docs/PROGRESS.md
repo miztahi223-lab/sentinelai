@@ -14,7 +14,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 6 | Main dashboard (frontend routes + components) | Done — see below |
 | 7 | Asset discovery module (dns/ssl/http/technology services) | Done — see below |
 | 8 | Background workers (BullMQ) | Done — see below (also pulled forward a real "scheduled/on-demand scan → alert → email notification" pipeline, most of Step 9's substance, since it's the natural output of a working worker) |
-| 9 | Monitoring engine | Partially done via Step 8 (change detection + alert generation on every scan run); not done: recurring/scheduled (cron) scans — only on-demand so far |
+| 9 | Monitoring engine | Done — see below |
 | 10 | Risk engine | Not started |
 | 11 | AI integration | Not started |
 | 12 | Reports (PDF) | Queue infrastructure done (Step 8); actual PDF rendering not started — worker honestly fails with a clear "not implemented" error rather than faking a PDF |
@@ -211,7 +211,46 @@ succeed.
 Build and lint both clean (0 errors) after this addition — no new suppressions needed, only real
 fixes were required in earlier steps.
 
-**Not yet built**: no recurring/scheduled scans (BullMQ supports repeatable jobs; nothing currently
-enqueues one on a cron-like schedule — every scan so far is triggered by a `POST /scans` call). No
-report rendering. No AI-generated alert explanations. Those are Steps 9 (finish scheduling), 10, 11,
-12.
+**Not yet built** (at the end of Step 8): no recurring/scheduled scans — every scan so far was
+triggered by a `POST /scans` call. That's exactly what Step 9 adds next.
+
+## Step 9 — Monitoring engine (done, 2026-07-07)
+
+Change detection and alert generation (new asset / removed asset / certificate-close-to-expiry)
+were already real and working as of Step 8, since they fall directly out of how `ScanProcessor`
+compares each scan's results against the asset table. What Step 9 adds on top is the actual
+**scheduling** — domains getting re-scanned without any user action:
+
+- Installed `@nestjs/schedule` and added `MonitoringModule` / `MonitoringService` with a
+  `@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)` job that fetches every `Domain` row in the system
+  and calls a new `ScansService.createSystemScan(...)` for each one.
+- **`createSystemScan`** is deliberately a separate method from the user-facing
+  `createAndEnqueue`: it skips the per-user membership check (there's no user in the loop for a
+  system-scheduled scan — `MonitoringService` already knows which domains exist) and records the
+  scan with `type: MONITORING` instead of `MANUAL`, so the two are distinguishable in the `Scan`
+  table/dashboard later.
+- Refactored the actual BullMQ-job-enqueueing logic in `ScansService` into a shared private
+  `enqueue()` helper so `createAndEnqueue` and `createSystemScan` can't drift out of sync on retry/
+  backoff config.
+
+**Verified for real** by booting a throwaway Nest application context (`NestFactory.
+createApplicationContext`) against the compiled app and calling `MonitoringService.
+triggerSweepNow()` directly (rather than waiting for an actual midnight, or faking the cron trigger
+— this exercises the exact same code path `@Cron` would call). Against the real accumulated test
+domains in the local DB (6 domains, left over from earlier steps' test runs), the sweep:
+- Correctly found and scheduled a scan for every one of the 6 domains.
+- The already-running `ScanProcessor` worker picked every one of them up and processed them for
+  real (visible in the log, one `Processing scan ... (attempt 1)` per domain).
+- Correctly handled a domain that doesn't actually resolve (`final-corp.example`, a stale test
+  artifact) — `HttpService` logged `ENOTFOUND` and the scan still completed cleanly with 0 assets,
+  rather than crashing the whole sweep.
+- Correctly showed `0 new` assets for domains already scanned earlier in the same session
+  (`example.com` scanned twice in a row within the sweep — second pass found 6 assets, 0 new,
+  proving the idempotent upsert logic from Step 7 still holds under the scheduler).
+
+**Explicitly not done, flagged rather than silently skipped**: scan frequency is currently one
+fixed daily schedule for every domain regardless of plan. Step 13's plan table (Free = weekly,
+Starter/Professional = daily, per the billing page copy already shipped in Step 6) implies
+per-plan scan frequency, which needs either a `scanFrequency` field on `Subscription`/`Domain` or
+plan-aware filtering logic in `runDailySweep` — deferred to whichever of Step 10 (risk engine) or
+Step 13 (billing) ends up owning that decision, rather than guessing at a data model change now.

@@ -16,6 +16,7 @@ import { QueueModule } from './queue/queue.module';
 import { ScansModule } from './scans/scans.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ReportsModule } from './reports/reports.module';
     ScansModule,
     NotificationsModule,
     ReportsModule,
+    MonitoringModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

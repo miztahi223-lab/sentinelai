@@ -42,9 +42,38 @@ export class ScansService {
       },
     });
 
+    await this.enqueue(scan.id, domain.id, domain.name);
+    return scan;
+  }
+
+  /**
+   * Same as `createAndEnqueue`, but for scans the system itself schedules
+   * (the monitoring engine's daily sweep, Step 9) rather than ones a user
+   * requested through the API — so there's no `userId` to membership-check
+   * against, and no `NotFoundException`/`ForbiddenException` path applies:
+   * the caller (MonitoringService) already knows which domains exist.
+   */
+  async createSystemScan(
+    domainId: string,
+    organizationId: string,
+    hostname: string,
+  ) {
+    const scan = await this.prisma.scan.create({
+      data: {
+        organizationId,
+        domainId,
+        type: ScanType.MONITORING,
+        status: ScanStatus.PENDING,
+      },
+    });
+    await this.enqueue(scan.id, domainId, hostname);
+    return scan;
+  }
+
+  private async enqueue(scanId: string, domainId: string, hostname: string) {
     await this.scanQueue.add(
       'run-scan',
-      { scanId: scan.id, domainId: domain.id, hostname: domain.name },
+      { scanId, domainId, hostname },
       {
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },
@@ -52,8 +81,6 @@ export class ScansService {
         removeOnFail: { count: 100 },
       },
     );
-
-    return scan;
   }
 
   async findOne(userId: string, scanId: string) {
