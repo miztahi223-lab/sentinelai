@@ -6,6 +6,7 @@ import { SslService } from './ssl.service';
 import { HttpService } from './http.service';
 import { TechnologyService } from './technology.service';
 import { AssetService } from './asset.service';
+import { SubdomainService } from './subdomain.service';
 import { DomainsModule } from '../domains/domains.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { DomainsModule } from '../domains/domains.module';
     HttpService,
     TechnologyService,
     AssetService,
+    SubdomainService,
   ],
   exports: [DiscoveryService, AssetService],
 })

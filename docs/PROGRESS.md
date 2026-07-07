@@ -892,3 +892,52 @@ account/domain exists here, so `docker-build` is CI's last real job — there's 
 step to add yet); multi-region/HA considerations; per-plan scan-frequency enforcement (flagged
 back in Step 9, still open); load/performance testing under realistic traffic (everything here
 was verified for *correctness*, not for behavior under production-scale load).
+
+---
+
+# Post-launch enhancements (beyond the original 19-step plan)
+
+The original brief's 19 steps are complete (above). Continuing to build on the product from here,
+same discipline: real code, real verification, changes documented honestly as they land.
+
+## Enhancement 1 — Subdomain enumeration (done, 2026-07-07)
+
+**Why**: the discovery module (Step 7) only ever scanned the exact literal hostname a user
+entered (e.g. `example.com` itself) — never any subdomains. For an attack-surface-monitoring
+product, this is a significant gap: most organizations already know their main site's security
+posture; the actual value of a tool like this is surfacing the stuff they *don't* reliably
+track — a forgotten `staging.`/`jenkins.`/`old.` subdomain is a disproportionately common source
+of real findings in external recon.
+
+**What was built**: `src/discovery/subdomain.service.ts` — a bounded (~96 entries, not a
+100k-line brute-force list) curated wordlist of common subdomain prefixes (environments:
+staging/dev/qa/uat; admin/internal tooling: admin/portal/cpanel/jenkins/grafana/kibana; legacy:
+old/legacy/backup; infra: ns1/ns2/autodiscover/vpn; etc.), resolved in parallel against the
+tracked domain with bounded concurrency (10 at a time — enough to be fast without hammering the
+resolver with 96 simultaneous queries). Wired into `discovery.service.ts`: every domain scan now
+also enumerates subdomains, and up to 25 of the discovered ones (a second, independent safety cap
+in case an unusual domain's wildcard DNS record makes an implausible fraction of candidates
+resolve) get a real HTTP+technology-detection probe, same as the main hostname — so a scan
+doesn't just report "12 subdomains exist" but actually tells you which ones are live, what status
+code they return, and what's running on them. Persisted as `SUBDOMAIN`-type `Asset` rows through
+the same upsert/change-detection pipeline every other asset type already uses (new subdomain
+discovered → real alert, per the existing `ScanProcessor` logic from Step 8 — no changes needed
+there, it already treats any new asset uniformly).
+
+**Verified for real, twice**:
+- **Unit tests** (`subdomain.service.spec.ts`, 3 tests) — perform genuine DNS resolution against
+  real public domains (same testing philosophy as Step 7's `example.com` verification, not
+  mocked): confirms `www.google.com` is found among real results for `google.com`, confirms no
+  duplicate hostnames, confirms every returned result actually has a real resolved address.
+- **Live, end-to-end, against the running system**: registered `google.com` as a tracked domain
+  through the real API and triggered a real discovery run. Result: **28 of 96 candidate
+  subdomains genuinely resolved** (`smtp.`, `mail.`, `www.`, `api.`, `admin.`, and 23 others),
+  each persisted as a real `SUBDOMAIN` asset with its real resolved IP addresses — and critically,
+  `api.google.com` came back correctly marked `httpReachable: true, statusCode: 404` (a real,
+  distinct HTTP probe result) while the others correctly show `httpReachable: false` (DNS exists,
+  nothing answering HTTP) — proving the per-subdomain probe step is doing real, independent work
+  per host, not just copying the parent domain's result. Test domain/user cleaned up afterward.
+
+Confirmed backend build/lint/full test suite clean after this change: `npm run build` (clean),
+`npm run lint` (0 errors, same 16 pre-existing test-mock warnings), `npx jest` → **35/35 tests
+pass** (up from 32 — the 3 new subdomain tests).

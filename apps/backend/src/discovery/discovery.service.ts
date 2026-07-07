@@ -5,6 +5,7 @@ import { SslService } from './ssl.service';
 import { HttpService } from './http.service';
 import { TechnologyService } from './technology.service';
 import { AssetService } from './asset.service';
+import { SubdomainService } from './subdomain.service';
 
 export interface DiscoveryRunSummary {
   domainId: string;
@@ -20,9 +21,18 @@ export interface DiscoveryRunSummary {
   ssl: { inspected: boolean; valid?: boolean; daysUntilExpiry?: number };
   http: { reachable: boolean; statusCode?: number };
   technologies: string[];
+  subdomainsFound: number;
   startedAt: Date;
   finishedAt: Date;
 }
+
+// Bounds how many *discovered* subdomains get a full HTTP+technology probe
+// on top of the plain DNS enumeration — the wordlist itself is bounded, but
+// this is a second, independent safety cap in case an unusual domain (e.g.
+// a wildcard DNS record matching every candidate) makes an implausibly
+// large fraction of candidates resolve, so one scan can't balloon into
+// dozens of extra outbound HTTP probes.
+const MAX_SUBDOMAINS_TO_PROBE = 25;
 
 @Injectable()
 export class DiscoveryService {
@@ -34,6 +44,7 @@ export class DiscoveryService {
     private readonly httpService: HttpService,
     private readonly technologyService: TechnologyService,
     private readonly assetService: AssetService,
+    private readonly subdomainService: SubdomainService,
   ) {}
 
   async runForDomain(
@@ -45,11 +56,13 @@ export class DiscoveryService {
     const observedAssetIds: string[] = [];
     const newAssets: Asset[] = [];
 
-    const [dnsResult, sslResult, httpResult] = await Promise.all([
-      this.dnsService.lookup(hostname),
-      this.sslService.inspect(hostname),
-      this.httpService.probe(hostname),
-    ]);
+    const [dnsResult, sslResult, httpResult, discoveredSubdomains] =
+      await Promise.all([
+        this.dnsService.lookup(hostname),
+        this.sslService.inspect(hostname),
+        this.httpService.probe(hostname),
+        this.subdomainService.enumerate(hostname),
+      ]);
 
     const track = (result: { asset: Asset; isNew: boolean }) => {
       observedAssetIds.push(result.asset.id);
@@ -136,6 +149,62 @@ export class DiscoveryService {
       );
     }
 
+    // --- Persist discovered subdomains, and probe the most interesting
+    // ones for real HTTP reachability/technology — this is the actual core
+    // value proposition of an attack-surface-monitoring product: most
+    // organizations already know about their main site, they don't
+    // reliably know about every `staging.`/`jenkins.`/`old.` subdomain
+    // they've ever stood up, and a forgotten one is very often where the
+    // real exposure is. ---
+    const toProbe = discoveredSubdomains.slice(0, MAX_SUBDOMAINS_TO_PROBE);
+    const probeResults = await Promise.all(
+      toProbe.map(async (sub) => {
+        const probe = await this.httpService.probe(sub.hostname);
+        return { sub, probe };
+      }),
+    );
+
+    for (const { sub, probe } of probeResults) {
+      const matches = probe.reachable
+        ? this.technologyService.detect(probe.headers ?? {}, probe.bodySnippet)
+        : [];
+      track(
+        await this.assetService.upsertObservedAsset({
+          domainId,
+          type: AssetType.SUBDOMAIN,
+          value: sub.hostname,
+          metadata: JSON.parse(
+            JSON.stringify({
+              source: 'subdomain-enumeration',
+              addresses: sub.addresses,
+              httpReachable: probe.reachable,
+              statusCode: probe.statusCode,
+              scheme: probe.scheme,
+              technologies: matches,
+            }),
+          ) as Prisma.InputJsonValue,
+        }),
+      );
+    }
+
+    // Any enumerated candidates beyond the probe cap still get recorded as
+    // assets (we know they exist — DNS said so) even though we didn't spend
+    // an extra HTTP round-trip confirming what's running on them.
+    for (const sub of discoveredSubdomains.slice(MAX_SUBDOMAINS_TO_PROBE)) {
+      track(
+        await this.assetService.upsertObservedAsset({
+          domainId,
+          type: AssetType.SUBDOMAIN,
+          value: sub.hostname,
+          metadata: {
+            source: 'subdomain-enumeration',
+            addresses: sub.addresses,
+            httpReachable: null,
+          },
+        }),
+      );
+    }
+
     const removedAssets = await this.assetService.markStaleAssetsInactive(
       domainId,
       observedAssetIds,
@@ -144,7 +213,7 @@ export class DiscoveryService {
     const finishedAt = new Date();
     this.logger.log(
       `Discovery for ${hostname} finished in ${finishedAt.getTime() - startedAt.getTime()}ms — ` +
-        `${observedAssetIds.length} assets observed, ${newAssets.length} new, ${removedAssets.length} removed`,
+        `${observedAssetIds.length} assets observed (${discoveredSubdomains.length} subdomains found), ${newAssets.length} new, ${removedAssets.length} removed`,
     );
 
     return {
@@ -168,6 +237,7 @@ export class DiscoveryService {
         statusCode: httpResult.statusCode,
       },
       technologies,
+      subdomainsFound: discoveredSubdomains.length,
       startedAt,
       finishedAt,
     };
