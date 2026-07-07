@@ -18,6 +18,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { RiskEngineModule } from './risk-engine/risk-engine.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { RiskEngineModule } from './risk-engine/risk-engine.module';
     ReportsModule,
     MonitoringModule,
     RiskEngineModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

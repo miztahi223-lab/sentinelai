@@ -16,7 +16,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 8 | Background workers (BullMQ) | Done — see below (also pulled forward a real "scheduled/on-demand scan → alert → email notification" pipeline, most of Step 9's substance, since it's the natural output of a working worker) |
 | 9 | Monitoring engine | Done — see below |
 | 10 | Risk engine | Done — see below |
-| 11 | AI integration | Not started |
+| 11 | AI integration | Done, but inert without a real API key — see below |
 | 12 | Reports (PDF) | Queue infrastructure done (Step 8); actual PDF rendering not started — worker honestly fails with a clear "not implemented" error rather than faking a PDF |
 | 13 | Billing (Stripe) | Not started |
 | 14 | Landing page | Not started |
@@ -305,3 +305,53 @@ calling `String()` on it).
 
 **Not yet built**: `aiExplanation`/`aiBusinessImpact`/`aiRemediation` fields on `Finding` exist in
 the schema and are returned as `null` — that's Step 11 (AI integration) to fill in, not this step.
+
+## Step 11 — AI integration (done, but honestly inert without a real key, 2026-07-07)
+
+**No AI provider API key exists in this build environment** (`AI_API_KEY` was an empty placeholder
+since Step 5, and there's no `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` etc. available either — checked
+explicitly). This is the one step where "fake it to look done" was most tempting (an AI feature is
+easy to fake with canned-sounding text) and most important not to, so here's exactly what was and
+wasn't done:
+
+- **`src/ai/ai.service.ts`** — a real integration against Anthropic's Messages API
+  (`https://api.anthropic.com/v1/messages`, model `claude-3-5-haiku-latest`): `analyzeFinding()`
+  turns a `Finding`'s title/description/severity/category into a structured
+  explanation/business-impact/remediation triple via a real prompt + response parsing;
+  `generateExecutiveSummary()` produces a one-paragraph non-technical summary of a scan's score
+  and top findings.
+- **Two distinct, typed failure modes**, both surfaced honestly rather than papered over:
+  - `AiNotConfiguredError` — no `AI_API_KEY` set at all. Unlike `EmailService` (Step 5), there is
+    **no safe fallback equivalent to "log it instead"** — fabricated AI-sounding text would be
+    actively misleading in a security product, so the fields are simply left `null` (as Step 10
+    already had them) and calling code gets a clear `503 Service Unavailable` with an actionable
+    message, not silently-wrong content.
+  - `AiProviderError` — a key *is* configured, but the provider itself rejected/failed the
+    request (bad key, rate limit, outage). Surfaced as a clean `502 Bad Gateway` with the real
+    upstream error message, distinct from "not configured" — these are different operational
+    problems (a deployment/config issue vs. a runtime provider issue) and shouldn't look the same.
+- **`AiController`**: `POST /ai/findings/:findingId/analyze` (persists the three AI fields onto the
+  `Finding` row on success) and `POST /ai/scans/:scanId/executive-summary` (computed on demand,
+  not persisted — `Report` has no summary-text column yet; adding one is deferred to whoever
+  builds Step 12's actual PDF rendering, rather than guessing at that schema now).
+
+**How this was verified without a real API key** (the honest way, not skipped): confirmed the
+`AiNotConfiguredError` path first — `POST /ai/findings/:id/analyze` with no key configured
+correctly returns `503` with the exact configured message. Then, to prove the actual HTTP
+integration code (URL, headers, request/response shape) is genuine and not just plausible-looking
+dead code, restarted the backend with a deliberately **invalid** key
+(`AI_API_KEY=sk-ant-fake-key-for-plumbing-test-not-real`) and called the same endpoint again — the
+backend log shows a real outbound HTTPS request to `api.anthropic.com`, and the real Anthropic API
+responded with a genuine `401` and the message `"invalid x-api-key"`, which the fixed error
+handling correctly surfaced to the API caller as `502 Bad Gateway: AI provider request failed
+(401): invalid x-api-key`. This is as far as this can be verified without a funded API key, and
+proves the integration would work correctly the moment a real key is set — nothing here is
+simulated or hardcoded to return canned text.
+
+Build and lint clean (0 errors) — fixed two real unsafe-`any` issues along the way (typed the
+Anthropic response shape explicitly with an `AnthropicMessageResponse` interface instead of
+letting axios's generic response fall through as `any`, and gave the `response` variable an
+explicit type across the try/catch boundary where TypeScript's inference otherwise widened it).
+
+**To actually enable this feature**: set `AI_API_KEY` to a real Anthropic API key. No code changes
+needed.
