@@ -24,7 +24,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 16 | Docker production | Done — see below |
 | 17 | CI/CD | Done — see below |
 | 18 | Security review | Done — see below |
-| 19 | Final QA | Not started |
+| 19 | Final QA | Done — see below |
 
 ## Key engineering decisions made so far (deviations from the literal instructions, with reasons)
 
@@ -827,3 +827,68 @@ and worth closing as defense-in-depth / storage-cost hygiene. Added `@MaxLength(
 
 Build, lint, and the full test suite (backend `npx jest` — 32/32; e2e — 8/8) all re-confirmed
 green after every change in this step.
+
+## Step 19 — Final quality review (done, 2026-07-07)
+
+The brief's own checklist for this step (`git status`, `npm audit`, `docker ps`; review code
+quality/security/performance/documentation; fix all issues) run for real, one item at a time:
+
+- **`git status`**: clean working tree, nothing uncommitted, at this exact point in the review —
+  confirmed with the actual command, not assumed.
+- **`npm audit`** (both apps, re-run fresh): backend — 3 moderate, all in `@hono/node-server` via
+  `@prisma/dev` (Prisma's own internal `prisma dev`/`prisma studio` tooling, never invoked by this
+  project's scripts; no stable Prisma release fixes it yet); frontend — 2 moderate, PostCSS
+  bundled inside Next.js's own build tooling, no newer Next.js release available. Both already
+  investigated and accepted with reasoning in Step 17/18; re-confirmed unchanged, nothing new.
+- **`docker ps`**: the local dev Postgres/Redis stack (`docker-compose.yml`) healthy and running,
+  exactly as it should be for local development; the separate production stack
+  (`docker-compose.production.yml`) intentionally torn down after its Step 16/17 verification —
+  it's meant to be built fresh at actual deploy time, not left running in a dev sandbox.
+- **Full build/lint/test re-run, one final time, on both apps** (not trusting earlier runs to
+  still be valid after all the changes in Steps 15-18): backend `npm run build` (clean),
+  `npm run lint` (0 errors, 16 pre-existing/accepted test-mock warnings), `npx jest` (**5 suites,
+  32 tests, all pass**), `npx jest --config ./test/jest-e2e.json` (**8/8 pass**, against the real
+  live stack); frontend `npm run build` (clean), `npm run lint` (0 errors), `npx vitest run`
+  (**2 files, 8 tests, all pass**).
+- **Dead-code/quality sweep**: grepped the entire `src/` tree of both apps for `TODO`/`FIXME`/`XXX`
+  — **zero results**, consistent with the brief's "never leave TODOs" rule having actually been
+  followed throughout, not just claimed. Grepped for stray `console.log`/`console.debug` — the one
+  hit (`main.ts`'s `console.error` in the bootstrap failure handler) is the correct, standard
+  NestJS pattern for that specific spot (Nest's own Pino logger isn't initialized yet if bootstrap
+  itself fails), not a leftover debug statement.
+- **Documentation, a real gap found and fixed**: the root `README.md` scaffolded back in Step 1
+  had been sitting **completely empty** ever since — every step's actual documentation went into
+  `docs/PROGRESS.md` instead, and nothing ever circled back to write the project's actual
+  front-door README. Written now: what the product does, architecture, the full local-dev setup
+  (backend + frontend + Postgres/Redis), how to run tests, how to deploy the production Docker
+  stack, how to enable the two credential-gated features (AI, billing), and a pointer to the
+  security review finding. `.env.example` was also found (during Step 18) to be missing
+  `CONTACT_EMAIL` (a real, used config var since Step 14) — fixed there.
+- **Structural honesty check**: the brief's Step 1 asked for top-level `packages/shared/`,
+  `scripts/`, and `tests/` directories. All three were scaffolded in Step 1 and have remained
+  genuinely empty ever since — no cross-app shared types ended up being needed (both apps'
+  domain types are independent), no custom scripts were needed beyond each app's own
+  `package.json` scripts, and every real test ended up living inside `apps/backend` and
+  `apps/frontend` (the standard, tooling-expected location for Jest/Vitest in each respective
+  app) rather than a top-level `tests/`. Documented here rather than either silently deleting
+  these placeholder directories or padding them with content that doesn't serve a real purpose
+  just to look complete.
+
+### What's genuinely production-ready vs. what a real launch still needs
+
+Being direct about this rather than declaring "done" unqualified:
+
+**Solid and verified**: authentication (including the security-critical refresh-token-rotation
+property, tested three separate ways — unit, e2e, and manual curl), authorization/multi-tenancy
+(no IDOR found across any controller), discovery/scanning/monitoring/risk-scoring pipeline (real
+external verification against `example.com` throughout), PDF reports, the SSRF fix, rate
+limiting, input validation, structured logging with secret redaction, Docker production images,
+CI pipeline.
+
+**Explicitly not done, by necessity of this environment, not by oversight**: real SMTP/Stripe/AI
+credentials (the code is real and verified as far as possible without them — see Steps 11/13);
+TLS/HTTPS termination for the production stack; a real deployment target (no actual cloud
+account/domain exists here, so `docker-build` is CI's last real job — there's no honest `deploy`
+step to add yet); multi-region/HA considerations; per-plan scan-frequency enforcement (flagged
+back in Step 9, still open); load/performance testing under realistic traffic (everything here
+was verified for *correctness*, not for behavior under production-scale load).
