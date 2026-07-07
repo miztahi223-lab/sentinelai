@@ -1,0 +1,340 @@
+// SentinelAI - Prisma schema
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum AssetType {
+  SUBDOMAIN
+  IP
+  URL
+  SERVICE
+  CERTIFICATE
+}
+
+enum ScanStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ScanType {
+  DISCOVERY
+  MONITORING
+  MANUAL
+}
+
+enum FindingSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum FindingCategory {
+  SSL
+  HEADERS
+  EXPOSURE
+  CONFIGURATION
+  ASSET_CHANGE
+  DNS
+  TECHNOLOGY
+}
+
+enum FindingStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+  FALSE_POSITIVE
+}
+
+enum AlertType {
+  NEW_FINDING
+  NEW_ASSET
+  REMOVED_ASSET
+  CERTIFICATE_CHANGE
+  DNS_CHANGE
+  TECHNOLOGY_CHANGE
+  SCAN_FAILED
+  BILLING
+}
+
+enum ReportFormat {
+  PDF
+  HTML
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+// ---------------------------------------------------------------------------
+// Core identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String
+  name              String
+  emailVerified     Boolean   @default(false)
+  emailVerifyToken  String?   @unique
+  passwordResetToken  String? @unique
+  passwordResetExpiresAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  memberships       Membership[]
+  refreshTokens     RefreshToken[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+// Hashed refresh tokens, one row per issued token, enables rotation + revocation.
+model RefreshToken {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  revoked     Boolean   @default(false)
+  replacedBy  String?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  ipAddress   String?
+  userAgent   String?
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Organization {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  memberships Membership[]
+  domains     Domain[]
+  scans       Scan[]
+  alerts      Alert[]
+  reports     Report[]
+  auditLogs   AuditLog[]
+  subscription Subscription?
+
+  @@map("organizations")
+}
+
+model Membership {
+  id              String          @id @default(uuid())
+  userId          String
+  organizationId  String
+  role            MembershipRole  @default(MEMBER)
+  createdAt       DateTime        @default(now())
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+// ---------------------------------------------------------------------------
+// Attack surface domain model
+// ---------------------------------------------------------------------------
+
+model Domain {
+  id              String        @id @default(uuid())
+  organizationId  String
+  name            String
+  verified        Boolean       @default(false)
+  verificationToken String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assets          Asset[]
+  scans           Scan[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("domains")
+}
+
+model Asset {
+  id          String      @id @default(uuid())
+  domainId    String
+  type        AssetType
+  value       String
+  active      Boolean     @default(true)
+  metadata    Json?
+  firstSeenAt DateTime    @default(now())
+  lastSeenAt  DateTime    @default(now())
+
+  domain      Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  findings    Finding[]
+
+  @@unique([domainId, type, value])
+  @@index([domainId])
+  @@map("assets")
+}
+
+// ---------------------------------------------------------------------------
+// Scanning / findings / alerts
+// ---------------------------------------------------------------------------
+
+model Scan {
+  id              String        @id @default(uuid())
+  organizationId  String
+  domainId        String?
+  type            ScanType      @default(MANUAL)
+  status          ScanStatus    @default(PENDING)
+  triggeredBy     String?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  errorMessage    String?
+  createdAt       DateTime      @default(now())
+
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  domain          Domain?       @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  findings        Finding[]
+  reports         Report[]
+
+  @@index([organizationId])
+  @@index([domainId])
+  @@map("scans")
+}
+
+model Finding {
+  id              String            @id @default(uuid())
+  scanId          String
+  assetId         String?
+  severity        FindingSeverity
+  category        FindingCategory
+  title           String
+  description     String
+  evidence        Json?
+  status          FindingStatus     @default(OPEN)
+  aiExplanation   String?
+  aiBusinessImpact String?
+  aiRemediation   String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  scan            Scan              @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  asset           Asset?            @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  alerts          Alert[]
+
+  @@index([scanId])
+  @@index([assetId])
+  @@index([severity])
+  @@map("findings")
+}
+
+model Alert {
+  id              String        @id @default(uuid())
+  organizationId  String
+  findingId       String?
+  type            AlertType
+  severity        FindingSeverity @default(INFO)
+  message         String
+  read            Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  finding         Finding?      @relation(fields: [findingId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([read])
+  @@map("alerts")
+}
+
+model Report {
+  id              String        @id @default(uuid())
+  organizationId  String
+  scanId          String?
+  title           String
+  format          ReportFormat  @default(PDF)
+  fileUrl         String?
+  generatedAt     DateTime      @default(now())
+
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scan            Scan?         @relation(fields: [scanId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@map("reports")
+}
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+model Subscription {
+  id                    String              @id @default(uuid())
+  organizationId        String              @unique
+  plan                  SubscriptionPlan    @default(FREE)
+  status                SubscriptionStatus  @default(ACTIVE)
+  stripeCustomerId      String?             @unique
+  stripeSubscriptionId  String?             @unique
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  organization          Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id              String        @id @default(uuid())
+  organizationId  String?
+  userId          String?
+  action          String
+  metadata        Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime      @default(now())
+
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@map("audit_logs")
+}
