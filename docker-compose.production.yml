@@ -1,0 +1,118 @@
+# Production compose file. Unlike docker-compose.yml (local dev — just
+# Postgres/Redis, with the app run via `npm run dev`/`next dev`), this
+# builds and runs the full stack from the Dockerfiles: postgres, redis,
+# backend, frontend, and an nginx reverse proxy in front of both.
+#
+# Real secrets (JWT/Stripe/AI/SMTP/etc.) must be supplied via a real .env
+# file or your platform's secret manager — never commit one. See
+# .env.example for the full list of variables this expects.
+#
+# TLS/HTTPS is intentionally not configured in nginx.conf here — terminate
+# TLS at your cloud load balancer / a certbot-managed nginx in front of
+# this stack, or add that configuration once you have a real domain and
+# certificate; faking one would be worse than leaving it explicit that
+# it's not done.
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentinel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-sentinelai}
+    volumes:
+      - sentinelai_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sentinel} -d ${POSTGRES_DB:-sentinelai}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - sentinelai_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sentinel}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sentinelai}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET must be set}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set}
+      NODE_ENV: production
+      PORT: "3001"
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_STARTER: ${STRIPE_PRICE_STARTER:-}
+      STRIPE_PRICE_PROFESSIONAL: ${STRIPE_PRICE_PROFESSIONAL:-}
+      STRIPE_PRICE_BUSINESS: ${STRIPE_PRICE_BUSINESS:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+    volumes:
+      - sentinelai_reports:/app/storage/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [internal]
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks: [internal]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    environment:
+      # 127.0.0.11 is Docker Engine's embedded DNS address (correct default
+      # for real Docker deployments); override only if your container
+      # runtime's embedded DNS lives elsewhere (verified during this build
+      # against Podman/aardvark-dns, which uses the network gateway IP
+      # instead — see the long comment in nginx.conf.template for why this
+      # must never be hardcoded again).
+      NGINX_RESOLVER: ${NGINX_RESOLVER:-127.0.0.11}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+    volumes:
+      - ./infra/nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+    depends_on:
+      - backend
+      - frontend
+    networks: [internal]
+
+networks:
+  internal:
+
+volumes:
+  sentinelai_postgres_data:
+  sentinelai_redis_data:
+  sentinelai_reports:

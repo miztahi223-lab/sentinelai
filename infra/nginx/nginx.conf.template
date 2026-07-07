@@ -1,0 +1,81 @@
+worker_processes auto;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  include       mime.types;
+  default_type  application/octet-stream;
+  sendfile      on;
+  keepalive_timeout 65;
+
+  # Basic request-rate protection at the edge, in addition to the
+  # application-level @nestjs/throttler guard already applied per-route —
+  # defense in depth, not a replacement for it.
+  limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s;
+
+  # A static `upstream { server backend:3001; }` block resolves the
+  # hostname exactly once, at nginx startup, and caches that IP forever.
+  # The very first real end-to-end test of this stack caught the resulting
+  # bug live: recreating the backend container (a routine `docker compose
+  # up -d backend` after a rebuild) gave it a new container IP on the
+  # compose network, and nginx kept proxying to the old, now-dead IP —
+  # "connect() failed (113: Host is unreachable)" — until nginx itself was
+  # restarted. Using the embedded DNS resolver with a short TTL, and putting
+  # the hostname in a variable (which forces nginx to actually consult the
+  # resolver per-request instead of only at startup), fixes this: proxy_pass
+  # re-resolves "backend"/"frontend" continuously.
+  #
+  # The resolver address is templated (this file is
+  # `nginx.conf.template`, expanded by the official nginx image's
+  # docker-entrypoint envsubst step into /etc/nginx/nginx.conf on container
+  # start) because it genuinely differs by container runtime: real Docker's
+  # embedded DNS is always 127.0.0.11; this was verified against Podman
+  # (this sandbox's engine) where it is instead the network's gateway IP
+  # (aardvark-dns, resolved here via $NGINX_RESOLVER at container-start,
+  # not baked into the image). Set NGINX_RESOLVER=127.0.0.11 for real Docker
+  # (the compose file's default) — do not hardcode either value directly
+  # into this file again; that's the exact bug this comment documents.
+  resolver ${NGINX_RESOLVER} valid=10s;
+
+  server {
+    listen 80;
+    server_name _;
+
+    limit_req zone=general burst=50 nodelay;
+
+    # Stripe webhook needs the raw body forwarded untouched and can send
+    # larger payloads than the default; keep it under /api like everything
+    # else but call it out explicitly since it's the one endpoint that's
+    # sensitive to body mangling.
+    location /api/billing/webhook {
+      set $backend_upstream backend:3001;
+      proxy_pass http://$backend_upstream;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_request_buffering off;
+    }
+
+    location /api/ {
+      set $backend_upstream backend:3001;
+      proxy_pass http://$backend_upstream;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_read_timeout 60s;
+    }
+
+    location / {
+      set $frontend_upstream frontend:3000;
+      proxy_pass http://$frontend_upstream;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+  }
+}

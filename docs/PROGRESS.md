@@ -21,7 +21,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 13 | Billing (Stripe) | Done, but inert without real Stripe keys — see below |
 | 14 | Landing page | Done — see below |
 | 15 | Testing | Done — see below |
-| 16 | Docker production | Not started (local dev docker-compose for Postgres/Redis exists) |
+| 16 | Docker production | Done — see below |
 | 17 | CI/CD | Not started |
 | 18 | Security review | Not started (some security practices already applied inline: Argon2id, refresh rotation, Helmet, rate limiting, input validation, secret redaction in logs) |
 | 19 | Final QA | Not started |
@@ -571,3 +571,68 @@ blanket loosening of the config production code is still held to.
 (4 suites, 23 tests, all pass), `npx jest --config ./test/jest-e2e.json` (1 suite, 8 tests, all
 pass against the real live stack); frontend `npm run build` (clean), `npm run lint` (0 errors),
 `npx vitest run` (2 files, 8 tests, all pass).
+
+## Step 16 — Docker production (done, 2026-07-07)
+
+Built the actual production container images and orchestration, then **proved they work by
+running the real, full production stack locally** (`docker compose build` + `up`, exactly as the
+brief asked) rather than just writing Dockerfiles and assuming they'd work — this is what caught
+every bug documented below.
+
+- **`apps/backend/Dockerfile`** — 4-stage build (`deps` → `build` → `prod-deps` → `runtime`): the
+  final image contains only production `node_modules` (via a separate `npm ci --omit=dev` stage,
+  never the `tsc`/`eslint`/`jest` toolchain used to build it), the compiled `dist/`, the Prisma
+  schema/migrations, and a small entrypoint script — runs as a non-root `sentinelai` user, exposes
+  a `HEALTHCHECK`.
+- **`apps/backend/docker-entrypoint.sh`** — runs `npx prisma migrate deploy` before starting the
+  server on every container start (safe/idempotent if already up to date). **This is a real bug
+  this session caught, not a guess**: the first `up`, without this, started cleanly and looked
+  fine until the first real request — `POST /auth/register` 500'd with `Prisma...
+  The table "public.users" does not exist`, because nothing had ever run migrations against the
+  fresh production Postgres volume. Fixed by adding the entrypoint; also had to move `dotenv` from
+  `devDependencies` to real `dependencies` and copy `prisma.config.ts` into the runtime image,
+  since Prisma 7's `migrate deploy` needs both at runtime, not just at build time.
+- **`apps/frontend/Dockerfile`** — enabled Next's `output: "standalone"` (in `next.config.ts`) so
+  the runtime stage ships only the traced minimal server bundle, not the full `node_modules`.
+  `NEXT_PUBLIC_API_URL` is a build `ARG`, since Next inlines `NEXT_PUBLIC_*` vars into the client
+  bundle at build time — it cannot be swapped at container-start the way server-only env vars can.
+  **Found and fixed a second real bug**: the container's `HEALTHCHECK` reported `unhealthy`
+  despite the app serving real 200s to other containers — the standalone `server.js` binds to
+  `process.env.HOSTNAME` if set, and Docker/Podman auto-set `HOSTNAME` to the container's own
+  hostname, which its own DNS resolves to its *specific* container IP rather than all interfaces,
+  so the server was unreachable from `localhost` inside its own container (external traffic via
+  the compose network still worked, which is why it wasn't caught by a manual curl through nginx
+  alone). Fixed with an explicit `ENV HOSTNAME=0.0.0.0` override.
+- **`infra/nginx/nginx.conf.template`** + **`docker-compose.production.yml`** — nginx reverse-
+  proxies `/api/*` to the backend and everything else to the frontend, with a dedicated
+  `location` for `/api/billing/webhook` (`proxy_request_buffering off`, since Stripe's signature
+  is computed over the exact raw body). **Found and fixed a third real bug, live**: a static
+  `upstream { server backend:3001; }` block resolves the hostname once at nginx startup and
+  caches that IP forever — recreating the backend container after a rebuild (a completely routine
+  operation) gave it a new container IP, and nginx kept sending requests to the old, now-dead IP
+  (`connect() failed (113: Host is unreachable)`) until nginx itself was manually restarted. Fixed
+  properly (not just "remember to restart nginx every time," which is a bug waiting to happen in
+  real operations) by adding `resolver <dns-ip> valid=10s;` plus routing through a `set $upstream
+  ...; proxy_pass http://$upstream;` variable, which together force nginx to actually re-resolve
+  the hostname periodically instead of only once. Confirmed this self-heals: force-recreated the
+  frontend container a second time and, this time, nginx picked up the new IP on its own within
+  ~10s with zero manual intervention.
+- The correct DNS resolver address is itself environment-dependent (real Docker's embedded DNS is
+  always `127.0.0.11`; this sandbox's engine is Podman, whose embedded DNS — aardvark-dns — lives
+  at the bridge network's gateway IP instead), so the resolver address is templated via nginx's
+  official envsubst-on-startup mechanism (`NGINX_RESOLVER` env var, defaulting to `127.0.0.11` for
+  real Docker) rather than hardcoded — verified this templating mechanism itself works by
+  overriding it to Podman's actual resolver IP for this local test run.
+- TLS/HTTPS is intentionally **not** configured in `nginx.conf` — there's no real domain or
+  certificate available in this environment to configure honestly; the compose file and its
+  comments call this out explicitly as something to add at deploy time (terminate at a cloud load
+  balancer, or add certbot) rather than faking a self-signed cert and calling it done.
+
+**Verified end-to-end against the real, fully containerized production stack** (`docker compose -f
+docker-compose.production.yml build` then `up`, all 5 services: postgres, redis, backend,
+frontend, nginx): registered a real user through `http://localhost:8080/api/auth/register` (nginx
+→ backend → real Postgres, migrations auto-applied), logged in successfully, loaded the real
+frontend (`/`, `/login`) through nginx, and confirmed the DNS self-healing behavior described
+above with a live container recreation. Stack torn down and test volumes removed after
+verification; the separate local-dev `docker-compose.yml` stack (used by every earlier step) was
+left untouched and still running throughout.
