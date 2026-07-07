@@ -2,6 +2,10 @@
   "brand": {
     "name": "SentinelAI"
   },
+  "meta": {
+    "title": "SentinelAI — Know what attackers can see before they do",
+    "description": "Continuous attack-surface monitoring, auditable security scoring, and AI-powered remediation guidance — start free, no credit card required."
+  },
   "nav": {
     "features": "Features",
     "pricing": "Pricing",
@@ -10,7 +14,14 @@
     "startTrial": "Start free trial"
   },
   "footer": {
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or may have moved.",
+    "backHome": "Back to homepage"
   },
   "landing": {
     "heroTitleLine1": "Know what attackers can see",
@@ -34,7 +45,35 @@
     "pricingTitle": "Simple, transparent pricing",
     "seeFullPlans": "See full plan comparison",
     "finalCtaTitle": "Start monitoring your attack surface today",
-    "finalCtaSubtitle": "Free to start — no credit card required."
+    "finalCtaSubtitle": "Free to start — no credit card required.",
+    "howItWorksTitle": "From zero to a full attack-surface map in minutes",
+    "howItWorksSubtitle": "No agents to install, no network access to grant — just a domain name.",
+    "step1Title": "Add a domain",
+    "step1Desc": "Type in a domain you're responsible for. That's the entire setup — no credentials, no agents, no firewall changes.",
+    "step2Title": "We scan what attackers would scan",
+    "step2Desc": "DNS, subdomains, TLS certificates, HTTP responses, and detected technologies — the same reconnaissance an attacker does first, done automatically and safely.",
+    "step3Title": "Get a prioritized, explained action list",
+    "step3Desc": "A 0-100 score, every finding traced to its cause, and — when configured — an AI-written explanation of what to fix first and why it matters.",
+    "trustTitle": "Built the way a security tool should be",
+    "trustPoint1Title": "Read-only reconnaissance",
+    "trustPoint1Desc": "Discovery only ever reads what's already publicly reachable (DNS, TLS, HTTP) — it never attempts to exploit, modify, or authenticate against anything.",
+    "trustPoint2Title": "Your data, explained plainly",
+    "trustPoint2Desc": "Every score and finding links back to the exact signal that produced it — no black-box numbers you have to just trust.",
+    "trustPoint3Title": "No lock-in",
+    "trustPoint3Desc": "Start free, cancel anytime from your billing settings — no sales call required to stop paying.",
+    "trustPoint4Title": "Guarded against misuse",
+    "trustPoint4Desc": "Outbound scanning is checked against private/internal address ranges before every connection, so the platform itself can't be turned into a tool against internal infrastructure.",
+    "faqTitle": "Questions, answered",
+    "faq1Q": "Do I need to install anything?",
+    "faq1A": "No. SentinelAI only needs a domain name — everything it discovers is reachable the same way a browser or search engine would reach it.",
+    "faq2Q": "Can I scan a domain I don't own?",
+    "faq2A": "Only scan domains you own or are authorized to test. SentinelAI performs read-only, non-intrusive reconnaissance, but you're responsible for having the right to monitor any domain you add.",
+    "faq3Q": "What happens on the Free plan?",
+    "faq3A": "You get one domain, weekly scans, and full access to security scoring and findings — no credit card, no time limit.",
+    "faq4Q": "Can I cancel anytime?",
+    "faq4A": "Yes — change or cancel your plan anytime from your billing settings. No calls, no forms.",
+    "faq5Q": "How is the security score calculated?",
+    "faq5A": "It starts at 100 and deducts real, traceable points across five categories — SSL, headers, exposure, configuration, and asset changes. Every point lost links to a specific finding you can inspect."
   },
   "features": {
     "title": "Built for teams who need to know, not just scan",
@@ -124,7 +163,29 @@
     "noAccount": "Don't have an account?",
     "alreadyHaveAccount": "Already have an account?",
     "startTrial": "Start free trial",
-    "errorDefault": "Something went wrong. Please try again."
+    "errorDefault": "Something went wrong. Please try again.",
+    "backToLogin": "Back to sign in",
+    "forgotPasswordTitle": "Reset your password",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a link to reset your password.",
+    "sendResetLink": "Send reset link",
+    "sendingResetLink": "Sending...",
+    "resetLinkSentTitle": "Check your email",
+    "resetLinkSentDesc": "If an account exists for that email, a password reset link is on its way.",
+    "resetPasswordTitle": "Choose a new password",
+    "resetPasswordSubtitle": "Make it at least 12 characters — something you haven't used before.",
+    "newPassword": "New password",
+    "resetPasswordButton": "Reset password",
+    "resettingPassword": "Resetting...",
+    "resetSuccessTitle": "Password updated",
+    "resetSuccessDesc": "Your password has been reset. You've been signed out everywhere else for safety — sign in again with your new password.",
+    "invalidTokenTitle": "This link isn't valid",
+    "invalidTokenDesc": "Reset links expire after a while, or may have already been used. Request a new one below.",
+    "verifyingEmail": "Verifying your email…",
+    "verifyEmailSuccessTitle": "Email verified",
+    "verifyEmailSuccessDesc": "Thanks — your email address is confirmed.",
+    "verifyEmailErrorTitle": "Couldn't verify this email",
+    "verifyEmailErrorDesc": "This verification link may have expired or already been used.",
+    "goToDashboard": "Go to dashboard"
   },
   "sidebar": {
     "dashboard": "Dashboard",

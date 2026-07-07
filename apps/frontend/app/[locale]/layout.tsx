@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import "../globals.css";
 import { QueryProvider } from "@/lib/query-provider";
@@ -18,17 +18,48 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "SentinelAI — Know what attackers can see before they do",
-  description:
-    "Continuous attack-surface monitoring, risk scoring, and AI-powered remediation guidance.",
-  // Explicit, absolute icon path — without this, browsers on a locale-
-  // prefixed page (e.g. `/he/domains`) sometimes request the favicon
-  // relative to the current path (`/he/favicon.ico`), which 404s since the
-  // file only exists at the true root. Verified this is a real, reproducible
-  // issue (not hypothetical) via a live browser session before adding this.
-  icons: { icon: "/favicon.ico" },
-};
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  const title = t("title");
+  const description = t("description");
+
+  return {
+    title,
+    description,
+    // Explicit, absolute icon path — without this, browsers on a locale-
+    // prefixed page (e.g. `/he/domains`) sometimes request the favicon
+    // relative to the current path (`/he/favicon.ico`), which 404s since
+    // the file only exists at the true root. Verified this is a real,
+    // reproducible issue (not hypothetical) via a live browser session
+    // before adding this.
+    icons: { icon: "/favicon.ico" },
+    metadataBase: new URL(SITE_URL),
+    alternates: {
+      languages: Object.fromEntries(
+        routing.locales.map((l) => [l, `${SITE_URL}/${l}`]),
+      ),
+    },
+    openGraph: {
+      title,
+      description,
+      siteName: "SentinelAI",
+      locale,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

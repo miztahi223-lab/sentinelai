@@ -11,7 +11,7 @@ export function MarketingFooter() {
         <p>
           &copy; {new Date().getFullYear()} SentinelAI. {tFooter("rights")}
         </p>
-        <div className="flex gap-6">
+        <div className="flex flex-wrap justify-center gap-6">
           <Link href="/features" className="transition hover:text-gray-300">
             {t("features")}
           </Link>
@@ -20,6 +20,12 @@ export function MarketingFooter() {
           </Link>
           <Link href="/contact" className="transition hover:text-gray-300">
             {t("contact")}
+          </Link>
+          <Link href="/terms" className="transition hover:text-gray-300">
+            {tFooter("terms")}
+          </Link>
+          <Link href="/privacy" className="transition hover:text-gray-300">
+            {tFooter("privacy")}
           </Link>
         </div>
       </div>

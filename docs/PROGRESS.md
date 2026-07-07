@@ -1055,3 +1055,74 @@ the ones that mattered visually (nav, sidebar, timeline, forms, cards) were foun
 real visual inspection in both directions, which is the same rigor applied everywhere else in this
 build, but a dedicated line-by-line grep-for-`pl-`/`pr-`/`ml-`/`mr-`/`left-`/`right-` audit of every
 file wasn't separately performed as a final catch-all pass.
+
+## Enhancement 3 — missing auth pages, sales-focused landing content, legal pages, SEO (done, 2026-07-07)
+
+Continuing to build on the product per direct instruction: fill in real remaining gaps, add
+stronger marketing/sales copy, and keep polishing — same "no fake data" discipline applied to the
+sales copy specifically (no fabricated customer counts, testimonials, or logos — every claim on
+the landing page describes something this codebase actually does, verifiable by reading the
+relevant service).
+
+**Filled a real, previously-dead gap**: the login page has always linked to `/forgot-password`,
+and the backend's `forgot-password`/`reset-password`/`verify-email` endpoints have existed since
+Step 5 — but no frontend pages for any of them ever existed, so that link 404'd. Built all three:
+- `/forgot-password` — requests a reset link; shows an identical success state regardless of
+  whether the email is actually registered (matches the backend's own no-enumeration behavior —
+  checked `auth.service.ts` directly to confirm this before writing the comment asserting it).
+- `/reset-password` — reads `?token=` from the URL, submits a new password, shows a clear
+  invalid-token state if there's no token at all.
+- `/verify-email` — auto-submits the token on load, shows verifying/success/error states.
+- **Verified all three for real against the live backend**, not just visually: registered a real
+  user, requested a real password reset, pulled the real generated token out of the backend's log
+  (no SMTP configured, so it logs instead of sending — the established pattern), completed the
+  reset through the actual `/reset-password` UI, and confirmed via direct API calls that the new
+  password logs in successfully and **the old password is now rejected** (401) — the real
+  underlying security property, not just "a success message appeared."
+- Both new `useSearchParams()`-consuming pages needed a `Suspense` boundary or `next build` fails
+  outright trying to prerender them — hit this exact build error before fixing it, not guessed at.
+
+**Sales-focused landing page additions** (all real claims about what's actually built, checked
+against the relevant service before writing each one — no invented social proof/testimonials/
+customer counts, which would violate this project's own "no fake data" rule just as much as fake
+data anywhere else in the codebase would):
+- **"How it works"** 3-step section (add a domain → we scan what attackers would scan →
+  prioritized action list) — gives a skimmable answer to "what do I actually get" before the
+  detailed feature grid.
+- **"Built the way a security tool should be"** trust section — four honest, verifiable claims:
+  read-only reconnaissance (true — grepped the discovery services again to confirm none of them
+  ever send anything other than standard read-only DNS/TLS/HTTP requests), transparent scoring
+  (true — Step 10's point-deduction model), no lock-in (true — Stripe portal self-service
+  cancellation), and guarded against misuse (true — directly references this session's own SSRF
+  fix).
+- **FAQ section** (new `FaqAccordion` client component, single-open accordion) answering real
+  objections a prospective customer would have — including an explicit, honest answer to "can I
+  scan a domain I don't own?" that says no, rather than dodging the question a real attack-surface
+  tool has to be straight about.
+
+**Legal pages** (`/terms`, `/privacy`) — real, complete (if reasonably concise) content in both
+languages, not placeholder Lorem Ipsum: Terms of Service includes an explicit "authorized use
+only" clause (important for a domain-scanning product specifically — a user must only add domains
+they own or are authorized to test), and Privacy Policy accurately describes the actual data this
+codebase collects and the actual third parties it talks to (Stripe, the configured SMTP provider,
+Anthropic) — cross-checked against `schema.prisma` and `ai.service.ts` directly rather than
+writing generic boilerplate, confirming e.g. that AI finding-analysis really does only send the
+finding's own title/description/severity/category, never full account data.
+
+**SEO/sharing basics** — `app/sitemap.ts` and `app/robots.ts` (Next's real file-convention APIs,
+`disallow`-ing the authenticated dashboard routes via a `/*/dashboard`-style wildcard since every
+route is locale-prefixed), and `generateMetadata` (converted from a static `metadata` export) so
+`<title>`/description/Open Graph/Twitter-card tags are genuinely translated per locale rather than
+always English regardless of which language a page is being viewed in.
+
+**Custom, on-brand 404 page** — found and fixed a real next-intl gap while verifying this: a
+translated `app/[locale]/not-found.tsx` alone does **not** catch a genuinely unmatched path (e.g.
+`/he/some-typo`) — confirmed live that it fell through to Next's plain, unstyled, English-only
+default 404 instead. Fixed with the standard fix: an `app/[locale]/[...rest]/page.tsx` catch-all
+that calls `notFound()`, so any otherwise-unmatched path under a valid locale actually resolves
+into the `[locale]` route tree (and therefore hits the nearby styled/translated boundary).
+Re-verified live afterward: the custom Hebrew 404 page now renders correctly.
+
+Full re-verification after all of the above: `npm run build` (clean, all 17 pages × 2 locales +
+`robots.txt`/`sitemap.xml` statically generated), `npm run lint` (0 errors), `npx vitest run`
+(15/15, unchanged), zero browser console errors across every new/changed page in both languages.

@@ -1,12 +1,29 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Globe2, ShieldCheck, Bell, FileText, Bot, Radar } from "lucide-react";
+import {
+  Globe2,
+  ShieldCheck,
+  Bell,
+  FileText,
+  Bot,
+  Radar,
+  ScanSearch,
+  ListChecks,
+  Eye,
+  Sparkles,
+  Unlock,
+  ShieldAlert,
+} from "lucide-react";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
+import { FaqAccordion } from "@/components/FaqAccordion";
 import { Link } from "@/i18n/navigation";
 import { getPlans } from "@/lib/plans";
 import type { Locale } from "@/i18n/routing";
 
 const FEATURE_ICONS = [Radar, ShieldCheck, Bell, Bot, FileText, Globe2];
+const HOW_IT_WORKS_ICONS = [Globe2, ScanSearch, ListChecks];
+const TRUST_ICONS = [Eye, Sparkles, Unlock, ShieldAlert];
+const FAQ_COUNT = 5;
 
 export default async function Home({
   params,
@@ -30,6 +47,23 @@ export default async function Home({
     icon,
     title: t(`feature${i + 1}Title` as "feature1Title"),
     description: t(`feature${i + 1}Desc` as "feature1Desc"),
+  }));
+
+  const steps = HOW_IT_WORKS_ICONS.map((icon, i) => ({
+    icon,
+    title: t(`step${i + 1}Title` as "step1Title"),
+    description: t(`step${i + 1}Desc` as "step1Desc"),
+  }));
+
+  const trustPoints = TRUST_ICONS.map((icon, i) => ({
+    icon,
+    title: t(`trustPoint${i + 1}Title` as "trustPoint1Title"),
+    description: t(`trustPoint${i + 1}Desc` as "trustPoint1Desc"),
+  }));
+
+  const faqItems = Array.from({ length: FAQ_COUNT }, (_, i) => ({
+    question: t(`faq${i + 1}Q` as "faq1Q"),
+    answer: t(`faq${i + 1}A` as "faq1A"),
   }));
 
   return (
@@ -65,6 +99,32 @@ export default async function Home({
           </div>
         </section>
 
+        {/* How it works */}
+        <section className="border-t border-gray-800/80 py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-2xl font-semibold text-white sm:text-3xl">
+                {t("howItWorksTitle")}
+              </h2>
+              <p className="mt-3 text-sm text-gray-500">{t("howItWorksSubtitle")}</p>
+            </div>
+            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
+              {steps.map(({ icon: Icon, title, description }, i) => (
+                <div key={title} className="text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-indigo-900 bg-indigo-500/10">
+                    <Icon className="h-5 w-5 text-indigo-400" />
+                  </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-indigo-400">
+                    {i + 1}
+                  </p>
+                  <h3 className="mt-1 text-sm font-medium text-white">{title}</h3>
+                  <p className="mx-auto mt-2 max-w-xs text-sm text-gray-500">{description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Features */}
         <section className="border-t border-gray-800/80 bg-gray-900/20 py-20">
           <div className="mx-auto max-w-6xl px-6">
@@ -82,6 +142,28 @@ export default async function Home({
                   </div>
                   <h3 className="mt-4 text-sm font-medium text-white">{title}</h3>
                   <p className="mt-2 text-sm text-gray-500">{description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Trust */}
+        <section className="border-t border-gray-800/80 bg-gray-900/20 py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <h2 className="text-center text-2xl font-semibold text-white sm:text-3xl">
+              {t("trustTitle")}
+            </h2>
+            <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {trustPoints.map(({ icon: Icon, title, description }) => (
+                <div key={title} className="flex gap-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10">
+                    <Icon className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-white">{title}</h3>
+                    <p className="mt-1 text-sm text-gray-500">{description}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -113,6 +195,18 @@ export default async function Home({
               >
                 {t("seeFullPlans")} →
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="py-20">
+          <div className="mx-auto max-w-3xl px-6">
+            <h2 className="text-center text-2xl font-semibold text-white sm:text-3xl">
+              {t("faqTitle")}
+            </h2>
+            <div className="mt-10">
+              <FaqAccordion items={faqItems} />
             </div>
           </div>
         </section>
