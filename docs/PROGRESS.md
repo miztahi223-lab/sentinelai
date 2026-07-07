@@ -17,7 +17,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 9 | Monitoring engine | Done — see below |
 | 10 | Risk engine | Done — see below |
 | 11 | AI integration | Done, but inert without a real API key — see below |
-| 12 | Reports (PDF) | Queue infrastructure done (Step 8); actual PDF rendering not started — worker honestly fails with a clear "not implemented" error rather than faking a PDF |
+| 12 | Reports (PDF) | Done — see below |
 | 13 | Billing (Stripe) | Not started |
 | 14 | Landing page | Not started |
 | 15 | Testing | Not started (beyond the manual smoke test in step 5) |
@@ -355,3 +355,48 @@ explicit type across the try/catch boundary where TypeScript's inference otherwi
 
 **To actually enable this feature**: set `AI_API_KEY` to a real Anthropic API key. No code changes
 needed.
+
+## Step 12 — Reports / PDF generation (done, 2026-07-07)
+
+Replaced Step 8's honest "not implemented yet" stub with a real PDF generation service, using
+`pdfkit` (a real, widely-used Node PDF library):
+
+- **`src/reports/pdf-generator.service.ts`** — renders an actual PDF containing exactly what the
+  brief asked for: company (organization name + domain), score, assets (up to 30 listed, with a
+  "...and N more" overflow line), findings (sorted by severity, colored by severity, including the
+  AI explanation when Step 11 has populated one), and recommendations (prefers AI-generated
+  remediation text when available, falls back to the top 5 findings' own descriptions otherwise).
+- **`report.processor.ts`** rewritten to actually call it: loads the organization, the requested
+  scan (or the org's most recent completed one if none specified), that scan's findings and the
+  domain's active assets, computes the score the same way the risk-engine endpoint does, generates
+  the PDF, and stores its file path on the `Report` row.
+- **Storage**: local disk (`storage/reports/{reportId}.pdf`), explicitly disclosed as a
+  simplification for this build stage, not an oversight — production behind multiple app instances
+  would want S3/GCS so any instance can serve a download regardless of which one generated the
+  file, which needs real cloud credentials this environment doesn't have. The download endpoint is
+  structured so swapping storage backends later doesn't change the public API.
+- **`GET /reports/:id/download`** — streams the real PDF file (`res.download`), 404s with a clear
+  message if generation hasn't finished/failed rather than serving a broken file.
+- **`POST /reports/:id/email`** — emails the real PDF as a genuine attachment via `EmailService`
+  (extended `EmailService.send()` to support `nodemailer` attachments, added `sendReportEmail()`).
+  Same honest "logs instead of sends" fallback as every other email in this build when SMTP isn't
+  configured — the log line explicitly names the attachment so it's clear one *would* have been
+  sent.
+
+**Verified for real, not just "builds without errors"**: created a report via
+`POST /reports` for a real scanned domain (`example.com`), downloaded it via
+`GET /reports/:id/download`, and confirmed with the `file` command that the result is a genuine
+`PDF document, version 1.3` (not a text file with a `.pdf` name) — then extracted its actual text
+with `pdftotext` and confirmed it contains the real organization name, the real `90/100` score,
+all 6 real discovered assets (including the real IPs and certificate fingerprint from Step 7's
+`example.com` scan), and both real findings with their real descriptions. Also tested
+`POST /reports/:id/email` — the log confirms the real generated PDF was attached
+(`Security report — 2026-07-07.pdf`) to the (logged, since no SMTP) outgoing email.
+
+Build and lint both clean (0 errors) — the only real fix needed was correcting `pdfkit`'s import
+style (`import PDFDocument from 'pdfkit'`, not a namespace import, since the package has no
+construct signature under a namespace import with `esModuleInterop`).
+
+**Not yet built**: multi-scan/trend reports (one report = one scan snapshot right now), custom
+report branding/templates, scheduled/recurring report generation (only on-demand via
+`POST /reports` so far).

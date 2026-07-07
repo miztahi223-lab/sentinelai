@@ -63,4 +63,20 @@ export class ReportsService {
       orderBy: { generatedAt: 'desc' },
     });
   }
+
+  /** Returns the report only if the requesting user belongs to its org. */
+  async findOneForUser(userId: string, reportId: string) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+    if (!report) return null;
+    const membership = await this.organizationsService.getMembership(
+      userId,
+      report.organizationId,
+    );
+    if (!membership) {
+      throw new ForbiddenException('You do not have access to this report');
+    }
+    return report;
+  }
 }

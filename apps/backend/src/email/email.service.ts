@@ -49,10 +49,19 @@ export class EmailService implements OnModuleInit {
     });
   }
 
-  private async send(to: string, subject: string, html: string, text: string) {
+  private async send(
+    to: string,
+    subject: string,
+    html: string,
+    text: string,
+    attachments?: { filename: string; path: string }[],
+  ) {
     if (!this.transporter) {
       this.logger.log(
-        `[email:not-configured] To: ${to} | Subject: ${subject}\n${text}`,
+        `[email:not-configured] To: ${to} | Subject: ${subject}\n${text}` +
+          (attachments?.length
+            ? ` (with attachment(s): ${attachments.map((a) => a.filename).join(', ')})`
+            : ''),
       );
       return;
     }
@@ -62,6 +71,7 @@ export class EmailService implements OnModuleInit {
       subject,
       html,
       text,
+      attachments,
     });
   }
 
@@ -92,6 +102,21 @@ export class EmailService implements OnModuleInit {
       `SentinelAI alert: ${subject}`,
       `<p>${message}</p><p><a href="${dashboardUrl}">View all alerts</a></p>`,
       `${message}\n\nView all alerts: ${dashboardUrl}`,
+    );
+  }
+
+  async sendReportEmail(to: string, reportTitle: string, pdfPath: string) {
+    await this.send(
+      to,
+      `SentinelAI report: ${reportTitle}`,
+      `<p>Your requested security report "${reportTitle}" is attached.</p>`,
+      `Your requested security report "${reportTitle}" is attached.`,
+      [
+        {
+          filename: `${reportTitle.replace(/[^a-z0-9-_ ]/gi, '')}.pdf`,
+          path: pdfPath,
+        },
+      ],
     );
   }
 }
