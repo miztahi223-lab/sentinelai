@@ -13,11 +13,11 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 5 | Authentication (register/login/logout/refresh/forgot-password/reset-password/verify-email, Argon2id, JWT access + rotating opaque refresh tokens, rate-limited endpoints) | Done — full end-to-end smoke test passed against real DB (see below) |
 | 6 | Main dashboard (frontend routes + components) | Done — see below |
 | 7 | Asset discovery module (dns/ssl/http/technology services) | Done — see below |
-| 8 | Background workers (BullMQ) | Not started |
-| 9 | Monitoring engine | Not started |
+| 8 | Background workers (BullMQ) | Done — see below (also pulled forward a real "scheduled/on-demand scan → alert → email notification" pipeline, most of Step 9's substance, since it's the natural output of a working worker) |
+| 9 | Monitoring engine | Partially done via Step 8 (change detection + alert generation on every scan run); not done: recurring/scheduled (cron) scans — only on-demand so far |
 | 10 | Risk engine | Not started |
 | 11 | AI integration | Not started |
-| 12 | Reports (PDF) | Not started |
+| 12 | Reports (PDF) | Queue infrastructure done (Step 8); actual PDF rendering not started — worker honestly fails with a clear "not implemented" error rather than faking a PDF |
 | 13 | Billing (Stripe) | Not started |
 | 14 | Landing page | Not started |
 | 15 | Testing | Not started (beyond the manual smoke test in step 5) |
@@ -169,3 +169,49 @@ types.
 **Not yet built**: this module only runs on-demand via the API — there's no scheduling,
 periodic re-scanning, or change-detection/alerting yet. That's Steps 8 (background workers) and 9
 (monitoring engine), next.
+
+## Step 8 — Background workers (done, 2026-07-07)
+
+Real BullMQ + Redis integration (`@nestjs/bullmq`), not a fake/synchronous stand-in:
+
+- **`queue/queue.module.ts`** — connects BullMQ to the Redis container from Step 4 and registers
+  three queues (`scans`, `reports`, `notifications`), imported by whichever feature module needs to
+  produce or consume jobs on them.
+- **`scans/scan.processor.ts`** (the brief's `scan.worker.ts`) — consumes scan jobs, marks the
+  `Scan` row RUNNING → calls the real `DiscoveryService` from Step 7 → creates `Alert` rows for
+  every newly-discovered asset, every asset that disappeared since the last scan, and (a genuinely
+  useful signal that fell out of building this) a HIGH/MEDIUM alert when a TLS certificate is
+  within 30 days of expiry → marks the scan COMPLETED, or FAILED with the real error message and
+  lets BullMQ's configured retry/backoff take over on throw.
+- **`notifications/notification.processor.ts`** (the brief's `notification.worker.ts`) — consumes
+  a single alert ID and emails every OWNER/ADMIN member of that org via the real `EmailService`
+  from Step 5 (still subject to the same "logs instead of sends without SMTP configured" honest
+  fallback). Only enqueued for HIGH/CRITICAL severity alerts — deliberately not every routine
+  "new asset" alert, or real alerts would drown in noise.
+- **`reports/report.processor.ts`** (the brief's `report.worker.ts`) — consumes report-generation
+  jobs. Since actual PDF rendering is Step 12 and isn't built yet, this worker **honestly throws
+  a clear "not implemented" error** instead of fabricating a fake PDF URL — the queue
+  mechanics (enqueue → pick up → touch the DB row) are real and already wired end-to-end, so
+  Step 12 only needs to add the actual rendering logic in this one place.
+- Added `ScansModule` (`POST /scans` enqueues + returns immediately with status `PENDING`;
+  `GET /scans`, `GET /scans/:id` to poll) and `ReportsModule` (`POST /reports`, `GET /reports`) to
+  expose all of this over the API, both membership-checked the same way `DomainsModule` already
+  was.
+
+**Verified end-to-end against the real BullMQ worker + real Redis + real Postgres, not mocked**:
+`POST /scans` for `example.com` returned immediately with `status: "PENDING"` (proving it's
+actually asynchronous, not just pretending) — polling `GET /scans/:id` ~3s later showed
+`status: "COMPLETED"` with real `startedAt`/`finishedAt` timestamps, and the log showed
+`ScanProcessor` picking up and processing the job on its own. Confirmed 6 real `Alert` rows were
+created in Postgres, one per newly-discovered asset, with real messages like *"New ip discovered:
+104.20.23.154"*. Separately tested `POST /reports`: the worker picked up the job and logged the
+honest "PDF generation (Step 12) isn't implemented yet" warning + threw, rather than pretending to
+succeed.
+
+Build and lint both clean (0 errors) after this addition — no new suppressions needed, only real
+fixes were required in earlier steps.
+
+**Not yet built**: no recurring/scheduled scans (BullMQ supports repeatable jobs; nothing currently
+enqueues one on a cron-like schedule — every scan so far is triggered by a `POST /scans` call). No
+report rendering. No AI-generated alert explanations. Those are Steps 9 (finish scheduling), 10, 11,
+12.

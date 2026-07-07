@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AssetType, Prisma } from '@prisma/client';
+import { Asset, AssetType, Prisma } from '@prisma/client';
 import { DnsService } from './dns.service';
 import { SslService } from './ssl.service';
 import { HttpService } from './http.service';
@@ -10,7 +10,8 @@ export interface DiscoveryRunSummary {
   domainId: string;
   hostname: string;
   assetsObserved: number;
-  assetsMarkedInactive: number;
+  newAssets: Asset[];
+  removedAssets: Asset[];
   dns: {
     aRecords: number;
     aaaaRecords: number;
@@ -42,6 +43,7 @@ export class DiscoveryService {
     const startedAt = new Date();
     this.logger.log(`Starting discovery for ${hostname}`);
     const observedAssetIds: string[] = [];
+    const newAssets: Asset[] = [];
 
     const [dnsResult, sslResult, httpResult] = await Promise.all([
       this.dnsService.lookup(hostname),
@@ -49,46 +51,56 @@ export class DiscoveryService {
       this.httpService.probe(hostname),
     ]);
 
+    const track = (result: { asset: Asset; isNew: boolean }) => {
+      observedAssetIds.push(result.asset.id);
+      if (result.isNew) newAssets.push(result.asset);
+    };
+
     // --- Persist IP assets from A/AAAA records ---
     for (const ip of [...dnsResult.a, ...dnsResult.aaaa]) {
-      const asset = await this.assetService.upsertObservedAsset({
-        domainId,
-        type: AssetType.IP,
-        value: ip,
-        metadata: {
-          source: 'dns',
-          resolvedAt: dnsResult.resolvedAt.toISOString(),
-        },
-      });
-      observedAssetIds.push(asset.id);
+      track(
+        await this.assetService.upsertObservedAsset({
+          domainId,
+          type: AssetType.IP,
+          value: ip,
+          metadata: {
+            source: 'dns',
+            resolvedAt: dnsResult.resolvedAt.toISOString(),
+          },
+        }),
+      );
     }
 
     // --- Persist CNAME targets as subdomain-type assets (they're hostnames,
     // not the domain itself) ---
     for (const target of dnsResult.cname) {
-      const asset = await this.assetService.upsertObservedAsset({
-        domainId,
-        type: AssetType.SUBDOMAIN,
-        value: target,
-        metadata: { source: 'dns-cname' },
-      });
-      observedAssetIds.push(asset.id);
+      track(
+        await this.assetService.upsertObservedAsset({
+          domainId,
+          type: AssetType.SUBDOMAIN,
+          value: target,
+          metadata: { source: 'dns-cname' },
+        }),
+      );
     }
 
     // --- Persist certificate asset ---
     let technologies: string[] = [];
     if (sslResult.subject || sslResult.fingerprint256) {
-      const asset = await this.assetService.upsertObservedAsset({
-        domainId,
-        type: AssetType.CERTIFICATE,
-        value: sslResult.fingerprint256 ?? `${hostname}:443`,
-        metadata: {
-          ...sslResult,
-          validFrom: sslResult.validFrom?.toISOString(),
-          validTo: sslResult.validTo?.toISOString(),
-        },
-      });
-      observedAssetIds.push(asset.id);
+      track(
+        await this.assetService.upsertObservedAsset({
+          domainId,
+          type: AssetType.CERTIFICATE,
+          value: sslResult.fingerprint256 ?? `${hostname}:443`,
+          metadata: JSON.parse(
+            JSON.stringify({
+              ...sslResult,
+              validFrom: sslResult.validFrom?.toISOString(),
+              validTo: sslResult.validTo?.toISOString(),
+            }),
+          ) as Prisma.InputJsonValue,
+        }),
+      );
     }
 
     // --- Persist HTTP service asset + run technology detection ---
@@ -102,43 +114,45 @@ export class DiscoveryService {
       );
       technologies = matches.map((m) => m.name);
 
-      const asset = await this.assetService.upsertObservedAsset({
-        domainId,
-        type: AssetType.URL,
-        value: httpResult.finalUrl ?? `https://${hostname}/`,
-        // Round-tripped through JSON to guarantee this is actually
-        // plain-JSON-serializable (not just structurally close enough for
-        // TypeScript) before Prisma's InputJsonValue type is asserted.
-        metadata: JSON.parse(
-          JSON.stringify({
-            statusCode: httpResult.statusCode,
-            scheme: httpResult.scheme,
-            responseTimeMs: httpResult.responseTimeMs,
-            headers: httpResult.headers,
-            technologies: matches,
-            missingSecurityHeaders: missingHeaders,
-          }),
-        ) as Prisma.InputJsonValue,
-      });
-      observedAssetIds.push(asset.id);
+      track(
+        await this.assetService.upsertObservedAsset({
+          domainId,
+          type: AssetType.URL,
+          value: httpResult.finalUrl ?? `https://${hostname}/`,
+          // Round-tripped through JSON to guarantee this is actually
+          // plain-JSON-serializable (not just structurally close enough for
+          // TypeScript) before Prisma's InputJsonValue type is asserted.
+          metadata: JSON.parse(
+            JSON.stringify({
+              statusCode: httpResult.statusCode,
+              scheme: httpResult.scheme,
+              responseTimeMs: httpResult.responseTimeMs,
+              headers: httpResult.headers,
+              technologies: matches,
+              missingSecurityHeaders: missingHeaders,
+            }),
+          ) as Prisma.InputJsonValue,
+        }),
+      );
     }
 
-    const assetsMarkedInactive =
-      await this.assetService.markStaleAssetsInactive(
-        domainId,
-        observedAssetIds,
-      );
+    const removedAssets = await this.assetService.markStaleAssetsInactive(
+      domainId,
+      observedAssetIds,
+    );
 
     const finishedAt = new Date();
     this.logger.log(
-      `Discovery for ${hostname} finished in ${finishedAt.getTime() - startedAt.getTime()}ms — ${observedAssetIds.length} assets observed`,
+      `Discovery for ${hostname} finished in ${finishedAt.getTime() - startedAt.getTime()}ms — ` +
+        `${observedAssetIds.length} assets observed, ${newAssets.length} new, ${removedAssets.length} removed`,
     );
 
     return {
       domainId,
       hostname,
       assetsObserved: observedAssetIds.length,
-      assetsMarkedInactive,
+      newAssets,
+      removedAssets,
       dns: {
         aRecords: dnsResult.a.length,
         aaaaRecords: dnsResult.aaaa.length,

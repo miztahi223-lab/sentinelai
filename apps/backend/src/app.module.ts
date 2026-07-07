@@ -12,6 +12,10 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { EmailModule } from './email/email.module';
 import { DomainsModule } from './domains/domains.module';
 import { DiscoveryModule } from './discovery/discovery.module';
+import { QueueModule } from './queue/queue.module';
+import { ScansModule } from './scans/scans.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -36,6 +40,10 @@ import { DiscoveryModule } from './discovery/discovery.module';
     AuthModule,
     DomainsModule,
     DiscoveryModule,
+    QueueModule,
+    ScansModule,
+    NotificationsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

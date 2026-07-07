@@ -84,4 +84,14 @@ export class EmailService implements OnModuleInit {
       `Reset your password: ${resetUrl} (expires in 1 hour)`,
     );
   }
+
+  async sendAlertEmail(to: string, subject: string, message: string) {
+    const dashboardUrl = `${this.configService.get<string>('FRONTEND_URL')}/alerts`;
+    await this.send(
+      to,
+      `SentinelAI alert: ${subject}`,
+      `<p>${message}</p><p><a href="${dashboardUrl}">View all alerts</a></p>`,
+      `${message}\n\nView all alerts: ${dashboardUrl}`,
+    );
+  }
 }
