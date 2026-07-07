@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { connect, TLSSocket, PeerCertificate } from 'tls';
+import { safeLookup } from './ssrf-guard';
 
 export interface SslInspectionResult {
   valid: boolean;
@@ -47,6 +48,8 @@ export class SslService {
           servername: hostname, // SNI
           rejectUnauthorized: false, // we want to inspect even invalid certs, not just reject
           timeout: CONNECT_TIMEOUT_MS,
+          // SSRF guard (see ssrf-guard.ts) — same reasoning as http.service.ts.
+          lookup: safeLookup,
         },
         () => {
           try {

@@ -23,7 +23,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 15 | Testing | Done — see below |
 | 16 | Docker production | Done — see below |
 | 17 | CI/CD | Done — see below |
-| 18 | Security review | Not started (some security practices already applied inline: Argon2id, refresh rotation, Helmet, rate limiting, input validation, secret redaction in logs) |
+| 18 | Security review | Done — see below |
 | 19 | Final QA | Not started |
 
 ## Key engineering decisions made so far (deviations from the literal instructions, with reasons)
@@ -705,3 +705,125 @@ check rather than skipped:
 
 Cleaned up all `act`-created containers/networks and restored the local dev `docker-compose.yml`
 Postgres/Redis stack to running before moving on.
+
+## Step 18 — Security review (done, 2026-07-07)
+
+A real review, not a checklist rubber-stamp — went looking for actual problems in the actual code,
+found one significant real vulnerability and one real gap, fixed both, and verified the fix
+against the live system rather than just reasoning about it on paper.
+
+### Finding 1 (significant): SSRF in the discovery module — found and fixed
+
+**The problem**: SentinelAI's core function is "a user gives us a hostname, we make outbound
+DNS/TLS/HTTP requests to it" (`dns.service.ts`, `ssl.service.ts`, `http.service.ts`) — which is
+*exactly* the shape of Server-Side Request Forgery if the target isn't validated. Before this
+step, nothing stopped a user from registering a domain they legitimately control DNS for (e.g. a
+subdomain) that resolves to `169.254.169.254` (the AWS/GCP/Azure cloud-metadata endpoint — a
+classic SSRF-to-credential-theft target), `127.0.0.1`, or an internal `10.x`/`172.16-31.x`/
+`192.168.x` address, and have this backend connect to it on the user's behalf from inside
+whatever network it's deployed in.
+
+**The fix**: `src/discovery/ssrf-guard.ts` — resolves a hostname and classifies the resolved
+address using `ipaddr.js` (added as a real, direct dependency — it was already present
+transitively but relying on an unlisted transitive package for code we import directly would be
+its own quiet bug waiting to happen), blocking loopback/private/link-local/multicast/reserved/
+unique-local ranges for both IPv4 and IPv6. Explicitly handles IPv4-mapped IPv6 addresses
+(`::ffff:169.254.169.254`) by unwrapping and re-checking the embedded address — a naive
+range-check on the outer address alone would misclassify it as the harmless-sounding
+`ipv4Mapped` range and let it straight through. Wired in as a `lookup` option (the same signature
+as `dns.lookup`) passed directly to both `axios` (`http.service.ts`) and `tls.connect`
+(`ssl.service.ts`), which is what closes the more subtle **DNS-rebinding** version of this bug: a
+naive "resolve once to check, let the HTTP client resolve again to connect" implementation has a
+gap where an attacker's DNS server could answer the validation lookup with a public IP and the
+real connection's lookup moments later with a private one. Passing our validated resolution
+directly as the `lookup` callback means Node connects to the *exact* address we already checked —
+there is no second, independent resolution to race.
+
+**Verified for real, twice**:
+- **Unit tests** (`ssrf-guard.spec.ts`, 9 tests): blocks loopback/RFC1918/link-local/cloud-metadata/
+  IPv6-unique-local addresses, blocks the IPv4-mapped-IPv6 bypass shape specifically, does *not*
+  block ordinary public addresses (a real DNS lookup of `example.com` genuinely succeeds), fails
+  closed on unparseable input. `resolveAndAssertSafe('localhost')` performs a **real** DNS/hosts
+  resolution (not mocked) and confirms it throws.
+- **Live, end-to-end, against the running system**: registered `127.0.0.1.nip.io` (a real, public,
+  legitimate wildcard-DNS testing domain — confirmed via an actual DNS lookup that it genuinely
+  resolves to `127.0.0.1` — not a fabricated test) as a tracked domain through the real API and
+  triggered a real discovery run. The real backend log shows the DNS step correctly still
+  resolving it (DNS lookups alone don't reach the target, so those aren't blocked), and then:
+  `HTTP probe (https) failed for 127.0.0.1.nip.io: Refusing to connect to 127.0.0.1.nip.io
+  (resolves to 127.0.0.1, a private/reserved address) — scanning internal infrastructure is not
+  permitted.` — for both the HTTPS and HTTP probe attempts, and the SSL inspection step likewise
+  came back `inspected: false`. The discovery run completed successfully overall (1 DNS-derived
+  asset recorded, exactly as it should for a domain whose only reachable signal is "it resolves to
+  something") rather than crashing — a blocked target is a normal, handled outcome, not an
+  exception that takes down the scan.
+- Test domain/user cleaned up from the database afterward.
+
+Confirmed backend build/lint/full test suite still clean after this change (`npm run build`,
+`npm run lint` → 0 errors/16 pre-existing test-mock warnings, `npx jest` → **32/32 tests pass**,
+up from 23 — the 9 new SSRF tests).
+
+### Finding 2 (minor): unbounded `title` field on report creation
+
+`CreateReportDto.title` had no `@MaxLength`, unlike every other free-text field in the API
+(`RegisterDto.name`/`organizationName`, `ContactMessageDto.subject`/`message`, etc.) — it's used
+both inside the generated PDF and as the `res.download()` filename. Not a demonstrated exploit
+(Express's `content-disposition` dependency already safely encodes the header value), but
+inconsistent with this codebase's own established pattern of bounding every user-supplied string,
+and worth closing as defense-in-depth / storage-cost hygiene. Added `@MaxLength(150)`.
+
+### Broader review checklist (walked through deliberately, not just asserted)
+
+- **OWASP Top 10 (2021), quick pass**:
+  - *A01 Broken Access Control* — reviewed every controller: `domains`, `scans`, `reports`,
+    `risk-engine`, `discovery` all re-derive the resource's real `organizationId` from the
+    database and check the requesting user's membership against *that*, never trusting a
+    client-supplied `organizationId` alone for authorization on an ID-based lookup (the exact
+    pattern that prevents IDOR). `contact` is deliberately public (no auth — it's a marketing
+    contact form). `billing/webhook` is deliberately public (Stripe can't present a user JWT;
+    HMAC signature verification *is* its auth).
+  - *A02 Cryptographic Failures* — Argon2id password hashing, refresh tokens stored only as
+    SHA-256 hashes (never the raw token), JWTs signed with distinct access/refresh secrets loaded
+    from env vars (never hardcoded — grepped the codebase for this specifically).
+  - *A03 Injection* — grepped for `$queryRaw`/`$executeRaw` (Prisma's raw-SQL escape hatches):
+    zero usage anywhere, every query goes through Prisma's parameterized query builder. Grepped
+    for `eval(`/`child_process`: zero usage. Every DTO uses `class-validator` with the global
+    `ValidationPipe`'s `whitelist: true, forbidNonWhitelisted: true` (unrecognized fields are
+    rejected outright, not silently dropped or passed through).
+  - *A04 Insecure Design* — this step's SSRF finding *is* this category; fixed above.
+  - *A05 Security Misconfiguration* — Helmet enabled with its default strong CSP (verified in
+    live response headers during Step 16/17 testing), CORS locked to the real configured
+    `FRONTEND_URL` with `credentials: true` (never a wildcard `origin: '*'` — checked
+    `main.ts` directly), Docker containers run as a non-root user, no dev-only middleware
+    (Swagger/GraphQL playground/etc.) exists to accidentally leave enabled.
+  - *A06 Vulnerable Components* — real `npm audit` run in Step 17; the one fixable finding
+    (`multer`) fixed via a scoped override; the two remaining are documented, low-risk,
+    currently-unpatched-upstream transitive advisories in build/dev tooling, not runtime-reachable
+    application code.
+  - *A07 Auth Failures* — rate-limited login/register/refresh/password-reset (`@Throttle`
+    per-endpoint), no username enumeration difference between "wrong password" and "no such user"
+    (both return a generic 401), refresh token rotation with reuse-detection (verified by both
+    unit and e2e tests), password reset revokes all existing sessions.
+  - *A08 Software/Data Integrity* — Stripe webhook signature verified via the SDK's own
+    `constructEvent()` (real HMAC verification, tested with an intentionally invalid signature in
+    Step 13 and confirmed it's genuinely rejected), no unsigned/unverified deserialization of
+    remote data anywhere.
+  - *A09 Logging Failures* — `nestjs-pino` configured with `redact: ['req.headers.authorization',
+    'req.headers.cookie']` (verified: authorization headers show up as `"[Redacted]"` in every log
+    line captured throughout this session, e.g. the SSRF live-verification log above).
+  - *A10 SSRF* — this step's main finding; fixed and verified above.
+- **Secrets**: grepped the entire `src/` tree for hardcoded credential-shaped strings — none
+  found; every secret (`JWT_*_SECRET`, `SMTP_PASS`, `STRIPE_SECRET_KEY`, `AI_API_KEY`) is loaded
+  via `ConfigService`/`process.env`, never a literal. `.env` was never committed (confirmed via
+  `git show HEAD:apps/backend/.env` failing — it genuinely doesn't exist in git history) and is
+  excluded by `.gitignore`; `.env.example` contains only empty placeholders. Found and fixed a
+  real documentation gap while checking this: `CONTACT_EMAIL` (a real, used config var since Step
+  14) was missing from `.env.example` — added it.
+- **Rate limiting**: `ThrottlerGuard` applied globally (`APP_GUARD`) plus tighter per-route
+  `@Throttle` overrides on the sensitive auth/contact endpoints specifically (5-20 requests/min
+  depending on endpoint sensitivity) — verified these limits are actually enforced back in the
+  original Step 5 manual testing (rate-limit headers visible in every response) and every log
+  captured throughout this session.
+
+Build, lint, and the full test suite (backend `npx jest` — 32/32; e2e — 8/8) all re-confirmed
+green after every change in this step.

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
+import { safeLookup } from './ssrf-guard';
 
 export interface HttpProbeResult {
   reachable: boolean;
@@ -52,6 +53,14 @@ export class HttpService {
         // response — good enough for "did it redirect" without needing a
         // custom transport.
         headers: { 'User-Agent': 'SentinelAI-DiscoveryBot/1.0' },
+        // SSRF guard (see ssrf-guard.ts): resolves + validates the address
+        // ourselves and hands the *exact* validated address back to
+        // Node's own connection logic, rather than letting axios/Node
+        // re-resolve the hostname independently (which would reopen a DNS
+        // rebinding gap between "the address we checked" and "the address
+        // we connect to"). Applies to every hop of a redirect chain too,
+        // since Node's http agent calls `lookup` again for each new host.
+        lookup: safeLookup,
       });
 
       redirectChain.push(url);
