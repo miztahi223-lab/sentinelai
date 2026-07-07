@@ -4,6 +4,7 @@ import { Job, Queue } from 'bullmq';
 import { AlertType, FindingSeverity, ScanStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DiscoveryService } from '../discovery/discovery.service';
+import { RiskEngineService } from '../risk-engine/risk-engine.service';
 import {
   NOTIFICATION_QUEUE,
   NotificationJobData,
@@ -29,6 +30,7 @@ export class ScanProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly discoveryService: DiscoveryService,
+    private readonly riskEngineService: RiskEngineService,
     @InjectQueue(NOTIFICATION_QUEUE)
     private readonly notificationQueue: Queue<NotificationJobData>,
   ) {
@@ -107,6 +109,11 @@ export class ScanProcessor extends WorkerHost {
         });
       }
 
+      // Risk analysis (Step 10) runs as the last step of every scan, over
+      // the asset snapshot discovery just persisted — this is what
+      // produces the `Finding` rows and score the dashboard reads.
+      const risk = await this.riskEngineService.analyzeDomain(scanId, domainId);
+
       await this.prisma.scan.update({
         where: { id: scanId },
         data: { status: ScanStatus.COMPLETED, finishedAt: new Date() },
@@ -114,7 +121,8 @@ export class ScanProcessor extends WorkerHost {
 
       this.logger.log(
         `Scan ${scanId} completed: ${result.assetsObserved} assets observed, ` +
-          `${result.newAssets.length} new, ${result.removedAssets.length} removed`,
+          `${result.newAssets.length} new, ${result.removedAssets.length} removed, ` +
+          `risk score ${risk.score}/100 (${risk.riskLevel}), ${risk.findings.length} finding(s)`,
       );
     } catch (error) {
       this.logger.error(`Scan ${scanId} failed: ${(error as Error).message}`);

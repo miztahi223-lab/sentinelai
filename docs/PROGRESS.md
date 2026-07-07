@@ -15,7 +15,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 7 | Asset discovery module (dns/ssl/http/technology services) | Done — see below |
 | 8 | Background workers (BullMQ) | Done — see below (also pulled forward a real "scheduled/on-demand scan → alert → email notification" pipeline, most of Step 9's substance, since it's the natural output of a working worker) |
 | 9 | Monitoring engine | Done — see below |
-| 10 | Risk engine | Not started |
+| 10 | Risk engine | Done — see below |
 | 11 | AI integration | Not started |
 | 12 | Reports (PDF) | Queue infrastructure done (Step 8); actual PDF rendering not started — worker honestly fails with a clear "not implemented" error rather than faking a PDF |
 | 13 | Billing (Stripe) | Not started |
@@ -254,3 +254,54 @@ Starter/Professional = daily, per the billing page copy already shipped in Step 
 per-plan scan frequency, which needs either a `scanFrequency` field on `Subscription`/`Domain` or
 plan-aware filtering logic in `runDailySweep` — deferred to whichever of Step 10 (risk engine) or
 Step 13 (billing) ends up owning that decision, rather than guessing at a data model change now.
+
+## Step 10 — Risk engine (done, 2026-07-07)
+
+`src/risk-engine/risk-engine.service.ts` turns a domain's current asset snapshot into a 0-100
+score plus a set of **persisted** `Finding` rows explaining exactly why — a straightforward,
+auditable point-deduction model (start at 100, subtract per real issue, floor at 0), not a
+black-box number. Every point lost traces back to an actual signal captured during discovery
+(Step 7), matching the categories the brief asked for one-for-one against the `FindingCategory`
+enum already in the schema:
+
+- **SSL** — no certificate at all, invalid/self-signed, expired, or expiring within 7/30 days
+  (reusing the exact `SslService` output from Step 7).
+- **HEADERS** — missing recommended security headers (HSTS/CSP/X-Frame-Options/etc.), weighted by
+  how many are missing.
+- **CONFIGURATION** — server/framework version disclosure via `Server`/`X-Powered-By`/
+  `X-AspNet-Version` headers (a distinct issue from "missing header": this is about *leaking*
+  information, not lacking a protection).
+- **EXPOSURE** — a capped deduction for an unusually large exposed-IP footprint.
+- **ASSET_CHANGE** — recent (last 7 days) asset churn, reusing the new/removed-asset tracking
+  Step 8 already built.
+
+Wired directly into `ScanProcessor`: risk analysis now runs as the final step of every scan (manual
+or scheduled), right before marking the `Scan` row `COMPLETED`. Exposed via
+`GET /risk/domains/:domainId/latest`, which reads the most recent completed scan's findings rather
+than recomputing anything (cheap to poll).
+
+**Verified end-to-end against a real scan of `example.com`**: score came back `90/100` (`STRONG`),
+with two real, persisted findings — a `MEDIUM` "6 recommended security headers missing" (matching
+the actual real headers example.com's response lacks, first observed back in Step 7) and an `INFO`
+"6 asset changes in the last 7 days" (correctly reflecting that all 6 assets were newly discovered).
+The math checks out exactly: 100 − 10 (MEDIUM) − 0 (INFO) = 90.
+
+**Closed the loop on Step 6's honesty commitment**: the dashboard's `SecurityScoreCard` and a new
+findings list are now wired to this real endpoint, replacing the "no scans have run yet" placeholder
+from Step 6 — plus a real "Scan now" button (`POST /scans`) so a user can trigger one without
+leaving the dashboard. **Verified with a real headless-browser run**: register → add
+`example.com` → click "Scan now" → within ~6 seconds the dashboard shows a real `90/100 Strong`
+score with the same two real findings, zero console errors. Screenshots taken before/after for
+visual QA. (Caught and fixed one real bug during this verification pass, unrelated to the risk
+engine itself: a stale `.next` build being served after multiple rebuilds without restarting
+`next start` caused a transient 500 on a static chunk — fixed by rebuilding fresh and restarting
+the frontend process, not by touching any application code.)
+
+Build and lint both clean (0 errors) — fixed two real TypeScript/ESLint issues rather than
+suppressing them: an unsafe `any` from a `JSON.parse(JSON.stringify(...))` round-trip (typed the
+result as `Prisma.InputJsonValue` explicitly) and a `no-base-to-string` violation on an `unknown`
+field pulled out of stored JSON metadata (narrowed it to `string` before use instead of blindly
+calling `String()` on it).
+
+**Not yet built**: `aiExplanation`/`aiBusinessImpact`/`aiRemediation` fields on `Finding` exist in
+the schema and are returned as `null` — that's Step 11 (AI integration) to fill in, not this step.

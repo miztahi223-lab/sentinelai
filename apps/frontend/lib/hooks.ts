@@ -66,3 +66,50 @@ export function useCreateDomain(organizationId: string | undefined) {
     },
   });
 }
+
+export interface Finding {
+  id: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+  category: string;
+  title: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface RiskResult {
+  hasScan: boolean;
+  scanId?: string;
+  scannedAt?: string;
+  score: number | null;
+  findings: Finding[];
+}
+
+export function useDomainRisk(domainId: string | undefined) {
+  return useQuery({
+    queryKey: ["risk", domainId],
+    queryFn: async () => {
+      const { data } = await api.get<RiskResult>(
+        `/risk/domains/${domainId}/latest`,
+      );
+      return data;
+    },
+    enabled: !!domainId,
+    // Poll — a scan may complete moments after this is first fetched
+    // (BullMQ processes it asynchronously), so refresh a few times rather
+    // than requiring a manual reload.
+    refetchInterval: (query) => (query.state.data?.hasScan ? false : 3000),
+  });
+}
+
+export function useTriggerScan(domainId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post("/scans", { domainId });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["risk", domainId] });
+    },
+  });
+}
