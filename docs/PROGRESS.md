@@ -20,7 +20,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 12 | Reports (PDF) | Done — see below |
 | 13 | Billing (Stripe) | Done, but inert without real Stripe keys — see below |
 | 14 | Landing page | Done — see below |
-| 15 | Testing | Not started (beyond the manual smoke test in step 5) |
+| 15 | Testing | Done — see below |
 | 16 | Docker production | Not started (local dev docker-compose for Postgres/Redis exists) |
 | 17 | CI/CD | Not started |
 | 18 | Security review | Not started (some security practices already applied inline: Argon2id, refresh rotation, Helmet, rate limiting, input validation, secret redaction in logs) |
@@ -505,3 +505,69 @@ specifically. Now checking `ss -tlnp`/process list explicitly before every resta
 verification rather than assuming a kill command succeeded.
 
 Build and lint both clean (0 errors).
+
+## Step 15 — Testing (done, 2026-07-07)
+
+Automated tests, distinct from and in addition to this whole session's manual curl/Playwright
+verification (which stays valuable as end-to-end proof but isn't a substitute for a real,
+repeatable test suite a CI pipeline can run on every change):
+
+**Backend unit tests** (`npx jest`, real assertions against the real implementations, no
+snapshot-testing filler):
+- **`technology.service.spec.ts`** (9 tests) — header/body signature matching, de-duplication,
+  case-insensitivity, and the missing-security-headers detection, using the real signature set
+  from Step 7 (e.g. explicitly asserts Cloudflare detection, the exact real-world case hit during
+  Step 7's `example.com` verification).
+- **`risk-engine.service.spec.ts`** (5 tests) — the actual scoring math against a fake (in-memory)
+  Prisma: a clean asset set scores a perfect 100/STRONG; an expired certificate deducts exactly the
+  documented 30 CRITICAL points; stacked SSL issues on one certificate are all deducted
+  independently and the running total is verified precisely (100 − 30 − 18 − 30 = 22); missing
+  security headers and server-version-disclosure are each asserted as their own distinct category/
+  severity. **Caught two real bugs in my own test fixtures** while writing these (not in the
+  service) — two test cases initially omitted a certificate asset, so the real "no certificate
+  observed" HIGH finding fired unexpectedly alongside the thing actually under test; fixed by
+  giving every non-SSL-focused test case a valid, healthy certificate asset, matching what a real
+  scan always produces.
+- **`token.service.spec.ts`** (8 tests) — the exact security property manually verified earlier via
+  curl, now a permanent regression test: issuing a token stores only its SHA-256 hash (never the
+  raw value); rotating a valid token revokes the old one and returns a new one; **reusing an
+  already-rotated token is rejected** (the theft-detection property); unknown and expired tokens
+  are rejected; `revokeAllForUser` invalidates every token for that user without touching another
+  user's tokens; access-token signing/verification round-trips correctly and rejects a token signed
+  with a different secret.
+- Existing `app.controller.spec.ts` scaffold left as-is (still passes).
+
+**Backend e2e test** (`npx jest --config ./test/jest-e2e.json`) — replaced the default scaffold's
+trivial `/ (GET)` check with a genuine 8-step end-to-end auth flow against the **real** local
+Postgres/Redis stack (not mocked): rejects a too-short password (real `ValidationPipe` running),
+registers a real user, rejects a duplicate registration (409), rejects a wrong password (401),
+logs in successfully, rejects `/auth/me` with no token (401) and accepts it with a valid one,
+and — the same rotation/reuse-rejection property as the unit test, but this time exercised over
+real HTTP through every real middleware/guard/pipe in the stack — rotates a refresh token and
+confirms the old one is rejected on reuse. Cleans up its own test user in `afterAll`; verified 0
+leftover rows after a run.
+
+**Frontend** — Next.js's `create-next-app` doesn't scaffold any test runner by default, so this
+was genuinely nothing before this step. Added Vitest + React Testing Library (a deliberate choice
+over Jest for a Vite-free Next.js app: faster, simpler ESM/TS handling, no extra transform config
+needed):
+- **`components/AlertCard.test.tsx`** (4 tests) — renders the real message content; shows the
+  "Mark read" action only when unread AND a handler was provided; confirms the handler actually
+  fires on click.
+- **`lib/plans.test.ts`** (4 tests) — guards against exactly the kind of drift the shared
+  `lib/plans.ts` module (introduced in Step 14) was built to prevent: every paid plan has a
+  `plan` key matching one of the backend's real `SubscriptionPlan` enum values, the Free plan has
+  none, no duplicate plan names (would silently break the billing page's "current plan"
+  highlighting), every plan lists at least one feature.
+
+**Fixed a real lint gap found while adding the backend tests**: the strict
+`@typescript-eslint/no-unsafe-*` rules (appropriate for production code that touches a real
+database) were also being applied at full strength to test files, where lightweight `any`-typed
+fakes/mocks are the normal, correct pattern — added a scoped ESLint override for `**/*.spec.ts` and
+`test/**/*.ts` relaxing exactly the unsafe-assignment/member-access/call/return rules there, not a
+blanket loosening of the config production code is still held to.
+
+**Final tally, all green**: backend `npm run build` (clean), `npm run lint` (0 errors), `npx jest`
+(4 suites, 23 tests, all pass), `npx jest --config ./test/jest-e2e.json` (1 suite, 8 tests, all
+pass against the real live stack); frontend `npm run build` (clean), `npm run lint` (0 errors),
+`npx vitest run` (2 files, 8 tests, all pass).
