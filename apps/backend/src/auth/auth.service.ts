@@ -53,7 +53,10 @@ export class AuthService {
       emailVerifyToken,
     });
 
-    await this.organizationsService.createWithOwner(user.id, dto.organizationName);
+    await this.organizationsService.createWithOwner(
+      user.id,
+      dto.organizationName,
+    );
 
     const tokens = await this.issueTokenPair(user.id, user.email, meta);
     await this.emailService.sendVerificationEmail(user.email, emailVerifyToken);
@@ -81,7 +84,10 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string, meta: RequestMeta = {}) {
-    const rotated = await this.tokenService.rotateRefreshToken(refreshToken, meta);
+    const rotated = await this.tokenService.rotateRefreshToken(
+      refreshToken,
+      meta,
+    );
     if (!rotated) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
@@ -146,9 +152,19 @@ export class AuthService {
     return { success: true };
   }
 
-  private async issueTokenPair(userId: string, email: string, meta: RequestMeta) {
-    const accessToken = this.tokenService.signAccessToken({ sub: userId, email });
-    const refreshToken = await this.tokenService.issueRefreshToken(userId, meta);
+  private async issueTokenPair(
+    userId: string,
+    email: string,
+    meta: RequestMeta,
+  ) {
+    const accessToken = this.tokenService.signAccessToken({
+      sub: userId,
+      email,
+    });
+    const refreshToken = await this.tokenService.issueRefreshToken(
+      userId,
+      meta,
+    );
     return { accessToken, refreshToken };
   }
 

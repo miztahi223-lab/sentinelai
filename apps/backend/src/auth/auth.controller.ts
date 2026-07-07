@@ -51,7 +51,9 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Body('refreshToken') refreshToken: string) {
-    return this.authService.logout(refreshToken).then(() => ({ success: true }));
+    return this.authService
+      .logout(refreshToken)
+      .then(() => ({ success: true }));
   }
 
   @Post('refresh')

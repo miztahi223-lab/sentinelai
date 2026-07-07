@@ -16,8 +16,10 @@ import { PrismaClient } from '@prisma/client';
  * config and hook into Nest's lifecycle to connect/disconnect cleanly.
  */
 @Injectable()
-export class PrismaService extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
 
   constructor(configService: ConfigService) {

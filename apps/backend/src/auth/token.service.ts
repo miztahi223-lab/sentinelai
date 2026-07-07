@@ -2,7 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes, createHash } from 'crypto';
+import ms from 'ms';
 import { PrismaService } from '../prisma/prisma.service';
+
+/**
+ * `@nestjs/jwt`'s `expiresIn` option types `string` inputs against a large
+ * template-literal union (`ms`'s `StringValue`) that a value loaded from an
+ * env var can never statically satisfy. Converting to a plain number of
+ * seconds up front sidesteps that without an unsafe `any` cast.
+ */
+function toSeconds(value: string): number {
+  const millis = ms(value as Parameters<typeof ms>[0]);
+  return Math.round(millis / 1000);
+}
 
 export interface AccessTokenPayload {
   sub: string;
@@ -30,7 +42,9 @@ export class TokenService {
   signAccessToken(payload: AccessTokenPayload): string {
     return this.jwtService.sign(payload as unknown as Record<string, unknown>, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', '15m') as any,
+      expiresIn: toSeconds(
+        this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', '15m'),
+      ),
     });
   }
 

@@ -12,7 +12,10 @@ async function bootstrap() {
   app.use(helmet());
 
   const configService = app.get(ConfigService);
-  const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+  const frontendUrl = configService.get<string>(
+    'FRONTEND_URL',
+    'http://localhost:3000',
+  );
   app.enableCors({
     origin: frontendUrl,
     credentials: true,
@@ -31,4 +34,8 @@ async function bootstrap() {
   const port = configService.get<string>('PORT', '3001');
   await app.listen(port);
 }
-bootstrap();
+
+bootstrap().catch((error: unknown) => {
+  console.error('Fatal error during application bootstrap', error);
+  process.exit(1);
+});

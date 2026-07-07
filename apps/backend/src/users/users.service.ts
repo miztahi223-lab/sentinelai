@@ -6,7 +6,9 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    return this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
   }
 
   findById(id: string) {
@@ -48,7 +50,9 @@ export class UsersService {
   }
 
   findByPasswordResetToken(token: string) {
-    return this.prisma.user.findUnique({ where: { passwordResetToken: token } });
+    return this.prisma.user.findUnique({
+      where: { passwordResetToken: token },
+    });
   }
 
   async resetPassword(userId: string, passwordHash: string) {

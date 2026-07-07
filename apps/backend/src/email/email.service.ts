@@ -51,10 +51,18 @@ export class EmailService implements OnModuleInit {
 
   private async send(to: string, subject: string, html: string, text: string) {
     if (!this.transporter) {
-      this.logger.log(`[email:not-configured] To: ${to} | Subject: ${subject}\n${text}`);
+      this.logger.log(
+        `[email:not-configured] To: ${to} | Subject: ${subject}\n${text}`,
+      );
       return;
     }
-    await this.transporter.sendMail({ from: this.from, to, subject, html, text });
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject,
+      html,
+      text,
+    });
   }
 
   async sendVerificationEmail(to: string, token: string) {

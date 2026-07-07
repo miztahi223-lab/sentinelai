@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { EmailModule } from './email/email.module';
+import { DomainsModule } from './domains/domains.module';
 
 @Module({
   imports: [
@@ -32,11 +33,9 @@ import { EmailModule } from './email/email.module';
     UsersModule,
     OrganizationsModule,
     AuthModule,
+    DomainsModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-  ],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
