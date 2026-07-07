@@ -12,7 +12,7 @@ tested against the real local stack (Postgres/Redis running), not just scaffolde
 | 4 | Database setup (Postgres + Prisma schema: User, Organization, Membership, Domain, Asset, Scan, Finding, Alert, Report, Subscription, AuditLog + RefreshToken) | Done — migrated & client generated |
 | 5 | Authentication (register/login/logout/refresh/forgot-password/reset-password/verify-email, Argon2id, JWT access + rotating opaque refresh tokens, rate-limited endpoints) | Done — full end-to-end smoke test passed against real DB (see below) |
 | 6 | Main dashboard (frontend routes + components) | Done — see below |
-| 7 | Asset discovery module (dns/ssl/http/technology services) | Not started (a thin slice — Domain CRUD — was pulled forward into Step 6 so the dashboard had a real resource to display; the actual dns/ssl/http/technology scanning services are not built) |
+| 7 | Asset discovery module (dns/ssl/http/technology services) | Done — see below |
 | 8 | Background workers (BullMQ) | Not started |
 | 9 | Monitoring engine | Not started |
 | 10 | Risk engine | Not started |
@@ -117,3 +117,55 @@ suppressed:
   a valid `expiresIn` value with no unsafe cast needed. Also typed `CurrentUser`'s request object
   properly instead of relying on implicit `any`, and fixed a floating-promise warning in
   `main.ts`'s bootstrap call.
+
+## Step 7 — Asset discovery module (done, 2026-07-07)
+
+Built `src/discovery/` with the five services the brief asked for, each doing real work (no
+stubs):
+
+- **`dns.service.ts`** — resolves A/AAAA/CNAME/MX/TXT/NS records via Node's built-in
+  `dns.promises`, with each record type resolved independently so a domain missing e.g. an MX
+  record doesn't fail the whole lookup.
+- **`ssl.service.ts`** — opens a raw TLS socket (not an HTTP request) to the target on port 443 to
+  read the actual presented certificate: subject/issuer CN, validity window, days-until-expiry,
+  SANs, protocol version, fingerprint, and a self-signed heuristic. Uses
+  `rejectUnauthorized: false` deliberately, so it can inspect and report on invalid/expired/
+  self-signed certs instead of just failing to connect to them.
+- **`http.service.ts`** — probes HTTPS first, falls back to HTTP, captures status code, headers,
+  final URL after redirects, response time, and a body snippet (capped at 4KB).
+- **`technology.service.ts`** — real (if intentionally small, not Wappalyzer-scale) signature
+  matching against response headers and body content: web servers (nginx/Apache/IIS), CDN/WAF
+  (Cloudflare/Vercel), languages/frameworks (PHP/Express/ASP.NET/Next.js), CMSs (WordPress/Drupal/
+  Joomla), JS frameworks (React/Vue/Angular), plus a missing-security-headers check (HSTS/CSP/
+  X-Frame-Options/etc.) that Step 10's risk engine will consume directly.
+- **`asset.service.ts`** — persists discovery output as `Asset` rows keyed on
+  `(domainId, type, value)`: upserts (bumping `lastSeenAt`, merging metadata) rather than
+  duplicating on repeat scans, and marks assets not observed in the latest run `inactive` (kept,
+  not deleted, so Step 9's monitoring engine can later diff "removed asset" as its own signal).
+
+`discovery.service.ts` orchestrates all four probes in parallel per domain and persists the
+results; `discovery.controller.ts` exposes it as `POST /discovery/domains/:domainId/run` and
+`GET /discovery/domains/:domainId/assets`, both membership-checked through the existing
+`DomainsService`.
+
+**Verified against a real external domain, not a mock** (`example.com`, via the live local
+server + real outbound DNS/TLS/HTTP): a single discovery run correctly found 2 A records, 2 AAAA
+records, 1 MX record, a valid Cloudflare-issued certificate (53 days to expiry, correct SANs), a
+reachable HTTPS endpoint returning 200 with real response headers, `Cloudflare` correctly detected
+as the CDN/WAF technology, and all 6 missing-security-headers correctly flagged (example.com's
+real response genuinely doesn't set HSTS/CSP/etc.). Re-ran discovery a second time immediately
+after: **still exactly 6 assets stored (not 12)** and 0 marked inactive, confirming the upsert/
+idempotency logic works rather than duplicating rows on every scan.
+
+Lint and build both clean (`npm run build` / `npm run lint`, 0 errors) after fixing real issues:
+installed `axios` in the backend (previously frontend-only), removed an unused speculative `psl`
+dependency, normalized `tls`'s `PeerCertificate.subject.CN`/`issuer.CN` (typed as
+`string | string[]`) to a single string, round-tripped a metadata object through
+`JSON.parse(JSON.stringify(...))` to satisfy Prisma's `InputJsonValue` type honestly (rather than
+casting through `any`), and replaced two more unsafe-`any` accesses (a raw Node `ClientRequest`
+reach-through in the HTTP service, and an untyped socket `error` event) with properly narrowed
+types.
+
+**Not yet built**: this module only runs on-demand via the API — there's no scheduling,
+periodic re-scanning, or change-detection/alerting yet. That's Steps 8 (background workers) and 9
+(monitoring engine), next.

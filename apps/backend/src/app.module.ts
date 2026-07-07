@@ -11,6 +11,7 @@ import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { EmailModule } from './email/email.module';
 import { DomainsModule } from './domains/domains.module';
+import { DiscoveryModule } from './discovery/discovery.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { DomainsModule } from './domains/domains.module';
     OrganizationsModule,
     AuthModule,
     DomainsModule,
+    DiscoveryModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
