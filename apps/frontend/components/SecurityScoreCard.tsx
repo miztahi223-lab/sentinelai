@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 interface SecurityScoreCardProps {
   score: number; // 0-100
   previousScore?: number;
@@ -10,29 +14,30 @@ function scoreColor(score: number): string {
   return "text-red-400";
 }
 
-function scoreLabel(score: number): string {
-  if (score >= 80) return "Strong";
-  if (score >= 60) return "Fair";
-  if (score >= 40) return "Weak";
-  return "Critical";
+function scoreLabelKey(score: number): "strong" | "fair" | "weak" | "critical" {
+  if (score >= 80) return "strong";
+  if (score >= 60) return "fair";
+  if (score >= 40) return "weak";
+  return "critical";
 }
 
 export function SecurityScoreCard({ score, previousScore }: SecurityScoreCardProps) {
+  const t = useTranslations("securityScoreCard");
   const delta = previousScore !== undefined ? score - previousScore : undefined;
   const circumference = 2 * Math.PI * 54;
   const offset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-sm">
+    <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-sm transition hover:border-gray-700">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-medium text-gray-400">Security Score</h3>
+          <h3 className="text-sm font-medium text-gray-400">{t("title")}</h3>
           <p className={`mt-1 text-3xl font-semibold ${scoreColor(score)}`}>
             {score}
             <span className="text-base font-normal text-gray-500">/100</span>
           </p>
           <p className={`mt-1 text-xs font-medium ${scoreColor(score)}`}>
-            {scoreLabel(score)}
+            {t(scoreLabelKey(score))}
           </p>
           {delta !== undefined && (
             <p
@@ -40,7 +45,7 @@ export function SecurityScoreCard({ score, previousScore }: SecurityScoreCardPro
                 delta >= 0 ? "text-emerald-400" : "text-red-400"
               }`}
             >
-              {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)} pts vs last scan
+              {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)} {t("vsLastScan")}
             </p>
           )}
         </div>
@@ -65,7 +70,7 @@ export function SecurityScoreCard({ score, previousScore }: SecurityScoreCardPro
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            className={scoreColor(score)}
+            className={`transition-all duration-500 ${scoreColor(score)}`}
           />
         </svg>
       </div>

@@ -1,0 +1,231 @@
+{
+  "brand": {
+    "name": "SentinelAI"
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "signIn": "Sign in",
+    "startTrial": "Start free trial"
+  },
+  "footer": {
+    "rights": "All rights reserved."
+  },
+  "landing": {
+    "heroTitleLine1": "Know what attackers can see",
+    "heroTitleLine2": "before they do.",
+    "heroSubtitle": "SentinelAI continuously discovers your attack surface, scores your security posture, and tells you exactly what to fix — with AI-generated remediation guidance, not just a raw scan dump.",
+    "ctaStart": "Start free trial",
+    "ctaSee": "See how it works",
+    "featuresTitle": "Everything you need to manage your attack surface",
+    "feature1Title": "Continuous asset discovery",
+    "feature1Desc": "Automatically maps your subdomains, IPs, TLS certificates, and exposed services — no manual inventory required.",
+    "feature2Title": "Auditable security scoring",
+    "feature2Desc": "A transparent 0-100 score across SSL, headers, exposure, configuration, and asset-change categories — every point traces to a real finding.",
+    "feature3Title": "Real-time alerts",
+    "feature3Desc": "Get notified the moment a new asset appears, a certificate nears expiry, or something disappears unexpectedly.",
+    "feature4Title": "AI-generated remediation",
+    "feature4Desc": "Plain-language explanations, business impact, and specific fixes for every finding — not just a raw technical scan output.",
+    "feature5Title": "Exportable PDF reports",
+    "feature5Desc": "Share a polished, board-ready report with your team or auditors — download or email it directly.",
+    "feature6Title": "Scheduled monitoring",
+    "feature6Desc": "Daily automated re-scans catch drift between manual reviews, so nothing slips through unnoticed.",
+    "pricingTitle": "Simple, transparent pricing",
+    "seeFullPlans": "See full plan comparison",
+    "finalCtaTitle": "Start monitoring your attack surface today",
+    "finalCtaSubtitle": "Free to start — no credit card required."
+  },
+  "features": {
+    "title": "Built for teams who need to know, not just scan",
+    "subtitle": "SentinelAI goes from raw discovery to a prioritized, explained, exportable action list — automatically.",
+    "feature1Title": "Continuous asset discovery",
+    "feature1Desc": "Every scan resolves DNS (A/AAAA/CNAME/MX/TXT/NS), enumerates common subdomains, inspects the live TLS certificate on port 443, probes HTTP/HTTPS for headers and redirects, and fingerprints server/framework technology from real response signatures — then stores the result as a versioned asset, so you can see exactly what changed and when.",
+    "feature2Title": "Auditable security scoring",
+    "feature2Desc": "A 0-100 score built from real, traceable deductions across five categories — SSL, Headers, Exposure, Configuration, and Asset Changes. No black-box model: every point lost links back to a specific finding you can inspect.",
+    "feature3Title": "Real-time alerts",
+    "feature3Desc": "The monitoring engine re-scans every tracked domain daily and raises an alert the moment a new asset appears, an existing one disappears, or a TLS certificate drops within 30 days of expiry — emailed directly to your organization's owners/admins for anything high-severity.",
+    "feature4Title": "AI-generated remediation",
+    "feature4Desc": "For any finding, generate a plain-language explanation, concrete business impact, and a specific remediation step — written for the person who has to fix it, not just the person who found it.",
+    "feature5Title": "Exportable PDF reports",
+    "feature5Desc": "Generate a report for any domain covering your score, discovered assets, and findings with recommendations, download it directly, or have it emailed to you as a real attachment.",
+    "feature6Title": "Scheduled monitoring",
+    "feature6Desc": "Background workers process scans asynchronously so requesting one never blocks your dashboard — and a daily sweep keeps every tracked domain current without you having to remember to check.",
+    "cta": "Start free trial"
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "subtitle": "Start free. Upgrade when you need more domains, faster scans, or AI-assisted remediation.",
+    "getStarted": "Get started",
+    "footnote": "All plans start on Free — upgrade or change plans anytime from your billing settings."
+  },
+  "plans": {
+    "free": {
+      "name": "Free",
+      "description": "Try SentinelAI on a single domain.",
+      "feature1": "1 domain",
+      "feature2": "Weekly scans",
+      "feature3": "Security score & findings",
+      "feature4": "Community support"
+    },
+    "starter": {
+      "name": "Starter",
+      "description": "For a small team watching a handful of properties.",
+      "feature1": "5 domains",
+      "feature2": "Daily scans",
+      "feature3": "Email alerts",
+      "feature4": "Security score & findings"
+    },
+    "professional": {
+      "name": "Professional",
+      "description": "For teams that need AI-assisted remediation and reporting.",
+      "feature1": "25 domains",
+      "feature2": "Daily scans",
+      "feature3": "AI-generated remediation guidance",
+      "feature4": "PDF report export & email delivery"
+    },
+    "business": {
+      "name": "Business",
+      "description": "For organizations with a large or fast-changing attack surface.",
+      "feature1": "Unlimited domains",
+      "feature2": "Real-time monitoring",
+      "feature3": "SSO",
+      "feature4": "Priority support"
+    }
+  },
+  "contact": {
+    "title": "Contact us",
+    "subtitle": "Questions about SentinelAI? Send us a message and we'll get back to you.",
+    "sentMessage": "Thanks — your message has been sent. We'll be in touch.",
+    "name": "Name",
+    "email": "Email",
+    "subject": "Subject",
+    "message": "Message",
+    "sending": "Sending...",
+    "send": "Send message",
+    "errorDefault": "Could not send your message. Please try again."
+  },
+  "auth": {
+    "signInTitle": "Sign in to your account",
+    "registerTitle": "Start your free trial",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Ada Lovelace",
+    "companyName": "Company name",
+    "companyNamePlaceholder": "Acme Corp",
+    "emailPlaceholder": "you@company.com",
+    "passwordPlaceholder": "At least 12 characters",
+    "forgotPassword": "Forgot password?",
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "createAccount": "Create account",
+    "creatingAccount": "Creating account...",
+    "noAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "startTrial": "Start free trial",
+    "errorDefault": "Something went wrong. Please try again."
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "domains": "Domains",
+    "reports": "Reports",
+    "alerts": "Alerts",
+    "settings": "Settings",
+    "billing": "Billing",
+    "signOut": "Sign out",
+    "loading": "Loading..."
+  },
+  "dashboard": {
+    "overview": "Overview",
+    "scanNow": "Scan now",
+    "startingScan": "Starting scan...",
+    "loading": "Loading...",
+    "addFirstDomainTitle": "Add your first domain to get started",
+    "addFirstDomainDesc": "SentinelAI continuously discovers your attack surface — subdomains, IPs, certificates, and exposed services — and scores your security posture.",
+    "addDomain": "Add a domain",
+    "securityScore": "Security Score",
+    "noScanYet": "No completed scan yet for {domain} — click \"Scan now\" to run one (usually finishes in a few seconds).",
+    "findingsFor": "Findings — {domain}",
+    "noFindings": "No findings from the latest scan — nothing to flag right now.",
+    "trackedDomains": "Tracked domains",
+    "recentActivity": "Recent activity",
+    "domainAdded": "Domain added: {name}",
+    "footnote": "Score and findings shown are for the first tracked domain only ({domain}) — a multi-domain aggregate view isn't built yet. AI-generated explanations/remediation aren't wired up yet either; findings show the raw detection only."
+  },
+  "domains": {
+    "title": "Domains",
+    "subtitle": "Domains SentinelAI monitors for this organization.",
+    "placeholder": "example.com",
+    "add": "Add domain",
+    "adding": "Adding...",
+    "loading": "Loading...",
+    "empty": "No domains added yet.",
+    "errorDefault": "Could not add domain."
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Downloadable security posture reports for your organization.",
+    "notBuiltTitle": "Add a scanned domain to generate your first report",
+    "notBuiltDesc": "Once a domain has completed at least one scan, you'll be able to generate a board-ready PDF report here — covering your score, discovered assets, and prioritized findings."
+  },
+  "alerts": {
+    "title": "Alerts",
+    "subtitle": "Real-time notifications about changes to your attack surface.",
+    "emptyTitle": "No alerts yet",
+    "emptyDesc": "Alerts appear here automatically once your tracked domains have run at least one scan — a new asset, a disappearing one, or a certificate nearing expiry all raise one."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and organization.",
+    "account": "Account",
+    "name": "Name",
+    "email": "Email",
+    "emailVerified": "Email verified",
+    "verified": "Verified",
+    "pendingVerification": "Pending verification",
+    "organization": "Organization",
+    "slug": "Slug",
+    "plan": "Plan",
+    "footnote": "Editing these fields, team member management, and API key management aren't built yet."
+  },
+  "billing": {
+    "title": "Billing",
+    "currentPlan": "Current plan: <b>{plan}</b>",
+    "currentPlanLabel": "Current plan",
+    "defaultPlan": "Default plan",
+    "upgrade": "Upgrade",
+    "startingCheckout": "Starting checkout...",
+    "errorDefault": "Could not start checkout — billing may not be configured on this deployment yet.",
+    "footnote": "Checkout goes through real Stripe Checkout Sessions. On a deployment without real Stripe API keys configured — like this local build — clicking \"Upgrade\" will show a clear error rather than a fake checkout page."
+  },
+  "assetCard": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "lastSeen": "last seen {date}",
+    "finding": "finding",
+    "findings": "findings"
+  },
+  "alertCard": {
+    "markRead": "Mark read"
+  },
+  "securityScoreCard": {
+    "title": "Security Score",
+    "strong": "Strong",
+    "fair": "Fair",
+    "weak": "Weak",
+    "critical": "Critical",
+    "vsLastScan": "pts vs last scan"
+  },
+  "riskChart": {
+    "title": "Security Score — last 30 days"
+  },
+  "timeline": {
+    "empty": "No activity yet."
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "he": "עברית"
+  }
+}

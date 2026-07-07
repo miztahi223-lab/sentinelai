@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Area,
   AreaChart,
@@ -15,11 +16,11 @@ export interface RiskDataPoint {
 }
 
 export function RiskChart({ data }: { data: RiskDataPoint[] }) {
+  const t = useTranslations("riskChart");
+
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-sm">
-      <h3 className="mb-4 text-sm font-medium text-gray-400">
-        Security Score — last 30 days
-      </h3>
+    <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-sm transition hover:border-gray-700">
+      <h3 className="mb-4 text-sm font-medium text-gray-400">{t("title")}</h3>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>

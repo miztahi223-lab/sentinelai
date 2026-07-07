@@ -80,7 +80,19 @@ api.interceptors.response.use(
       }
 
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        // Preserves whichever locale the user was on (`/he/...` vs
+        // `/en/...`) — this is a hard browser navigation (not React Router),
+        // so it can't use next-intl's locale-aware `Link`/`useRouter`;
+        // reading the locale segment straight out of the current path is
+        // the simplest correct fix without a React-only dependency here.
+        // Falls back to no prefix (the proxy/middleware will redirect to
+        // the default locale) if the path doesn't start with a known one.
+        const KNOWN_LOCALES = ["en", "he"];
+        const firstSegment = window.location.pathname.split("/")[1];
+        const localePrefix = KNOWN_LOCALES.includes(firstSegment)
+          ? `/${firstSegment}`
+          : "";
+        window.location.href = `${localePrefix}/login`;
       }
     }
 

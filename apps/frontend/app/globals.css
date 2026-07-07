@@ -20,5 +20,44 @@
  * reintroducing.
  */
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  /* Falls back through platform-native sans-serif stacks so Hebrew text
+     (which next/font's Latin-only Geist subset can't cover) still renders
+     with a proper native Hebrew-capable font instead of a mismatched
+     fallback glyph — `--font-geist-sans` remains the first choice for any
+     Latin-script content. */
+  font-family:
+    var(--font-geist-sans), -apple-system, "Segoe UI", Arial, Helvetica,
+    "Noto Sans Hebrew", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background-color: rgb(99 102 241 / 0.35);
+}
+
+/* A themed scrollbar is a small detail, but a default light-grey OS
+   scrollbar on an otherwise carefully dark-themed page reads as
+   unfinished — this keeps it consistent on WebKit/Blink browsers
+   (Firefox falls back to its own dark-aware default, which is fine). */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgb(63 63 70 / 0.8);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(82 82 91 / 0.9);
 }

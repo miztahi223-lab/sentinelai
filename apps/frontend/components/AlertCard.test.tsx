@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithIntl } from "../test/render-with-intl";
 import { AlertCard } from "./AlertCard";
 
 describe("AlertCard", () => {
   it("renders the message and formatted timestamp", () => {
-    render(
+    renderWithIntl(
       <AlertCard
         severity="HIGH"
         message="TLS certificate expires in 5 day(s)"
@@ -17,7 +18,7 @@ describe("AlertCard", () => {
 
   it("shows a 'Mark read' action only when unread and a handler is provided", () => {
     const onMarkRead = vi.fn();
-    render(
+    renderWithIntl(
       <AlertCard
         severity="INFO"
         message="New ip discovered: 1.2.3.4"
@@ -32,7 +33,7 @@ describe("AlertCard", () => {
 
   it("does not show 'Mark read' when the alert is already read", () => {
     const onMarkRead = vi.fn();
-    render(
+    renderWithIntl(
       <AlertCard
         severity="INFO"
         message="New ip discovered: 1.2.3.4"
@@ -47,7 +48,7 @@ describe("AlertCard", () => {
 
   it("calls onMarkRead when the action is clicked", () => {
     const onMarkRead = vi.fn();
-    render(
+    renderWithIntl(
       <AlertCard
         severity="CRITICAL"
         message="TLS certificate has expired"

@@ -1,3 +1,6 @@
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 import { AlertTriangle, Info, ShieldAlert, XCircle } from "lucide-react";
 
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
@@ -19,11 +22,13 @@ const SEVERITY_STYLES: Record<Severity, { icon: React.ComponentType<{ className?
 };
 
 export function AlertCard({ severity, message, createdAt, read, onMarkRead }: AlertCardProps) {
+  const t = useTranslations("alertCard");
+  const locale = useLocale();
   const { icon: Icon, color, bg } = SEVERITY_STYLES[severity];
 
   return (
     <div
-      className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${
+      className={`flex items-start gap-3 rounded-lg border px-4 py-3 transition ${
         read ? "border-gray-800 bg-gray-900/40 opacity-70" : "border-gray-800 bg-gray-900/60"
       }`}
     >
@@ -33,15 +38,15 @@ export function AlertCard({ severity, message, createdAt, read, onMarkRead }: Al
       <div className="min-w-0 flex-1">
         <p className="text-sm text-gray-100">{message}</p>
         <p className="mt-1 text-xs text-gray-500">
-          {new Date(createdAt).toLocaleString()}
+          {new Date(createdAt).toLocaleString(locale)}
         </p>
       </div>
       {!read && onMarkRead && (
         <button
           onClick={onMarkRead}
-          className="shrink-0 text-xs text-indigo-400 hover:text-indigo-300"
+          className="shrink-0 text-xs text-indigo-400 transition hover:text-indigo-300"
         >
-          Mark read
+          {t("markRead")}
         </button>
       )}
     </div>

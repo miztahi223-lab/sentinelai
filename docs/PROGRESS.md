@@ -941,3 +941,117 @@ there, it already treats any new asset uniformly).
 Confirmed backend build/lint/full test suite clean after this change: `npm run build` (clean),
 `npm run lint` (0 errors, same 16 pre-existing test-mock warnings), `npx jest` → **35/35 tests
 pass** (up from 32 — the 3 new subdomain tests).
+
+## Enhancement 2 — Full English/Hebrew (RTL) UI + visual design pass (done, 2026-07-07)
+
+Prompted directly by user feedback that the deployed frontend looked completely unstyled. **First
+found the real cause before touching any design**: a stale `.next` build being served by an old
+`next start` process — killing it and rebuilding fresh showed the actual (already-decent) dark
+Stripe/Vercel/Linear-style theme from Step 6/14 was intact all along. Verified this with a
+before/after screenshot (before: default browser serif font, no colors, no layout — a genuine
+CSS-not-loading state, `.next/static/css/*.css` hash mismatch between the running server's
+in-memory manifest and what was actually on disk; after: the real intended design). Documenting
+this because it's the second time this exact class of bug (stale build/server) has caused
+something that looks like a real product regression — see Step 14's note on the same failure
+mode.
+
+With the real baseline confirmed, built two things on top of it:
+
+**1. Full bilingual English/Hebrew interface with genuine RTL layout**, not just translated
+strings:
+- Added `next-intl` (v4, Next 16-compatible) with the standard App Router pattern: `app/[locale]/`
+  route segment (moved every existing page under it), `i18n/routing.ts` (locales `en`/`he`,
+  `localePrefix: 'always'` so the active language is always unambiguous from the URL),
+  `i18n/navigation.ts` (locale-aware `Link`/`useRouter`/`usePathname` wrappers — used everywhere
+  instead of the plain `next/link`/`next/navigation` versions specifically so navigation and hard
+  redirects can't silently drop back to the default locale), and `proxy.ts` (Next.js 16 renamed
+  the `middleware.ts` file convention to `proxy.ts`; used the new name directly rather than the
+  deprecated one).
+- `messages/en.json` / `messages/he.json` — 177 keys each, verified with a script to have exactly
+  matching key sets (a missing Hebrew key would otherwise only surface as a runtime crash on that
+  specific page). Every page and shared component (`Sidebar`, `AssetCard`, `AlertCard`,
+  `SecurityScoreCard`, `Timeline`, `MarketingNav`/`Footer`) now sources its text from these files —
+  zero hardcoded UI strings left in components that render user-facing text.
+- **`dir="rtl"`/`dir="ltr"` set on `<html>` per-locale** in the root layout, combined with
+  switching every component's physical-direction Tailwind utilities (`pl-*`/`pr-*`, `ml-*`/`mr-*`,
+  `left-*`/`right-*`, `border-l`/`border-r`) to their **logical** equivalents (`ps-*`/`pe-*`,
+  `ms-*`/`me-*`, `start-*`/`end-*`, `border-s`/`border-e`) — verified Tailwind v4 actually compiles
+  these to real `padding-inline-start`/`inset-inline-end`/etc. CSS properties (not assumed) before
+  relying on them. This is what makes the Hebrew UI a genuine mirrored RTL layout (sidebar on the
+  right, nav/buttons flowing right-to-left, icons on the correct side of their labels) rather than
+  just right-aligned English-layout text, **verified visually** — see below.
+- **`LanguageSwitcher` component** — a single toggle-to-the-other-language button (not a dropdown,
+  since there are only two locales) using `next-intl`'s locale-aware router so switching language
+  stays on the exact same page (`/he/domains` → `English` click → `/en/domains`, not back to the
+  homepage). Present in both the marketing nav and the dashboard sidebar.
+- **Found and fixed two real bugs this surfaced**, not just translation work:
+  1. `lib/plans.ts`'s billing-page "is this the user's current plan?" check compared
+     `plan.name.toUpperCase() === currentPlan` — this breaks the instant the plan name is
+     translated (`"חינם".toUpperCase()` is never `"FREE"`). Fixed by adding a stable,
+     locale-independent `key` field (`"FREE" | "STARTER" | ...`, matching the backend's real
+     `SubscriptionPlan` enum) to `PlanInfo` and comparing against *that*, never the translated
+     display name — `lib/plans.test.ts` rewritten to exercise `getPlans()` against **both** real
+     message files (not a fake mock dictionary) and assert this specifically.
+  2. `AuthProvider`'s `login`/`register`/`logout` and the axios response interceptor's
+     session-expired redirect all used plain `next/navigation`/a raw `window.location.href`
+     pointing at bare paths (`/dashboard`, `/login`) — since `localePrefix: 'always'`, a hard
+     redirect to a bare path gets intercepted by the proxy and bounced to the *default* locale,
+     silently dropping a Hebrew-using session back to English on every login/logout/session-expiry.
+     Fixed `AuthProvider` by switching to the locale-aware router; fixed the interceptor (which
+     can't use a React hook) by reading the locale segment directly out of
+     `window.location.pathname` before constructing the redirect URL.
+- Added a reusable `test/render-with-intl.tsx` test helper (wraps a component under test in a real
+  `NextIntlClientProvider` using the actual `en.json`) and updated `AlertCard.test.tsx` to use it,
+  since `AlertCard` now calls `useTranslations` and would otherwise throw with no provider ancestor.
+
+**2. Visual design polish**, addressing "make it nicer" directly rather than just fixing the stale
+build:
+- Root layout: a fixed, subtle decorative radial-gradient glow behind the whole app (the same
+  "premium SaaS depth" treatment Stripe/Linear/Vercel all use some version of).
+- Landing page hero: the second title line now renders as an indigo→violet gradient
+  (`bg-clip-text`), larger hero type scale, buttons lift slightly on hover
+  (`hover:-translate-y-0.5`) with a colored shadow.
+- Feature cards across landing/features pages: hover lift + border/background transition instead
+  of static boxes.
+- Pricing page: the Professional plan is now visually highlighted (bordered, subtle glow, a
+  "Professional" badge) as the recommended tier — a standard, well-tested SaaS pricing pattern,
+  applied via a real `plan.key` check rather than a hardcoded index so it can't silently point at
+  the wrong plan if the list order ever changes.
+- `globals.css`: themed scrollbar (WebKit), text-selection color, `scroll-behavior: smooth`, and a
+  Hebrew-capable font-family fallback chain (`next/font`'s Geist only ships a Latin subset, so
+  Hebrew text needs to actually fall through to a platform sans-serif that has Hebrew glyphs rather
+  than rendering tofu/mismatched fallback boxes).
+- Sticky, blurred marketing nav (`backdrop-blur-md`) instead of a static header.
+
+**Found and fixed one more real bug during visual verification**: the browser was requesting
+`/he/favicon.ico` (relative to the current locale-prefixed path) instead of the actual
+`/favicon.ico`, 404ing on every locale-prefixed page load — confirmed via a live browser network
+listener, not assumed. Fixed with an explicit absolute `icons: { icon: "/favicon.ico" }` in the
+root layout's `metadata`.
+
+**Verified thoroughly with real headless-browser runs, in both languages**:
+- Screenshotted the landing page in English and Hebrew side by side — confirmed genuine RTL
+  mirroring (nav/logo/buttons flipped, hero text right-aligned, feature-card grid reading
+  right-to-left), not just translated English-layout text.
+- Confirmed `document.documentElement.dir === "rtl"` and `lang === "he"` are actually set on the
+  live page (not just present in the source).
+- **Full real end-to-end flow through the Hebrew UI**: registered a genuine new user
+  (name/company in Hebrew) via the `/he/register` form, landed on `/he/dashboard`, added a real
+  domain via `/he/domains`, confirmed the `AssetCard` renders correctly mirrored with a
+  Hebrew-locale-formatted date — zero browser console errors throughout.
+- Verified the language switcher's "stay on the same page" behavior live: clicked it on
+  `/he/domains`, landed on `/en/domains` with the same session/data intact.
+- Confirmed no regressions: full test suites still pass on both apps after every change
+  (**backend**: `npx jest` 35/35, unchanged; **frontend**: `npx vitest run` **15/15**, up from 8 —
+  the expanded `plans.test.ts` plus `AlertCard.test.tsx`'s updated provider wrapper), both apps'
+  `npm run build`/`npm run lint` clean (0 errors), and all 27 page routes (13 pages × 2 locales +
+  `/_not-found`) statically prerendered per `next build`'s own route summary.
+- Test user/data cleaned up from the database after verification.
+
+**Known, disclosed scope limit**: RTL correctness was verified thoroughly for every page actually
+built (marketing site, auth pages, dashboard shell + all its pages), but wasn't audited utility-
+by-utility across 100% of every conceivable physical-direction Tailwind class in the codebase —
+the ones that mattered visually (nav, sidebar, timeline, forms, cards) were found and fixed via
+real visual inspection in both directions, which is the same rigor applied everywhere else in this
+build, but a dedicated line-by-line grep-for-`pl-`/`pr-`/`ml-`/`mr-`/`left-`/`right-` audit of every
+file wasn't separately performed as a final catch-all pass.
