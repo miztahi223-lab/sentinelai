@@ -67,6 +67,8 @@ services:
       STRIPE_PRICE_STARTER: ${STRIPE_PRICE_STARTER:-}
       STRIPE_PRICE_PROFESSIONAL: ${STRIPE_PRICE_PROFESSIONAL:-}
       STRIPE_PRICE_BUSINESS: ${STRIPE_PRICE_BUSINESS:-}
+      COINBASE_COMMERCE_API_KEY: ${COINBASE_COMMERCE_API_KEY:-}
+      COINBASE_COMMERCE_WEBHOOK_SECRET: ${COINBASE_COMMERCE_WEBHOOK_SECRET:-}
       AI_API_KEY: ${AI_API_KEY:-}
     volumes:
       - sentinelai_reports:/app/storage/reports
@@ -83,6 +85,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost}
     restart: unless-stopped
     depends_on:
       - backend

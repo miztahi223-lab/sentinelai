@@ -15,6 +15,12 @@ COPY . .
 # origin per environment.
 ARG NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Same "baked in at build time" reasoning as NEXT_PUBLIC_API_URL above —
+# used by sitemap.ts/robots.ts/the root layout's Open Graph metadata.
+# Falls back to a localhost value (honest for a build with no real domain
+# yet) rather than a fake placeholder domain.
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build
 
 # --- runtime: only the standalone server output + static assets, nothing else ---

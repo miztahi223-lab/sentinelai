@@ -1601,3 +1601,52 @@ state. Also verified in Hebrew/RTL.
 unit tests, 37/37 backend e2e tests. Both dev servers restarted (checking `ss -ltnp` for a genuinely
 free port before starting the replacement process, per the Enhancement 9 lesson) and confirmed
 responding.
+
+## Enhancement 12: launch-readiness pass — found and fixed two real wiring gaps, wrote a deploy runbook
+
+Prompted by being asked how much longer until this is live. Audited `.env.example` against what's
+actually wired through the production path and found two genuine gaps that would have caused a
+real deployment to silently misbehave:
+
+- `COINBASE_COMMERCE_API_KEY`/`COINBASE_COMMERCE_WEBHOOK_SECRET` (added in Enhancement 10) were
+  never added to `docker-compose.production.yml`'s backend `environment:` block — a real deployment
+  could have a correct `.env` file with real Coinbase keys and the crypto checkout would still
+  report "not configured," because the container never actually received the values. Fixed.
+- `NEXT_PUBLIC_SITE_URL` (added earlier for `sitemap.ts`/`robots.ts`/Open Graph metadata) was never
+  wired as a Docker build ARG in `apps/frontend/Dockerfile` or passed through
+  `docker-compose.production.yml`'s frontend build args — since Next.js inlines `NEXT_PUBLIC_*`
+  vars at *build* time, not runtime, this one would have silently baked `localhost` into the
+  production bundle's sitemap/OG tags forever, no matter what was set in the real `.env`. Fixed
+  (mirrors the existing `NEXT_PUBLIC_API_URL` build-arg pattern exactly).
+
+**Generated real production secrets** — `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET`
+(`openssl rand -base64 48` each) and a random `POSTGRES_PASSWORD` — written to a new
+`.env.production` file. Caught a real gitignore gap while doing this: the existing `.gitignore`
+only matched `.env`, `.env.local`, and `.env.*.local`, none of which match a file literally named
+`.env.production` — meaning this file would NOT have been ignored and could have been accidentally
+committed with real secrets in it. Added `.env.production` explicitly to `.gitignore` and verified
+with `git check-ignore -v` before writing anything into it.
+
+**Verified the fixes for real, not just by reading the compose file**: built both production Docker
+images fresh from a separate compose project (`sentinelai-launchcheck`, so the real local dev stack
+was untouched throughout), brought up the full stack (postgres/redis/backend/frontend/nginx) against
+a genuinely empty database using the real generated secrets, hit the same Podman aardvark-dns
+gateway-address instability documented in Enhancement "Production-readiness pass" again (this time
+`10.89.3.1` — a third different value across the three times this has been checked, reinforcing
+it's a genuine Podman quirk and not something worth hardcoding around), fixed `NGINX_RESOLVER`
+accordingly, and confirmed a real user registration through the full stack (nginx → backend →
+Postgres) returns a real JWT pair. Tore the verification stack down completely afterward
+(`down -v`) and confirmed the actual local dev stack was unaffected.
+
+**Wrote `docs/DEPLOY.md`** — a concrete, copy-paste runbook for the day a real domain/host exists:
+DNS, Docker install, copying the pre-filled `.env.production`, filling in the still-genuinely-blank
+SMTP/Stripe/AI values, bringing the stack up, TLS (explicitly not faked — same reasoning as the
+compose file's existing TLS comment), pointing the real Stripe webhook at the real domain, and a
+smoke-test. Also honestly lists what's still not done even after deployment (no lawyer review of
+Terms/Privacy, no error-tracking/monitoring service, no CI deploy step) rather than implying
+deployment alone means "fully done."
+
+**The actual bottleneck, confirmed once more by this pass**: every remaining step needs a real
+external account (domain registrar, hosting provider, SMTP provider, Stripe, Anthropic) that only
+the project owner can create — not more engineering time. This pass closed the gap between "the
+code is ready" and "the deployment steps are ready," so that bottleneck is now the only one left.
