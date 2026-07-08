@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check } from "lucide-react";
+import { Check, Bitcoin } from "lucide-react";
 import { isAxiosError } from "axios";
-import { useCreateCheckoutSession } from "@/lib/hooks";
+import {
+  useCreateCheckoutSession,
+  useCreateCryptoCheckoutSession,
+} from "@/lib/hooks";
 import { useOrganization } from "@/lib/organization-context";
 import { getPlans } from "@/lib/plans";
 
@@ -21,8 +24,12 @@ export default function BillingPage() {
   const { currentOrg: org } = useOrganization();
   const currentPlan = org?.subscription?.plan ?? "FREE";
   const checkoutSession = useCreateCheckoutSession();
+  const cryptoCheckoutSession = useCreateCryptoCheckoutSession();
   const [error, setError] = useState<string | null>(null);
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
+  const [pendingCryptoPlan, setPendingCryptoPlan] = useState<string | null>(
+    null,
+  );
 
   async function handleUpgrade(plan: "STARTER" | "PROFESSIONAL" | "BUSINESS") {
     if (!org) return;
@@ -41,6 +48,30 @@ export default function BillingPage() {
       setError(message ?? t("errorDefault"));
     } finally {
       setPendingPlan(null);
+    }
+  }
+
+  // Crypto checkout for the same, already-authenticated organization — not
+  // a separate anonymous flow. See `cryptoFootnote` copy shown below the
+  // pricing grid, and `CryptoBillingService` on the backend, for why this
+  // product deliberately does not offer an anonymous/guest payment option.
+  async function handleCryptoUpgrade(plan: "STARTER" | "PROFESSIONAL") {
+    if (!org) return;
+    setError(null);
+    setPendingCryptoPlan(plan);
+    try {
+      const { url } = await cryptoCheckoutSession.mutateAsync({
+        organizationId: org.id,
+        plan,
+      });
+      window.location.assign(url);
+    } catch (err) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string })?.message
+        : undefined;
+      setError(message ?? t("cryptoErrorDefault"));
+    } finally {
+      setPendingCryptoPlan(null);
     }
   }
 
@@ -89,17 +120,35 @@ export default function BillingPage() {
                 ))}
               </ul>
               {plan.plan ? (
-                <button
-                  onClick={() => handleUpgrade(plan.plan!)}
-                  disabled={active || pendingPlan === plan.plan}
-                  className="mt-6 w-full rounded-md bg-indigo-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-500"
-                >
-                  {active
-                    ? t("currentPlanLabel")
-                    : pendingPlan === plan.plan
-                      ? t("startingCheckout")
-                      : t("upgrade")}
-                </button>
+                <>
+                  <button
+                    onClick={() => handleUpgrade(plan.plan!)}
+                    disabled={active || pendingPlan === plan.plan}
+                    className="mt-6 w-full rounded-md bg-indigo-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-500"
+                  >
+                    {active
+                      ? t("currentPlanLabel")
+                      : pendingPlan === plan.plan
+                        ? t("startingCheckout")
+                        : t("upgrade")}
+                  </button>
+                  {!active && plan.plan !== "BUSINESS" && (
+                    <button
+                      onClick={() =>
+                        handleCryptoUpgrade(
+                          plan.plan as "STARTER" | "PROFESSIONAL",
+                        )
+                      }
+                      disabled={pendingCryptoPlan === plan.plan}
+                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-xs font-medium text-gray-300 transition hover:border-gray-600 hover:bg-gray-900 disabled:cursor-not-allowed disabled:text-gray-600"
+                    >
+                      <Bitcoin className="h-3.5 w-3.5" />
+                      {pendingCryptoPlan === plan.plan
+                        ? t("startingCryptoCheckout")
+                        : t("payWithCrypto")}
+                    </button>
+                  )}
+                </>
               ) : (
                 <button
                   disabled
@@ -114,6 +163,7 @@ export default function BillingPage() {
       </div>
 
       <p className="text-xs text-gray-600">{t("footnote")}</p>
+      <p className="text-xs text-gray-600">{t("cryptoFootnote")}</p>
     </div>
   );
 }

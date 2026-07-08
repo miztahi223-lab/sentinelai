@@ -267,6 +267,24 @@ export function useCreateCheckoutSession() {
   });
 }
 
+// Same authenticated `api` instance as every other request in this app —
+// the crypto checkout is an additional payment method for the already
+// logged-in user's organization, not a separate anonymous flow.
+export function useCreateCryptoCheckoutSession() {
+  return useMutation({
+    mutationFn: async (params: {
+      organizationId: string;
+      plan: "STARTER" | "PROFESSIONAL";
+    }) => {
+      const { data } = await api.post<{ url: string }>(
+        "/billing/crypto-checkout-session",
+        params,
+      );
+      return data;
+    },
+  });
+}
+
 export function useTriggerScan(domainId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({

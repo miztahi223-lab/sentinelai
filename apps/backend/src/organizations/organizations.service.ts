@@ -62,6 +62,12 @@ export class OrganizationsService {
     });
   }
 
+  findById(organizationId: string) {
+    return this.prisma.organization.findUnique({
+      where: { id: organizationId },
+    });
+  }
+
   async getMembership(userId: string, organizationId: string) {
     return this.prisma.membership.findUnique({
       where: { userId_organizationId: { userId, organizationId } },

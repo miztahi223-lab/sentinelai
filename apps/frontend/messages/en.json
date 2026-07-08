@@ -92,6 +92,12 @@
     "step2Desc": "DNS, subdomains, TLS certificates, HTTP responses, and detected technologies — the same reconnaissance an attacker does first, done automatically and safely.",
     "step3Title": "Get a prioritized, explained action list",
     "step3Desc": "A 0-100 score, every finding traced to its cause, and — when configured — an AI-written explanation of what to fix first and why it matters.",
+    "whyNowEyebrow": "Why this matters right now",
+    "whyNowTitle": "Every business has an attack surface today — most don't have a map of it",
+    "whyNowBody": "Domains, subdomains, and cloud assets accumulate faster than any manual inventory can track — a forgotten staging subdomain or an expired certificate is often how attackers get their first foothold, not a sophisticated exploit.",
+    "whyNowStatValue": "16%",
+    "whyNowStatLabel": "higher average breach cost, and ~26% longer to identify, when \"shadow\" — unknown or forgotten — assets are involved",
+    "whyNowStatSource": "Source: IBM Cost of a Data Breach Report (ibm.com/reports/data-breach)",
     "trustTitle": "Built the way a security tool should be",
     "trustPoint1Title": "Read-only reconnaissance",
     "trustPoint1Desc": "Discovery only ever reads what's already publicly reachable (DNS, TLS, HTTP) — it never attempts to exploit, modify, or authenticate against anything.",
@@ -342,7 +348,11 @@
     "upgrade": "Upgrade",
     "startingCheckout": "Starting checkout...",
     "errorDefault": "Could not start checkout — billing may not be configured on this deployment yet.",
-    "footnote": "Checkout goes through real Stripe Checkout Sessions. On a deployment without real Stripe API keys configured — like this local build — clicking \"Upgrade\" will show a clear error rather than a fake checkout page."
+    "footnote": "Checkout goes through real Stripe Checkout Sessions. On a deployment without real Stripe API keys configured — like this local build — clicking \"Upgrade\" will show a clear error rather than a fake checkout page.",
+    "payWithCrypto": "Pay with crypto instead",
+    "startingCryptoCheckout": "Starting crypto checkout...",
+    "cryptoErrorDefault": "Could not start crypto checkout — it may not be configured on this deployment yet.",
+    "cryptoFootnote": "Crypto checkout is an additional payment method for your existing, logged-in organization — the charge is created for your real account (via Coinbase Commerce) exactly like a card payment, with the same audit-log entry. There is no anonymous or guest checkout option; every payment on SentinelAI is always tied to an identified account, whichever payment method you use."
   },
   "assetCard": {
     "active": "Active",

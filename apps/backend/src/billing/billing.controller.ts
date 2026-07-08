@@ -17,6 +17,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { ConfigService } from '@nestjs/config';
 import { BillingNotConfiguredError, BillingService } from './billing.service';
+import {
+  CryptoBillingNotConfiguredError,
+  CryptoBillingService,
+} from './crypto-billing.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { UsersService } from '../users/users.service';
@@ -26,6 +30,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 export class BillingController {
   constructor(
     private readonly billingService: BillingService,
+    private readonly cryptoBillingService: CryptoBillingService,
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
@@ -65,6 +70,88 @@ export class BillingController {
     } catch (error) {
       if (error instanceof BillingNotConfiguredError) {
         throw new ServiceUnavailableException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Crypto checkout — an *additional* payment method, not an anonymous one.
+   * Same authorization as `checkout-session` (OWNER/ADMIN of a real,
+   * already-authenticated organization) and the same audit logging.
+   * BUSINESS isn't offered here because it's custom/contact-sales pricing
+   * with no fixed amount to charge.
+   */
+  @Post('crypto-checkout-session')
+  @UseGuards(JwtAuthGuard)
+  async cryptoCheckoutSession(
+    @Body() dto: CreateCheckoutSessionDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    await this.organizationsService.assertManagerMembership(
+      user.userId,
+      dto.organizationId,
+    );
+    if (dto.plan === 'BUSINESS') {
+      throw new BadRequestException(
+        'The Business plan is custom-priced — contact sales instead of using crypto checkout.',
+      );
+    }
+    const organization = await this.organizationsService.findById(
+      dto.organizationId,
+    );
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+    try {
+      const url = await this.cryptoBillingService.createCheckoutSession({
+        organizationId: dto.organizationId,
+        organizationName: organization?.name ?? dto.organizationId,
+        plan: dto.plan,
+        successUrl: `${frontendUrl}/billing?checkout=success`,
+        cancelUrl: `${frontendUrl}/billing?checkout=cancelled`,
+      });
+      await this.auditLogsService.record({
+        organizationId: dto.organizationId,
+        userId: user.userId,
+        action: 'billing.crypto_checkout_started',
+        metadata: { plan: dto.plan },
+      });
+      return { url };
+    } catch (error) {
+      if (error instanceof CryptoBillingNotConfiguredError) {
+        throw new ServiceUnavailableException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * No `JwtAuthGuard` — Coinbase Commerce calls this directly and can't
+   * present a user JWT. Authenticity is verified via the HMAC signature
+   * header inside `CryptoBillingService.handleWebhook`.
+   */
+  @Post('crypto-webhook')
+  @HttpCode(HttpStatus.OK)
+  async cryptoWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('x-cc-webhook-signature') signature: string,
+  ) {
+    if (!req.rawBody) {
+      throw new Error(
+        'Raw request body not available — check that rawBody is enabled in main.ts for this route.',
+      );
+    }
+    try {
+      await this.cryptoBillingService.handleWebhook(req.rawBody, signature);
+      return { received: true };
+    } catch (error) {
+      if (error instanceof CryptoBillingNotConfiguredError) {
+        throw new ServiceUnavailableException(error.message);
+      }
+      if (error instanceof Error && error.message.includes('signature')) {
+        throw new BadRequestException(
+          `Webhook signature verification failed: ${error.message}`,
+        );
       }
       throw error;
     }

@@ -335,6 +335,15 @@ model Subscription {
   status                SubscriptionStatus  @default(ACTIVE)
   stripeCustomerId      String?             @unique
   stripeSubscriptionId  String?             @unique
+  // Coinbase Commerce charge code of the most recently *confirmed* crypto
+  // payment for this organization — used purely for webhook idempotency
+  // (a charge can legitimately fire `charge:confirmed` more than once) and
+  // for support/audit lookups. Not a customer identity field: it identifies
+  // a specific on-chain charge, not a person, and every charge is always
+  // created while the paying user is authenticated and tied to their real
+  // organizationId (see `BillingService.createCryptoCheckoutSession`) —
+  // there is no anonymous/guest crypto checkout path in this product.
+  lastCryptoChargeId    String?             @unique
   currentPeriodEnd      DateTime?
   cancelAtPeriodEnd     Boolean             @default(false)
   createdAt             DateTime            @default(now())

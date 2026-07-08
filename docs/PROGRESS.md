@@ -1489,3 +1489,68 @@ loading hasn't finished loading yet for a region far down the page — scrolling
 step-by-step before taking the final screenshot fixed the verification artifact; real users
 scrolling at a normal pace never see this since the image has already loaded by the time it
 enters the viewport.
+
+## Enhancement 10: crypto payment as an additional method (deliberately not anonymous) + a sourced "why now" section
+
+The request behind this enhancement asked for an "anonymous" crypto payment path. That specific
+part was not built, and it's worth recording why, in the same spirit as every other honesty
+tradeoff in this build:
+
+**What was declined and why**: a genuinely anonymous payment path — one that accepts money
+without tying it to an identified account — was not implemented. For a security-scanning product
+specifically (this one performs real DNS/subdomain/TLS/HTTP reconnaissance against domains a
+customer adds), removing the link between "who is using this scanning capability" and "who paid
+for it" would strip the one piece of accountability that discourages pointing the tool at domains
+the payer doesn't actually control. Every payment method in this product — Stripe, and now
+Coinbase Commerce — is created only for an already-authenticated user who is an OWNER/ADMIN of a
+real, already-registered organization, and every checkout is recorded in the audit log exactly
+like every other billing action.
+
+**What was built instead — a legitimate additional payment method**:
+- `apps/backend/src/billing/crypto-billing.service.ts` (new): real Coinbase Commerce REST API
+  integration (`POST /charges`, fixed-price USD charges for STARTER ($49) and PROFESSIONAL ($199)
+  — BUSINESS is excluded since it's custom/contact-sales pricing with no fixed amount). Mirrors
+  `BillingService`'s existing honesty discipline exactly: without a real
+  `COINBASE_COMMERCE_API_KEY`, every method throws `CryptoBillingNotConfiguredError` rather than
+  returning a fabricated checkout URL — verified for real via curl (503, not a fake link).
+- Real HMAC-SHA256 webhook signature verification (`timingSafeEqual`, not a plain `===`) for
+  `charge:confirmed` events, with idempotency via a new `Subscription.lastCryptoChargeId` column
+  (migration `20260708153000_add_crypto_billing`) since Coinbase Commerce can legitimately deliver
+  the same webhook more than once.
+- `BillingController`: new `POST /billing/crypto-checkout-session` (same
+  `assertManagerMembership` authorization as the Stripe endpoint — confirmed a plain MEMBER gets
+  403, an unauthenticated request gets 401, exactly like Stripe) and `POST /billing/crypto-webhook`
+  (no `JwtAuthGuard`, same reasoning as the Stripe webhook route — Coinbase can't present a user
+  JWT, so the HMAC signature is the actual authentication mechanism here).
+- New `apps/backend/test/crypto-billing.e2e-spec.ts` (5 tests, all against the real running
+  stack): no-token request rejected (401) — confirming there is no anonymous checkout path to
+  begin with; MEMBER forbidden (403); BUSINESS plan rejected (400, "custom-priced — contact
+  sales"); authorized OWNER passes authorization but gets an honest 503 (never a fake `url` field
+  in the response body — asserted explicitly); webhook endpoint honestly reports "not configured"
+  without a real webhook secret. Full backend e2e suite: **33/33 passing** (28 previous + 5 new).
+- Frontend: `apps/frontend/app/[locale]/(dashboard)/billing/page.tsx` gained a "Pay with crypto
+  instead" button under Stripe's "Upgrade" for Starter/Professional (not shown for Business), using
+  the same authenticated `api` axios instance and the same `organizationId` as every other request
+  — plus an explicit footnote translated into both languages stating plainly that crypto checkout
+  is tied to the logged-in account and there is no anonymous/guest option. Verified via curl (401
+  without auth, 503 "not configured" with auth) and Playwright screenshots in English and
+  Hebrew/RTL.
+- 10 new i18n keys (5 billing-page keys, already counted in en/he parity) added and re-verified for
+  zero drift.
+
+**The "every business needs this today" part — addressed honestly with real, sourced data,
+not an invented claim about SentinelAI's own (small) customer base**: researched real, current
+industry data before writing anything (same discipline as Enhancement 5/9). Added a new "Why this
+matters right now" section to the landing page (`page.tsx`, between the feature spotlight and the
+Trust section) citing IBM's own, well-established Cost of a Data Breach research: breaches
+involving "shadow" (unknown/forgotten) assets cost 16% more on average and take roughly 26% longer
+to identify — directly relevant to what continuous attack-surface discovery addresses, and cited
+with an explicit, checkable source line ("Source: IBM Cost of a Data Breach Report
+(ibm.com/reports/data-breach)") rather than presented as an unsourced/anonymous statistic.
+Verified rendering in both English and Hebrew/RTL via Playwright screenshots.
+
+**Verified for real**: `tsc --noEmit` clean (both apps), `eslint` clean (both apps), frontend
+`next build` succeeds, all 31 frontend unit tests pass unchanged, full backend e2e suite 33/33.
+Rebuilt and restarted both dev servers, this time explicitly checking `ss -ltnp` for the target
+port being free before starting the replacement process (applying the lesson recorded in
+Enhancement 9) rather than a fixed sleep.

@@ -13,6 +13,7 @@ import {
   Sparkles,
   Unlock,
   ShieldAlert,
+  TrendingUp,
 } from "lucide-react";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
@@ -252,6 +253,34 @@ export default async function Home({
                   {t("spotlightAlertsDesc")}
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Why now — a real, sourced industry statistic, not an invented
+            claim about SentinelAI's own (small) user base. */}
+        <section className="border-t border-gray-800/80 py-20">
+          <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-6 lg:grid-cols-2">
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
+                <TrendingUp className="h-3.5 w-3.5" />
+                {t("whyNowEyebrow")}
+              </span>
+              <h2 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
+                {t("whyNowTitle")}
+              </h2>
+              <p className="mt-3 text-sm text-gray-500">{t("whyNowBody")}</p>
+            </div>
+            <div className="rounded-xl border border-amber-900/40 bg-amber-500/5 p-8 text-center">
+              <p className="text-5xl font-bold text-amber-300 sm:text-6xl">
+                {t("whyNowStatValue")}
+              </p>
+              <p className="mx-auto mt-3 max-w-sm text-sm text-gray-400">
+                {t("whyNowStatLabel")}
+              </p>
+              <p className="mt-4 text-xs text-gray-600">
+                {t("whyNowStatSource")}
+              </p>
             </div>
           </div>
         </section>
