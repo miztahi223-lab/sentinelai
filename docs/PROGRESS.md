@@ -1351,3 +1351,55 @@ out of sync). Verified live: showed a real "18" matching the actual number of un
 Full re-verification: backend `npm run build`/`npm run lint` (0 errors)/`npx jest` (35/35,
 unchanged)/e2e (**28/28**, up from 22); frontend `npm run build`/`npm run lint` (0 errors)/
 `npx vitest run` (31/31, unchanged), zero browser console errors.
+
+## Production-readiness pass — rebuilt and re-verified the full containerized stack (2026-07-08)
+
+Every feature added since Step 16's original Docker verification (subdomain enumeration, SSRF
+guard, i18n, team invitations, alerts, reports UI, audit logs) had only ever been tested against
+the local dev stack (`docker-compose.yml`, app run via `npm run start`/`start:dev` directly) — not
+re-verified against the actual production Docker images since they were first built. Rebuilt both
+(`docker compose -f docker-compose.production.yml build`) and ran the **entire** stack fresh,
+including a genuinely clean Postgres volume (removed the leftover volume from Step 16 rather than
+reusing an already-migrated database, specifically so the migration step itself would be tested
+for real, not skipped as a no-op).
+
+**Real, useful finding**: hit the exact "backend could not be resolved" nginx error Step 16's own
+fix was built for — except this time triggered by something new: **Podman's embedded DNS
+(aardvark-dns) gateway address is not even stable across recreations of the same named network on
+this same host** (it was `10.89.1.1` when Step 16 verified this, `10.89.2.1` this time, after
+tearing down and recreating the same `sentinelai-prod_internal` network). Confirmed via
+`docker network inspect`. This doesn't affect real Docker Engine deployments (its embedded DNS is
+always the fixed `127.0.0.11`, which is why that's the compose file's actual default), but it's a
+real, reproducible Podman-specific fragility worth knowing about if this stack is ever verified
+locally on Podman again — recorded here rather than silently working around it and losing the
+lesson. Fixed for this verification run by pointing `NGINX_RESOLVER` at the actual current gateway
+and recreating the nginx container (required — editing `.env` alone doesn't retroactively change
+an already-created container's environment).
+
+**Verified for real, against the fully fresh, fully rebuilt containerized stack**: both migrations
+(`init` and the new `add_invitations`) applied cleanly and in order on a genuinely empty database;
+registered a real user through nginx → backend → real Postgres; confirmed the new `audit-logs`,
+`invitations`, and `alerts` endpoints all respond correctly (200, with a real `user.registered`
+audit entry genuinely present) through the complete containerized path, not just the local dev
+servers these features were originally built and tested against. Also confirmed `robots.txt`/
+`sitemap.xml` serve correctly and honestly fall back to `http://localhost:3000` in `sitemap.xml`
+since `NEXT_PUBLIC_SITE_URL` wasn't set for this quick verification run (expected — flagged in
+`.env.example`, not a bug).
+
+**Found and fixed a real documentation gap while doing this**: `NEXT_PUBLIC_SITE_URL` (used by
+`sitemap.ts`/`robots.ts`/the root layout's Open Graph metadata since the sales-copy/SEO
+enhancement) was never added to `.env.example` — added it.
+
+Torn down cleanly afterward (containers, the fresh test volumes, and the temporary root `.env`
+used only for this verification) and confirmed the separate local dev stack
+(`docker-compose.yml` + `npm run start:dev`/`npm run dev`) came back up and responded correctly,
+since that's what every other verification in this session actually runs against day-to-day.
+
+Also re-ran `npm audit` on both apps as part of this pass: backend unchanged (3 moderate, the same
+accepted `@prisma/dev`/`@hono/node-server` dev-tooling transitive finding from Steps 17-18); frontend
+now shows the same single underlying bundled-PostCSS finding via one additional dependency path
+(`next-intl` → `next`, since `next-intl` was added for this session's i18n work and naturally
+depends on `next`) — not a new vulnerability, the identical accepted one from Step 17 with one more
+reported route to it. CI's `.github/workflows/ci.yml` needed no changes — it already runs
+`npm run test`/`npm run test:e2e` generically, so the new alerts/audit-logs/invitations test suites
+are automatically included.
