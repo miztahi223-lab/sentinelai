@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { isAxiosError } from "axios";
 import { useDomains, useCreateDomain } from "@/lib/hooks";
 import { useOrganization } from "@/lib/organization-context";
-import { AssetCard } from "@/components/AssetCard";
+import { DomainAssetCard } from "@/components/DomainAssetCard";
 
 export default function DomainsPage() {
   const t = useTranslations("domains");
@@ -61,14 +61,7 @@ export default function DomainsPage() {
           <p className="text-sm text-gray-500">{t("empty")}</p>
         )}
         {domains?.map((domain) => (
-          <AssetCard
-            key={domain.id}
-            type="SUBDOMAIN"
-            value={domain.name}
-            active={domain.verified}
-            lastSeenAt={domain.createdAt}
-            findingsCount={0}
-          />
+          <DomainAssetCard key={domain.id} domain={domain} />
         ))}
       </div>
     </div>

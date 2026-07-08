@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useDomains, useDomainRisk, useDomainRiskHistory, useTriggerScan } from "@/lib/hooks";
 import { useOrganization } from "@/lib/organization-context";
 import { Timeline } from "@/components/Timeline";
-import { AssetCard } from "@/components/AssetCard";
+import { DomainAssetCard } from "@/components/DomainAssetCard";
 import { SecurityScoreCard } from "@/components/SecurityScoreCard";
 import { AlertCard } from "@/components/AlertCard";
 import { RiskChart } from "@/components/RiskChart";
@@ -15,7 +16,20 @@ export default function DashboardPage() {
   const locale = useLocale();
   const { currentOrg: org, isLoading: orgsLoading } = useOrganization();
   const { data: domains, isLoading: domainsLoading } = useDomains(org?.id);
-  const primaryDomain = domains?.[0];
+  // Which domain's score/findings/trend are shown in detail — defaults to
+  // the first tracked domain, but (unlike before) is a real, switchable
+  // selection once there's more than one, rather than always silently
+  // being "whichever domain happens to be first". Not a true combined
+  // multi-domain aggregate (that would need a genuinely different scoring
+  // model — how do you average five domains' scores into one meaningful
+  // number?), but it closes the actual practical gap: every domain's real
+  // detail is now reachable from this page, not just the first one ever
+  // added.
+  const [selectedDomainId, setSelectedDomainId] = useState<string | undefined>(
+    undefined,
+  );
+  const primaryDomain =
+    domains?.find((d) => d.id === selectedDomainId) ?? domains?.[0];
   const { data: risk, isLoading: riskLoading } = useDomainRisk(primaryDomain?.id);
   const { data: riskHistory } = useDomainRiskHistory(primaryDomain?.id);
   const triggerScan = useTriggerScan(primaryDomain?.id);
@@ -34,13 +48,29 @@ export default function DashboardPage() {
           <p className="mt-1 text-sm text-gray-500">{org?.name}</p>
         </div>
         {hasDomains && primaryDomain && (
-          <button
-            onClick={() => triggerScan.mutate()}
-            disabled={triggerScan.isPending}
-            className="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-950 transition hover:bg-indigo-400 disabled:opacity-50"
-          >
-            {triggerScan.isPending ? t("startingScan") : t("scanNow")}
-          </button>
+          <div className="flex items-center gap-3">
+            {domains && domains.length > 1 && (
+              <select
+                value={primaryDomain.id}
+                onChange={(e) => setSelectedDomainId(e.target.value)}
+                aria-label={t("selectDomain")}
+                className="rounded-md border border-gray-700 bg-gray-900/60 px-3 py-2 text-sm text-gray-200 outline-none transition hover:border-gray-600 focus:border-indigo-500"
+              >
+                {domains.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={() => triggerScan.mutate()}
+              disabled={triggerScan.isPending}
+              className="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-indigo-950 transition hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {triggerScan.isPending ? t("startingScan") : t("scanNow")}
+            </button>
+          </div>
         )}
       </div>
 
@@ -117,14 +147,7 @@ export default function DashboardPage() {
               </h2>
               <div className="space-y-2">
                 {domains?.map((domain) => (
-                  <AssetCard
-                    key={domain.id}
-                    type="SUBDOMAIN"
-                    value={domain.name}
-                    active={domain.verified}
-                    lastSeenAt={domain.createdAt}
-                    findingsCount={0}
-                  />
+                  <DomainAssetCard key={domain.id} domain={domain} />
                 ))}
               </div>
             </div>

@@ -231,7 +231,8 @@
     "trackedDomains": "Tracked domains",
     "recentActivity": "Recent activity",
     "domainAdded": "Domain added: {name}",
-    "footnote": "Score and findings shown are for the first tracked domain only ({domain}) — a multi-domain aggregate view isn't built yet. AI-generated explanations/remediation aren't wired up yet either; findings show the raw detection only."
+    "selectDomain": "Select domain",
+    "footnote": "Score and findings shown are for {domain} — use the selector above to view another tracked domain. There's no single combined score across domains yet. AI-generated explanations/remediation aren't wired up yet either; findings show the raw detection only."
   },
   "domains": {
     "title": "Domains",

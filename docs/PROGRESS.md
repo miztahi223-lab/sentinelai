@@ -1278,3 +1278,34 @@ Full re-verification: backend `npm run build`/`npm run lint` (0 errors)/`npx jes
 unchanged)/e2e (**22/22**, up from 16); frontend `npm run build` (clean, all routes still
 prerender)/`npm run lint` (0 errors)/`npx vitest run` (31/31, unchanged), zero browser console
 errors across both newly-completed pages.
+
+## Enhancement 7 — fixed a real hardcoded-fake-data bug, added a dashboard domain selector (done, 2026-07-08)
+
+Auditing specifically for the exact anti-pattern this whole build has otherwise avoided — found
+one: both the Domains page and the dashboard's "Tracked domains" list hardcoded
+`findingsCount={0}` on every single `AssetCard`, regardless of how many findings a domain's
+last scan actually had. That's not an honest placeholder (which this codebase uses correctly
+elsewhere, e.g. Reports'/Alerts' old "not built yet" states) — it's a real number-shaped UI
+element showing a fabricated value, exactly the thing the "never fake data" rule exists to
+prevent. Fixed with a new `DomainAssetCard` wrapper that calls the real `useDomainRisk(domain.id)`
+for each domain and passes its actual finding count through.
+
+Also closed the dashboard's own long-standing honesty disclaimer ("score shown is for the first
+tracked domain only — a multi-domain view isn't built yet"): added a real domain selector
+(shown once an org has more than one tracked domain) so the score/findings/trend section can
+show *any* tracked domain's real detail, not permanently whichever one happened to be added
+first. Not a combined multi-domain aggregate score (there's no obviously correct way to average
+several domains' scores into one number, so this wasn't attempted/faked) — an honest, narrower
+fix for the actual practical gap. Updated the dashboard's disclaimer copy to describe what's
+really true now.
+
+**Verified against real, live data**: added a genuine second domain (`iana.org`) to the real
+`admin@sentinelai.dev` account's organization, ran a real scan against it (78/100, 3 real
+findings — distinct from `example.com`'s existing 72/100, 3 findings), and confirmed via
+screenshots that both the Domains list and the dashboard's "Tracked domains" list now show two
+different, correct, real finding counts (previously would have shown "0" for both, silently
+wrong) — and that the new domain selector correctly switches the score/findings/trend section
+between the two real domains.
+
+Full re-verification: frontend `npm run build` (clean)/`npm run lint` (0 errors)/
+`npx vitest run` (31/31, unchanged), zero browser console errors.
