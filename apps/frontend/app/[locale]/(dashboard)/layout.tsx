@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { OrganizationProvider } from "@/lib/organization-context";
 import { Sidebar } from "@/components/Sidebar";
 
 export default function DashboardLayout({
@@ -30,11 +31,13 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-gray-950 px-8 py-8">
-        {children}
-      </main>
-    </div>
+    <OrganizationProvider>
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto bg-gray-950 px-8 py-8">
+          {children}
+        </main>
+      </div>
+    </OrganizationProvider>
   );
 }

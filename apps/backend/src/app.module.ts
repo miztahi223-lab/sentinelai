@@ -9,6 +9,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { InvitationsModule } from './invitations/invitations.module';
 import { EmailModule } from './email/email.module';
 import { DomainsModule } from './domains/domains.module';
 import { DiscoveryModule } from './discovery/discovery.module';
@@ -42,6 +43,7 @@ import { ContactModule } from './contact/contact.module';
     EmailModule,
     UsersModule,
     OrganizationsModule,
+    InvitationsModule,
     AuthModule,
     DomainsModule,
     DiscoveryModule,

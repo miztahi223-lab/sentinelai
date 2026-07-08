@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MembershipRole } from '@prisma/client';
 
@@ -66,5 +66,24 @@ export class OrganizationsService {
     return this.prisma.membership.findUnique({
       where: { userId_organizationId: { userId, organizationId } },
     });
+  }
+
+  /**
+   * Shared authorization check for anything that should be restricted to
+   * an organization's OWNER/ADMIN — team-invitation management already
+   * used this exact logic (see InvitationsService); billing/subscription
+   * changes reuse it too, since a regular MEMBER being able to change what
+   * the whole organization is billed for is a real least-privilege gap,
+   * not just a hypothetical one — a compromised or simply careless member
+   * account shouldn't be able to touch billing.
+   */
+  async assertManagerMembership(userId: string, organizationId: string) {
+    const membership = await this.getMembership(userId, organizationId);
+    if (!membership || membership.role === MembershipRole.MEMBER) {
+      throw new ForbiddenException(
+        'Only organization owners/admins can perform this action',
+      );
+    }
+    return membership;
   }
 }

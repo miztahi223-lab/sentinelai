@@ -1,18 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { isAxiosError } from "axios";
 
+// Same reasoning as login/page.tsx: `useSearchParams()` needs a Suspense
+// boundary or `next build` fails prerendering this route.
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const t = useTranslations("auth");
   const { register } = useAuth();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") ?? undefined;
   const [name, setName] = useState("");
   const [organizationName, setOrganizationName] = useState("");
-  const [email, setEmail] = useState("");
+  // Pre-filled from an invitation-accept link (`?email=...`) if present —
+  // still editable, but saves re-typing when arriving from that flow.
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -22,7 +37,7 @@ export default function RegisterPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await register(email, password, name, organizationName);
+      await register(email, password, name, organizationName, redirectTo);
     } catch (err) {
       const message = isAxiosError(err)
         ? (err.response?.data as { message?: string })?.message
@@ -32,6 +47,10 @@ export default function RegisterPage() {
       setSubmitting(false);
     }
   }
+
+  const loginHref = redirectTo
+    ? `/login?redirect=${encodeURIComponent(redirectTo)}`
+    : "/login";
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
@@ -120,7 +139,7 @@ export default function RegisterPage() {
 
         <p className="mt-6 text-center text-sm text-gray-400">
           {t("alreadyHaveAccount")}{" "}
-          <Link href="/login" className="font-medium text-indigo-400 hover:text-indigo-300">
+          <Link href={loginHref} className="font-medium text-indigo-400 hover:text-indigo-300">
             {t("signIn")}
           </Link>
         </p>

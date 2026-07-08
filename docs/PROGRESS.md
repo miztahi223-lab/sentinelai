@@ -1126,3 +1126,67 @@ Re-verified live afterward: the custom Hebrew 404 page now renders correctly.
 Full re-verification after all of the above: `npm run build` (clean, all 17 pages × 2 locales +
 `robots.txt`/`sitemap.xml` statically generated), `npm run lint` (0 errors), `npx vitest run`
 (15/15, unchanged), zero browser console errors across every new/changed page in both languages.
+
+## Enhancement 4 — team invitations, an org switcher, and tightened billing authorization (done, 2026-07-08)
+
+The data model has had `Membership.role` (OWNER/ADMIN/MEMBER) since Step 4, but nothing ever let an
+organization actually grow past its original owner — no invite flow existed. Built one for real,
+backend and frontend, then found and fixed two real bugs it exposed.
+
+**Backend**: new `Invitation` Prisma model (migration `add_invitations`) and `InvitationsModule`:
+- `POST /invitations` (OWNER/ADMIN only) creates/re-issues a time-limited (7-day) token and emails
+  it via the existing `EmailService` pattern; re-inviting an already-pending email upserts (fresh
+  token) rather than erroring on the unique constraint.
+- `GET /invitations/:token` is deliberately public (no `JwtAuthGuard`) — someone clicking an email
+  link hasn't necessarily signed in yet and needs to see which org/role it's for first.
+- `POST /invitations/:token/accept` requires auth and **checks the logged-in user's email against
+  the invitation's email** before creating the `Membership` — without this, anyone who obtained a
+  token could join as whatever role it carries regardless of who it was actually sent to.
+- `GET /invitations/members` lists an org's real roster for the settings page.
+- Added `OrganizationsService.assertManagerMembership` (OWNER/ADMIN check) as a single shared
+  authorization helper, and **used it to close a real least-privilege gap found while building
+  this**: `BillingController`'s checkout/portal-session endpoints previously only checked "is a
+  member at all", meaning a plain MEMBER could change what the whole organization is billed for.
+  Tightened to OWNER/ADMIN, and refactored `InvitationsService`'s own identical check to reuse the
+  same shared helper instead of duplicating the logic.
+- **Verified end-to-end against the real live stack** (`test/invitations.e2e-spec.ts`, 9 new
+  tests): an OWNER can invite; a non-member is rejected (403); the invitee can accept and a real
+  `Membership` row appears; a *different* logged-in user cannot accept someone else's invitation
+  (403); re-accepting an already-used token is rejected (404). 16/16 e2e tests pass overall
+  (existing 8 + these 9, minus one shared setup step) alongside 35/35 unit tests.
+
+**Frontend**: a full `TeamSection` component on the Settings page (member roster with roles,
+pending-invitations list with revoke, an invite form — all conditionally rendered based on the
+current user's own role, mirroring the backend's real authorization rather than just hiding UI
+optimistically) and a public `/invitations/[token]` accept page handling every real state (invalid/
+expired, not-signed-in with Sign-in/Create-account CTAs, signed in as the wrong email, success).
+Extended the login/register pages to accept a `?redirect=` param (and register to pre-fill
+`?email=`) so clicking an invite link while logged out lands back on that exact invitation after
+auth — verified this exact round trip live: registered a brand-new second user starting from the
+invite link, landed back on the invite page automatically, accepted it, and confirmed via a direct
+API call that both users now show up in the org's real member list.
+
+**Found and fixed a real bug this surfaced**: the moment a user belongs to more than one
+organization (their own from registration, plus any they're invited into), every page that read
+`organizations?.[0]` silently showed the *wrong* one with no way to switch — reproduced live with a
+real invited test account whose dashboard kept showing their unrelated personal org. Fixed with a
+new `OrganizationProvider`/`useOrganization()` context (current org derived during render from an
+explicit selection → localStorage → first membership, deliberately not synced via a
+`useEffect`-based `setState` — the same `react-hooks/set-state-in-effect` fix already applied once
+in `auth-context.tsx`) and a switcher dropdown in the sidebar, shown only once a user actually has
+more than one organization. All four pages that used to read `organizations?.[0]` directly
+(dashboard, domains, settings, billing) now go through this shared context instead.
+
+**Created two real, working accounts on request** (not test throwaways — left in the database):
+`admin@sentinelai.dev` (OWNER of "SentinelAI HQ") and `viewer@sentinelai.dev` (invited into the
+same org as a plain MEMBER). Added a real domain (`example.com`) and ran a real scan against it so
+there's actual security data to look at. **Verified the actual point of this** directly against the
+API before handing off credentials: the MEMBER account can read the full findings/score/domains
+list (200) but is correctly rejected (403, the exact new `assertManagerMembership` message) from
+both inviting new members and starting a billing checkout — confirmed again through the real
+browser UI (org switcher, dashboard findings, Settings → Team roster) end-to-end, not just via curl.
+
+Full re-verification: backend `npm run build`/`npm run lint` (0 errors)/`npx jest` (35/35)/e2e
+(16/16); frontend `npm run build` (all routes including the new `/invitations/[token]` still
+prerender or route correctly)/`npm run lint` (0 errors, after fixing the effect-based-setState
+issue for real rather than suppressing it)/`npx vitest run` (15/15, unchanged).

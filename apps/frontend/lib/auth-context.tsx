@@ -21,12 +21,13 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, redirectTo?: string) => Promise<void>;
   register: (
     email: string,
     password: string,
     name: string,
     organizationName: string,
+    redirectTo?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
   refetchUser: () => Promise<void>;
@@ -89,11 +90,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, redirectTo?: string) => {
       const { data } = await api.post("/auth/login", { email, password });
       setTokens(data.accessToken, data.refreshToken);
       setUser(data.user);
-      router.push("/dashboard");
+      // Supports the "accept a team invitation" flow: someone who clicks an
+      // invite link while logged out needs to land back on that exact
+      // invitation page after signing in, not always the dashboard.
+      router.push(redirectTo || "/dashboard");
     },
     [router],
   );
@@ -104,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string,
       name: string,
       organizationName: string,
+      redirectTo?: string,
     ) => {
       const { data } = await api.post("/auth/register", {
         email,
@@ -113,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       setTokens(data.accessToken, data.refreshToken);
       setUser(data.user);
-      router.push("/dashboard");
+      router.push(redirectTo || "/dashboard");
     },
     [router],
   );

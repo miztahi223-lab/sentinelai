@@ -116,6 +116,7 @@ model User {
   memberships       Membership[]
   refreshTokens     RefreshToken[]
   auditLogs         AuditLog[]
+  sentInvitations   Invitation[]
 
   @@map("users")
 }
@@ -151,6 +152,7 @@ model Organization {
   reports     Report[]
   auditLogs   AuditLog[]
   subscription Subscription?
+  invitations Invitation[]
 
   @@map("organizations")
 }
@@ -168,6 +170,32 @@ model Membership {
   @@unique([userId, organizationId])
   @@index([organizationId])
   @@map("memberships")
+}
+
+// A pending invite for someone (by email, not yet necessarily a registered
+// user) to join an organization at a given role. Deliberately a separate
+// model from Membership rather than a "pending" flag on Membership itself:
+// an invitation doesn't reference a real userId yet (the invitee may not
+// have an account at all), and keeping the two concepts distinct means an
+// accepted/expired invitation's history is preserved even after the real
+// Membership row is created.
+model Invitation {
+  id              String          @id @default(uuid())
+  organizationId  String
+  email           String
+  role            MembershipRole  @default(MEMBER)
+  token           String          @unique
+  invitedByUserId String
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime        @default(now())
+
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy       User            @relation(fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@map("invitations")
 }
 
 // ---------------------------------------------------------------------------

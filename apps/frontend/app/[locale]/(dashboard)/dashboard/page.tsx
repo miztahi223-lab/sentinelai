@@ -2,7 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { useOrganizations, useDomains, useDomainRisk, useTriggerScan } from "@/lib/hooks";
+import { useDomains, useDomainRisk, useTriggerScan } from "@/lib/hooks";
+import { useOrganization } from "@/lib/organization-context";
 import { Timeline } from "@/components/Timeline";
 import { AssetCard } from "@/components/AssetCard";
 import { SecurityScoreCard } from "@/components/SecurityScoreCard";
@@ -10,8 +11,7 @@ import { AlertCard } from "@/components/AlertCard";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
-  const { data: organizations, isLoading: orgsLoading } = useOrganizations();
-  const org = organizations?.[0];
+  const { currentOrg: org, isLoading: orgsLoading } = useOrganization();
   const { data: domains, isLoading: domainsLoading } = useDomains(org?.id);
   const primaryDomain = domains?.[0];
   const { data: risk, isLoading: riskLoading } = useDomainRisk(primaryDomain?.id);

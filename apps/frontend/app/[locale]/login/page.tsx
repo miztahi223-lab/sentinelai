@@ -1,15 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { isAxiosError } from "axios";
 
+// `useSearchParams()` (to preserve a `?redirect=` target, e.g. from an
+// invitation-accept link) needs a Suspense boundary or `next build` fails
+// prerendering this route — same fix as reset-password/verify-email.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const t = useTranslations("auth");
   const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") ?? undefined;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +34,7 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
+      await login(email, password, redirectTo);
     } catch (err) {
       const message = isAxiosError(err)
         ? (err.response?.data as { message?: string })?.message
@@ -30,6 +44,10 @@ export default function LoginPage() {
       setSubmitting(false);
     }
   }
+
+  const registerHref = redirectTo
+    ? `/register?redirect=${encodeURIComponent(redirectTo)}`
+    : "/register";
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4">
@@ -99,7 +117,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-gray-400">
           {t("noAccount")}{" "}
-          <Link href="/register" className="font-medium text-indigo-400 hover:text-indigo-300">
+          <Link href={registerHref} className="font-medium text-indigo-400 hover:text-indigo-300">
             {t("startTrial")}
           </Link>
         </p>

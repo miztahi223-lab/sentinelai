@@ -23,6 +23,24 @@
     "description": "העמוד שאתם מחפשים לא קיים או שהוא הועבר.",
     "backHome": "חזרה לעמוד הבית"
   },
+  "invitationAccept": {
+    "loading": "טוען את ההזמנה…",
+    "invalidTitle": "ההזמנה הזו אינה תקפה",
+    "invalidDesc": "ייתכן שהיא פגה, כבר נעשה בה שימוש, או שהקישור שגוי.",
+    "inviteTitle": "הוזמנתם להצטרף אל {organization}",
+    "inviteRoleLine": "בתפקיד {role}",
+    "signInPrompt": "התחברו או צרו חשבון עם {email} כדי לקבל את ההזמנה.",
+    "signIn": "התחברות",
+    "createAccount": "צור חשבון",
+    "accept": "קבל את ההזמנה",
+    "accepting": "מקבל...",
+    "wrongAccountTitle": "מחוברים עם אימייל אחר",
+    "wrongAccountDesc": "ההזמנה הזו נשלחה אל {email}. התנתקו והתחברו עם החשבון הזה כדי לקבל אותה.",
+    "successTitle": "הצטרפתם בהצלחה!",
+    "successDesc": "הצטרפתם אל {organization}.",
+    "goToDashboard": "מעבר ללוח הבקרה",
+    "errorDefault": "לא ניתן היה לקבל את ההזמנה."
+  },
   "landing": {
     "heroTitleLine1": "דעו מה תוקפים יכולים לראות",
     "heroTitleLine2": "עוד לפני שהם רואים את זה.",
@@ -195,7 +213,8 @@
     "settings": "הגדרות",
     "billing": "חיוב",
     "signOut": "התנתקות",
-    "loading": "טוען..."
+    "loading": "טוען...",
+    "switchOrg": "החלף ארגון"
   },
   "dashboard": {
     "overview": "סקירה כללית",
@@ -248,7 +267,27 @@
     "organization": "ארגון",
     "slug": "מזהה (slug)",
     "plan": "תוכנית",
-    "footnote": "עריכת שדות אלה, ניהול חברי צוות וניהול מפתחות API עדיין לא נבנו."
+    "footnote": "עריכת שדות אלה וניהול מפתחות API עדיין לא נבנו."
+  },
+  "team": {
+    "title": "צוות",
+    "membersTitle": "חברי צוות",
+    "role": "תפקיד",
+    "you": "אתם",
+    "pendingTitle": "הזמנות ממתינות",
+    "noPending": "אין הזמנות ממתינות.",
+    "expires": "פג תוקף {date}",
+    "revoke": "בטל",
+    "inviteTitle": "הזמינו מישהו",
+    "inviteEmailPlaceholder": "teammate@company.com",
+    "invite": "שלח הזמנה",
+    "inviting": "שולח...",
+    "invitedMessage": "הזמנה נשלחה אל {email}.",
+    "errorDefault": "לא ניתן היה לשלוח את ההזמנה.",
+    "onlyOwnersAdmins": "רק בעלים/מנהלי ארגון יכולים להזמין חברים חדשים או לנהל הזמנות ממתינות.",
+    "roleOwner": "בעלים",
+    "roleAdmin": "מנהל",
+    "roleMember": "חבר"
   },
   "billing": {
     "title": "חיוב",

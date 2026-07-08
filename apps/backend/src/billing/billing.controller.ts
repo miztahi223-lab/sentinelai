@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  ForbiddenException,
   Headers,
   HttpCode,
   HttpStatus,
@@ -37,15 +36,12 @@ export class BillingController {
     @Body() dto: CreateCheckoutSessionDto,
     @CurrentUser() user: RequestUser,
   ) {
-    const membership = await this.organizationsService.getMembership(
+    // Restricted to OWNER/ADMIN — changing what the organization is billed
+    // for is not something a regular MEMBER should be able to trigger.
+    await this.organizationsService.assertManagerMembership(
       user.userId,
       dto.organizationId,
     );
-    if (!membership) {
-      throw new ForbiddenException(
-        'You do not have access to this organization',
-      );
-    }
     const requester = await this.usersService.findById(user.userId);
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
 
@@ -72,15 +68,10 @@ export class BillingController {
     @Body('organizationId') organizationId: string,
     @CurrentUser() user: RequestUser,
   ) {
-    const membership = await this.organizationsService.getMembership(
+    await this.organizationsService.assertManagerMembership(
       user.userId,
       organizationId,
     );
-    if (!membership) {
-      throw new ForbiddenException(
-        'You do not have access to this organization',
-      );
-    }
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
 
     try {

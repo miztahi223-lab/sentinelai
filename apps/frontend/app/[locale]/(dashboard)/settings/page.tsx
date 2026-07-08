@@ -2,13 +2,13 @@
 
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
-import { useOrganizations } from "@/lib/hooks";
+import { useOrganization } from "@/lib/organization-context";
+import { TeamSection } from "@/components/TeamSection";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
   const { user } = useAuth();
-  const { data: organizations } = useOrganizations();
-  const org = organizations?.[0];
+  const { currentOrg: org } = useOrganization();
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -54,6 +54,8 @@ export default function SettingsPage() {
           </div>
         </dl>
       </section>
+
+      <TeamSection organizationId={org?.id} />
 
       <p className="text-xs text-gray-600">{t("footnote")}</p>
     </div>

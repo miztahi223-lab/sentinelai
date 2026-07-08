@@ -126,6 +126,22 @@ export class EmailService implements OnModuleInit {
     );
   }
 
+  async sendInvitationEmail(
+    to: string,
+    organizationName: string,
+    inviterName: string,
+    token: string,
+  ) {
+    const acceptUrl = `${this.configService.get<string>('FRONTEND_URL')}/invitations/${token}`;
+    await this.send(
+      to,
+      `${inviterName} invited you to join ${organizationName} on SentinelAI`,
+      `<p>${inviterName} has invited you to join <strong>${organizationName}</strong> on SentinelAI. ` +
+        `Click <a href="${acceptUrl}">here</a> to accept. This invitation expires in 7 days.</p>`,
+      `${inviterName} has invited you to join ${organizationName} on SentinelAI: ${acceptUrl} (expires in 7 days)`,
+    );
+  }
+
   async sendReportEmail(to: string, reportTitle: string, pdfPath: string) {
     await this.send(
       to,

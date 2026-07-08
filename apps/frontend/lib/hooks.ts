@@ -128,3 +128,105 @@ export function useTriggerScan(domainId: string | undefined) {
     },
   });
 }
+
+export type MembershipRole = "OWNER" | "ADMIN" | "MEMBER";
+
+export interface Member {
+  id: string;
+  userId: string;
+  organizationId: string;
+  role: MembershipRole;
+  createdAt: string;
+  user: { id: string; name: string; email: string };
+}
+
+export interface Invitation {
+  id: string;
+  organizationId: string;
+  email: string;
+  role: MembershipRole;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export function useMembers(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ["members", organizationId],
+    queryFn: async () => {
+      const { data } = await api.get<Member[]>("/invitations/members", {
+        params: { organizationId },
+      });
+      return data;
+    },
+    enabled: !!organizationId,
+  });
+}
+
+export function useInvitations(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ["invitations", organizationId],
+    queryFn: async () => {
+      const { data } = await api.get<Invitation[]>("/invitations", {
+        params: { organizationId },
+      });
+      return data;
+    },
+    enabled: !!organizationId,
+  });
+}
+
+export function useCreateInvitation(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { email: string; role: "ADMIN" | "MEMBER" }) => {
+      const { data } = await api.post<Invitation>("/invitations", {
+        organizationId,
+        ...params,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invitations", organizationId] });
+    },
+  });
+}
+
+export function useRevokeInvitation(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (invitationId: string) => {
+      await api.delete(`/invitations/${invitationId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invitations", organizationId] });
+    },
+  });
+}
+
+export interface InvitationPreview {
+  id: string;
+  email: string;
+  role: MembershipRole;
+  organization: { name: string };
+}
+
+export function useInvitationPreview(token: string | undefined) {
+  return useQuery({
+    queryKey: ["invitation-preview", token],
+    queryFn: async () => {
+      const { data } = await api.get<InvitationPreview>(`/invitations/${token}`);
+      return data;
+    },
+    enabled: !!token,
+    retry: false,
+  });
+}
+
+export function useAcceptInvitation() {
+  return useMutation({
+    mutationFn: async (token: string) => {
+      const { data } = await api.post(`/invitations/${token}/accept`);
+      return data;
+    },
+  });
+}

@@ -10,8 +10,10 @@ import {
   Settings,
   CreditCard,
   LogOut,
+  Building2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useOrganization } from "@/lib/organization-context";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const NAV_ITEMS = [
@@ -27,12 +29,41 @@ export function Sidebar() {
   const t = useTranslations("sidebar");
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { organizations, currentOrg, setCurrentOrgId } = useOrganization();
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-e border-gray-800 bg-gray-950 px-4 py-6">
-      <Link href="/dashboard" className="mb-8 px-2 text-xl font-semibold tracking-tight text-white">
+      <Link href="/dashboard" className="mb-6 px-2 text-xl font-semibold tracking-tight text-white">
         Sentinel<span className="text-indigo-400">AI</span>
       </Link>
+
+      {/* Org switcher — only shown once a user actually belongs to more
+          than one organization (the common case: just their own). Team
+          invitations are what make a second org possible, so this stays
+          hidden rather than cluttering the sidebar for everyone. */}
+      {organizations.length > 1 ? (
+        <div className="relative mb-4">
+          <Building2 className="pointer-events-none absolute start-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <select
+            value={currentOrg?.id ?? ""}
+            onChange={(e) => setCurrentOrgId(e.target.value)}
+            aria-label={t("switchOrg")}
+            className="w-full appearance-none rounded-md border border-gray-800 bg-gray-900/60 py-2 ps-8 pe-2 text-sm font-medium text-gray-200 outline-none transition hover:border-gray-700 focus:border-indigo-500"
+          >
+            {organizations.map((org) => (
+              <option key={org.id} value={org.id}>
+                {org.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        currentOrg && (
+          <p className="mb-4 truncate px-2 text-xs font-medium text-gray-500">
+            {currentOrg.name}
+          </p>
+        )
+      )}
 
       <nav className="flex-1 space-y-1">
         {NAV_ITEMS.map(({ href, key, icon: Icon }) => {

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 import { isAxiosError } from "axios";
-import { useOrganizations, useCreateCheckoutSession } from "@/lib/hooks";
+import { useCreateCheckoutSession } from "@/lib/hooks";
+import { useOrganization } from "@/lib/organization-context";
 import { getPlans } from "@/lib/plans";
 
 export default function BillingPage() {
@@ -17,8 +18,7 @@ export default function BillingPage() {
   // keys) which is a *safe* narrowing here, not a real type mismatch — cast
   // needed only because TS can't see that on its own.
   const plans = getPlans(tPlans as (key: string) => string);
-  const { data: organizations } = useOrganizations();
-  const org = organizations?.[0];
+  const { currentOrg: org } = useOrganization();
   const currentPlan = org?.subscription?.plan ?? "FREE";
   const checkoutSession = useCreateCheckoutSession();
   const [error, setError] = useState<string | null>(null);

@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { isAxiosError } from "axios";
-import { useOrganizations, useDomains, useCreateDomain } from "@/lib/hooks";
+import { useDomains, useCreateDomain } from "@/lib/hooks";
+import { useOrganization } from "@/lib/organization-context";
 import { AssetCard } from "@/components/AssetCard";
 
 export default function DomainsPage() {
   const t = useTranslations("domains");
-  const { data: organizations } = useOrganizations();
-  const org = organizations?.[0];
+  const { currentOrg: org } = useOrganization();
   const { data: domains, isLoading } = useDomains(org?.id);
   const createDomain = useCreateDomain(org?.id);
 

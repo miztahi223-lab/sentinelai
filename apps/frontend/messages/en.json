@@ -23,6 +23,24 @@
     "description": "The page you're looking for doesn't exist or may have moved.",
     "backHome": "Back to homepage"
   },
+  "invitationAccept": {
+    "loading": "Loading invitation…",
+    "invalidTitle": "This invitation isn't valid",
+    "invalidDesc": "It may have expired, already been used, or the link may be incorrect.",
+    "inviteTitle": "You're invited to join {organization}",
+    "inviteRoleLine": "as {role}",
+    "signInPrompt": "Sign in or create an account with {email} to accept.",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "accept": "Accept invitation",
+    "accepting": "Accepting...",
+    "wrongAccountTitle": "Signed in with a different email",
+    "wrongAccountDesc": "This invitation was sent to {email}. Sign out and sign in with that account to accept it.",
+    "successTitle": "You're in!",
+    "successDesc": "You've joined {organization}.",
+    "goToDashboard": "Go to dashboard",
+    "errorDefault": "Could not accept this invitation."
+  },
   "landing": {
     "heroTitleLine1": "Know what attackers can see",
     "heroTitleLine2": "before they do.",
@@ -195,7 +213,8 @@
     "settings": "Settings",
     "billing": "Billing",
     "signOut": "Sign out",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "switchOrg": "Switch organization"
   },
   "dashboard": {
     "overview": "Overview",
@@ -248,7 +267,27 @@
     "organization": "Organization",
     "slug": "Slug",
     "plan": "Plan",
-    "footnote": "Editing these fields, team member management, and API key management aren't built yet."
+    "footnote": "Editing these fields and API key management aren't built yet."
+  },
+  "team": {
+    "title": "Team",
+    "membersTitle": "Members",
+    "role": "Role",
+    "you": "You",
+    "pendingTitle": "Pending invitations",
+    "noPending": "No pending invitations.",
+    "expires": "Expires {date}",
+    "revoke": "Revoke",
+    "inviteTitle": "Invite someone",
+    "inviteEmailPlaceholder": "teammate@company.com",
+    "invite": "Send invite",
+    "inviting": "Sending...",
+    "invitedMessage": "Invitation sent to {email}.",
+    "errorDefault": "Could not send the invitation.",
+    "onlyOwnersAdmins": "Only organization owners/admins can invite new members or manage pending invitations.",
+    "roleOwner": "Owner",
+    "roleAdmin": "Admin",
+    "roleMember": "Member"
   },
   "billing": {
     "title": "Billing",
