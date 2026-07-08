@@ -1,20 +1,23 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { useDomains, useDomainRisk, useTriggerScan } from "@/lib/hooks";
+import { useDomains, useDomainRisk, useDomainRiskHistory, useTriggerScan } from "@/lib/hooks";
 import { useOrganization } from "@/lib/organization-context";
 import { Timeline } from "@/components/Timeline";
 import { AssetCard } from "@/components/AssetCard";
 import { SecurityScoreCard } from "@/components/SecurityScoreCard";
 import { AlertCard } from "@/components/AlertCard";
+import { RiskChart } from "@/components/RiskChart";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
+  const locale = useLocale();
   const { currentOrg: org, isLoading: orgsLoading } = useOrganization();
   const { data: domains, isLoading: domainsLoading } = useDomains(org?.id);
   const primaryDomain = domains?.[0];
   const { data: risk, isLoading: riskLoading } = useDomainRisk(primaryDomain?.id);
+  const { data: riskHistory } = useDomainRiskHistory(primaryDomain?.id);
   const triggerScan = useTriggerScan(primaryDomain?.id);
 
   if (orgsLoading) {
@@ -94,6 +97,18 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+
+          <RiskChart
+            data={
+              riskHistory?.map((point) => ({
+                date: new Date(point.date).toLocaleDateString(locale, {
+                  month: "short",
+                  day: "numeric",
+                }),
+                score: point.score,
+              })) ?? []
+            }
+          />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div>

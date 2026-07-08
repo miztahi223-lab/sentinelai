@@ -101,6 +101,25 @@ export function useDomainRisk(domainId: string | undefined) {
   });
 }
 
+export interface RiskHistoryPoint {
+  scanId: string;
+  date: string;
+  score: number;
+}
+
+export function useDomainRiskHistory(domainId: string | undefined) {
+  return useQuery({
+    queryKey: ["risk-history", domainId],
+    queryFn: async () => {
+      const { data } = await api.get<RiskHistoryPoint[]>(
+        `/risk/domains/${domainId}/history`,
+      );
+      return data;
+    },
+    enabled: !!domainId,
+  });
+}
+
 export function useCreateCheckoutSession() {
   return useMutation({
     mutationFn: async (params: {

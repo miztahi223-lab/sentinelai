@@ -318,7 +318,8 @@
     "vsLastScan": "pts vs last scan"
   },
   "riskChart": {
-    "title": "Security Score — last 30 days"
+    "title": "Security Score trend",
+    "needsMoreScans": "Run a few more scans to see a trend line here — one data point per completed scan."
   },
   "timeline": {
     "empty": "No activity yet."

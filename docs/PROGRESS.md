@@ -1190,3 +1190,47 @@ Full re-verification: backend `npm run build`/`npm run lint` (0 errors)/`npx jes
 (16/16); frontend `npm run build` (all routes including the new `/invitations/[token]` still
 prerender or route correctly)/`npm run lint` (0 errors, after fixing the effect-based-setState
 issue for real rather than suppressing it)/`npx vitest run` (15/15, unchanged).
+
+## Enhancement 5 — competitor-inspired additions: a letter grade and a real historical trend chart (done, 2026-07-08)
+
+Researched what actually-shipping attack-surface-management/security-rating products do differently
+before adding anything, rather than guessing — specifically UpGuard, Detectify, and
+SecurityScorecard. Two ideas were genuinely worth adopting (and buildable without any fabricated
+data); the rest either don't fit this product's single-tenant scope (vendor/third-party risk
+scoring) or would require fabricating something this build has no real basis for (SecurityScorecard's
+"compare against industry peers" needs real peer benchmark data this project doesn't have — not
+built, rather than faked).
+
+1. **Letter grade (A+ through F) alongside the existing numeric score** — SecurityScorecard's own
+   research/positioning is that a coarse grade reads faster for a non-technical stakeholder
+   (executive, auditor) than a bare percentage does. Implemented as a pure display transform of the
+   *exact same* score already computed by the real risk engine (`scoreToGrade` in
+   `SecurityScoreCard.tsx`) — explicitly not a second, independently-computed rating, which would
+   have reintroduced the "opaque black-box number" problem Step 10's whole point-deduction design
+   exists to avoid. Added 13 new component tests (`SecurityScoreCard.test.tsx`) covering every
+   grade boundary.
+2. **A real historical security-score trend chart** — `RiskChart` (the component) existed since
+   Step 6 but was never wired to anything. Added `GET /risk/domains/:domainId/history` (backend),
+   returning the real score computed from every one of a domain's actually-completed past scans
+   (capped at the most recent 30 — a scan *count*, not a calendar-day window, since scan frequency
+   is plan-dependent), refactored the score-from-findings math into one shared function so
+   `/latest` and `/history` can't silently compute it two different ways. Added an honest empty
+   state ("run a few more scans...") for the — very common early on — case of fewer than 2 data
+   points, rather than rendering a meaningless single-dot chart.
+
+**Verified against real, live data, not a mock**: logged in as the real `admin@sentinelai.dev`
+account created earlier this session, triggered two additional real scans against the already-
+tracked `example.com` domain (on top of the one from before), and confirmed the dashboard now
+shows a genuine 3-point trend line with a real tooltip ("Jul 8, score: 72") and the score correctly
+rendered as both `72/100` and the `C-` grade in the same card — a real screenshot, not assumed.
+
+Full re-verification: backend `npm run build`/`npm run lint` (0 errors)/`npx jest` (35/35,
+unchanged)/e2e (16/16, unchanged); frontend `npm run build` (clean)/`npm run lint` (0 errors)/
+`npx vitest run` (**31/31**, up from 15 — the new `SecurityScoreCard.test.tsx`), zero browser
+console errors.
+
+Sources consulted for this step's research (attack-surface-management/security-rating product
+features): [Top 12 Attack Surface Management Software in 2026](https://geekflare.com/cybersecurity/best-attack-surface-monitoring/),
+[UpGuard vs SecurityScorecard: Which Rating Wins in 2026?](https://www.shieldrisk.ai/blog/upguard-vs-securityscorecard/),
+[Top 10 Attack Surface Management Software Solutions in 2026 — UpGuard](https://www.upguard.com/blog/best-attack-surface-management-software-solutions),
+[External Attack Surface Management — SecurityScorecard](https://securityscorecard.com/platform/external-attack-surface-management/).
