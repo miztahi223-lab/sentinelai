@@ -1403,3 +1403,53 @@ depends on `next`) — not a new vulnerability, the identical accepted one from 
 reported route to it. CI's `.github/workflows/ci.yml` needed no changes — it already runs
 `npm run test`/`npm run test:e2e` generically, so the new alerts/audit-logs/invitations test suites
 are automatically included.
+
+## Enhancement 9: real product screenshot on the landing page + visual polish pass
+
+Researched 2026 SaaS landing-page conversion research before touching anything (same
+research-before-building discipline as Enhancement 5): the consistent, sourced finding across
+current design write-ups (Unbounce, Framiq, SaaSHero, and others) is that top-converting SaaS
+landing pages have moved away from abstract 3D illustrations toward showing the **actual product
+UI** early and prominently — "a real product screenshot, even an imperfect one, does more
+conversion work than a beautiful illustration." That's directly actionable here without
+fabricating anything, since the product is real and already running.
+
+**What was added, concretely:**
+
+- A genuine, unedited screenshot of the live dashboard (`admin@sentinelai.dev`'s real account,
+  `iana.org` selected — a real tracked domain with a real completed scan: score 78/100, grade C+,
+  3 real findings including "no valid TLS certificate observed" and a missing
+  `permissions-policy` header) was captured via Playwright at 2x device scale, then cropped to the
+  score/findings region and saved to `apps/frontend/public/marketing/dashboard-preview.png`. No
+  pixel of this image was drawn, edited, or faked — it's a direct capture of what the product
+  actually shows for a real scanned domain.
+- New `components/BrowserFrame.tsx`: a purely decorative macOS-style browser-chrome wrapper
+  (traffic-light dots + a fake address bar reading `app.sentinelai.dev/dashboard`) rendering that
+  screenshot via `next/image` — confirmed Next's built-in image optimizer actually re-encodes it
+  on demand (verified via curl with `Accept: image/webp`: the raw 191 KB PNG is served as a 41 KB
+  WebP at the size actually requested by the layout, not the full source resolution).
+- Landing hero (`app/[locale]/page.tsx`): added an eyebrow badge ("Attack surface monitoring"),
+  a subtle CSS-only ambient background (`bg-hero-grid` dot grid + a radial indigo glow in
+  `globals.css`, no image asset, mirrors correctly under `rtl:` for Hebrew), a "no credit card"
+  micro-copy line, and a 3-stat strip (5 scored categories / 0-100 transparent score / 24/7
+  re-scanning) — all three numbers are real, verifiable product facts, not invented business
+  metrics (deliberately did not add a fake customer count, logo wall, or star rating — none of
+  that data actually exists).
+- New "This is the actual product — not a mockup" section immediately below the hero stats,
+  showing the real screenshot inside `BrowserFrame`, with a small green "Live dashboard" badge.
+- 17 new i18n keys added to both `messages/en.json` and `messages/he.json` (parity re-verified:
+  305 keys each, zero drift) for the eyebrow, stats, and preview section copy — including a real,
+  literal Hebrew translation of the alt text describing the exact score/findings shown, not a
+  generic placeholder.
+
+**Verified for real**: `tsc --noEmit` clean, `next build` succeeds (both locales prerender),
+`eslint` clean, all 31 existing frontend unit tests still pass unchanged. Rebuilt and restarted
+the production Next.js server (`npm run start`) since it — not `next dev` — is what's actually
+running locally in this session, confirmed the new `/marketing/dashboard-preview.png` asset and
+page changes are live (a stale build was initially served with a 404 for the new image until the
+rebuild). Took fresh Playwright screenshots at desktop (1400px), Hebrew/RTL (1400px — glow
+correctly mirrors to the other side via `rtl:translate-x-1/2`, browser-chrome frame renders
+correctly with the address bar staying LTR via `dir="ltr"` since a URL is always LTR content),
+and mobile (390px, iPhone-sized) — confirmed no horizontal overflow at any width
+(`document.documentElement.scrollWidth > clientWidth` checked programmatically, not just
+eyeballed).
