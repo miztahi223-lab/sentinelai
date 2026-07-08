@@ -247,13 +247,25 @@
     "title": "Reports",
     "subtitle": "Downloadable security posture reports for your organization.",
     "notBuiltTitle": "Add a scanned domain to generate your first report",
-    "notBuiltDesc": "Once a domain has completed at least one scan, you'll be able to generate a board-ready PDF report here — covering your score, discovered assets, and prioritized findings."
+    "notBuiltDesc": "Once a domain has completed at least one scan, you'll be able to generate a board-ready PDF report here — covering your score, discovered assets, and prioritized findings.",
+    "generate": "Generate report",
+    "generating": "Generating...",
+    "empty": "No reports yet.",
+    "generatedAt": "Generated {date}",
+    "statusPending": "Generating…",
+    "statusReady": "Ready",
+    "download": "Download",
+    "email": "Email to me",
+    "emailing": "Sending...",
+    "emailSent": "Sent to {email}.",
+    "errorDefault": "Could not generate the report."
   },
   "alerts": {
     "title": "Alerts",
     "subtitle": "Real-time notifications about changes to your attack surface.",
     "emptyTitle": "No alerts yet",
-    "emptyDesc": "Alerts appear here automatically once your tracked domains have run at least one scan — a new asset, a disappearing one, or a certificate nearing expiry all raise one."
+    "emptyDesc": "Alerts appear here automatically once your tracked domains have run at least one scan — a new asset, a disappearing one, or a certificate nearing expiry all raise one.",
+    "markAllRead": "Mark all read"
   },
   "settings": {
     "title": "Settings",

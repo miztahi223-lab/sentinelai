@@ -120,6 +120,138 @@ export function useDomainRiskHistory(domainId: string | undefined) {
   });
 }
 
+export interface Report {
+  id: string;
+  organizationId: string;
+  scanId: string | null;
+  title: string;
+  format: "PDF" | "HTML";
+  fileUrl: string | null;
+  generatedAt: string;
+}
+
+export function useReports(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ["reports", organizationId],
+    queryFn: async () => {
+      const { data } = await api.get<Report[]>("/reports", {
+        params: { organizationId },
+      });
+      return data;
+    },
+    enabled: !!organizationId,
+    // A freshly requested report generates asynchronously (BullMQ) — poll
+    // for a while so "Generate report" doesn't require a manual refresh
+    // to see the file become downloadable, same pattern as useDomainRisk.
+    refetchInterval: (query) =>
+      query.state.data?.some((r) => !r.fileUrl) ? 3000 : false,
+  });
+}
+
+export function useCreateReport(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { scanId?: string; title?: string }) => {
+      const { data } = await api.post<Report>("/reports", {
+        organizationId,
+        ...params,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports", organizationId] });
+    },
+  });
+}
+
+export function useEmailReport() {
+  return useMutation({
+    mutationFn: async (reportId: string) => {
+      const { data } = await api.post<{ success: boolean; sentTo: string }>(
+        `/reports/${reportId}/email`,
+      );
+      return data;
+    },
+  });
+}
+
+/**
+ * The download endpoint requires a real `Authorization` header (it's
+ * behind `JwtAuthGuard`, same as every other report/domain/scan endpoint —
+ * reports can contain real security findings, so this is deliberately not
+ * a bare unauthenticated link) — a plain `<a href>` can't attach that
+ * header, so this fetches the PDF as a blob through the same authenticated
+ * `api` client everything else uses, then triggers a normal client-side
+ * file download from the in-memory result.
+ */
+export async function downloadReport(reportId: string, title: string) {
+  const response = await api.get(`/reports/${reportId}/download`, {
+    responseType: "blob",
+  });
+  const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export interface AlertItem {
+  id: string;
+  organizationId: string;
+  findingId: string | null;
+  type: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+  message: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export function useAlerts(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ["alerts", organizationId],
+    queryFn: async () => {
+      const { data } = await api.get<AlertItem[]>("/alerts", {
+        params: { organizationId },
+      });
+      return data;
+    },
+    enabled: !!organizationId,
+  });
+}
+
+export function useMarkAlertRead(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (alertId: string) => {
+      const { data } = await api.patch<AlertItem>(`/alerts/${alertId}/read`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["alerts", organizationId] });
+    },
+  });
+}
+
+export function useMarkAllAlertsRead(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.patch<{ updated: number }>(
+        "/alerts/read-all",
+        undefined,
+        { params: { organizationId } },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["alerts", organizationId] });
+    },
+  });
+}
+
 export function useCreateCheckoutSession() {
   return useMutation({
     mutationFn: async (params: {
