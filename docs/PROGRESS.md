@@ -1453,3 +1453,39 @@ correctly with the address bar staying LTR via `dir="ltr"` since a URL is always
 and mobile (390px, iPhone-sized) — confirmed no horizontal overflow at any width
 (`document.documentElement.scrollWidth > clientWidth` checked programmatically, not just
 eyeballed).
+
+**Follow-up in the same enhancement**: added two more real screenshots as an alternating
+"feature spotlight" section (real product screenshots for two more concrete, already-shipped
+features, not just the dashboard) — the same competitor-research finding applied twice over:
+- A real generated PDF report (downloaded via the actual `GET /reports/:id/download` endpoint
+  for a genuine report on `example.com`, score 72/100, rendered to PNG with `pdftoppm`) next to
+  copy about handing a report to a board/auditor.
+- A real `alerts` page screenshot (18 genuine unread alerts for `iana.org` — new subdomains, new
+  IPs, discovered by an actual scan) next to copy about real-time change notifications.
+
+Both rows use plain CSS grid order (image first / text second, or reversed) so they mirror
+correctly under Hebrew/RTL automatically with zero extra RTL-specific classes — verified by
+screenshot (`he-spotlight-crop.png` equivalent): the report row flips to image-left/text-right,
+the alerts row flips to image-right/text-left, exactly as expected from natural grid flow under
+`dir="rtl"`.
+
+Added 8 more i18n keys (badge/title/desc/alt for each of the two spotlight rows) to both
+`en.json`/`he.json` — parity re-verified after this addition too.
+
+**Real bug hit and fixed during this verification pass (environment issue, not a code bug)**:
+after `npm run build`, restarting the production server raced with the still-shutting-down old
+`next start` process — the new process failed silently to bind (`EADDRINUSE`) while an old
+process kept serving a stale build whose HTML referenced CSS/JS chunk filenames that no longer
+existed on disk (content-hashed filenames change every build), producing real `500` errors for
+every static asset even though the HTML shell still returned `200`. Fixed by explicitly killing
+the old PID, confirming with `ss -ltnp` that port 3000 was actually free before starting the new
+process, rather than a fixed `sleep` after `kill`. Documented here since it's a realistic
+production-adjacent lesson (rolling restarts need a readiness check, not a fixed delay) even
+though this specific instance only affected local verification, not a deployed environment.
+
+Also confirmed (and documented as expected, not a bug) that Playwright's `fullPage: true`
+screenshot can stitch a composite image where a below-the-fold `next/image` with default lazy
+loading hasn't finished loading yet for a region far down the page — scrolling through the page
+step-by-step before taking the final screenshot fixed the verification artifact; real users
+scrolling at a normal pace never see this since the image has already loaded by the time it
+enters the viewport.

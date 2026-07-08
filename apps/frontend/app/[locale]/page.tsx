@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import Image from "next/image";
 import {
   Globe2,
   ShieldCheck,
@@ -198,6 +199,59 @@ export default async function Home({
                   <p className="mt-2 text-sm text-gray-500">{description}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Feature spotlight — two real screenshots, alternating layout */}
+        <section className="border-t border-gray-800/80 py-20">
+          <div className="mx-auto max-w-6xl space-y-20 px-6">
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300">
+                  <FileText className="h-3.5 w-3.5" />
+                  {t("spotlightReportsBadge")}
+                </span>
+                <h3 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
+                  {t("spotlightReportsTitle")}
+                </h3>
+                <p className="mt-3 text-sm text-gray-500">
+                  {t("spotlightReportsDesc")}
+                </p>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-gray-800 bg-white shadow-2xl shadow-indigo-950/30">
+                <Image
+                  src="/marketing/report-preview.png"
+                  alt={t("spotlightReportsAlt")}
+                  width={1700}
+                  height={1350}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+              <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950 shadow-2xl shadow-indigo-950/30">
+                <Image
+                  src="/marketing/alerts-preview.png"
+                  alt={t("spotlightAlertsAlt")}
+                  width={3200}
+                  height={1050}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300">
+                  <Bell className="h-3.5 w-3.5" />
+                  {t("spotlightAlertsBadge")}
+                </span>
+                <h3 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
+                  {t("spotlightAlertsTitle")}
+                </h3>
+                <p className="mt-3 text-sm text-gray-500">
+                  {t("spotlightAlertsDesc")}
+                </p>
+              </div>
             </div>
           </div>
         </section>
