@@ -65,4 +65,18 @@ export class UsersService {
       },
     });
   }
+
+  updateName(userId: string, name: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { name },
+    });
+  }
+
+  updatePasswordHash(userId: string, passwordHash: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
 }

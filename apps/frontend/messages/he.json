@@ -306,7 +306,18 @@
     "organization": "ארגון",
     "slug": "מזהה (slug)",
     "plan": "תוכנית",
-    "footnote": "עריכת שדות אלה וניהול מפתחות API עדיין לא נבנו."
+    "footnote": "ניהול מפתחות API עדיין לא נבנה.",
+    "saveName": "שמור",
+    "nameUpdated": "השם עודכן.",
+    "nameUpdateError": "לא ניתן היה לעדכן את השם שלכם.",
+    "changePassword": "שינוי סיסמה",
+    "currentPassword": "סיסמה נוכחית",
+    "newPassword": "סיסמה חדשה",
+    "confirmNewPassword": "אימות סיסמה חדשה",
+    "passwordMismatch": "הסיסמה החדשה והאימות אינם תואמים.",
+    "passwordUpdated": "הסיסמה שונתה. נותקתם מכל שאר החיבורים הפעילים.",
+    "passwordUpdateError": "לא ניתן היה לשנות את הסיסמה — בדקו את הסיסמה הנוכחית ונסו שוב.",
+    "changePasswordSubmit": "שנה סיסמה"
   },
   "team": {
     "title": "צוות",

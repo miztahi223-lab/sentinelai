@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
@@ -13,7 +13,10 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 @Module({
   imports: [
     PassportModule,
-    UsersModule,
+    // `forwardRef` because `UsersModule` now also imports `AuthModule` (for
+    // `TokenService`, used by the change-password endpoint) — see the
+    // matching comment in `users.module.ts`.
+    forwardRef(() => UsersModule),
     OrganizationsModule,
     EmailModule,
     AuditLogsModule,

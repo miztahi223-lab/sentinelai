@@ -426,3 +426,27 @@ export function useAuditLogs(organizationId: string | undefined) {
     retry: false,
   });
 }
+
+export function useUpdateProfile() {
+  return useMutation({
+    mutationFn: async (params: { name: string }) => {
+      const { data } = await api.patch<{ name: string }>("/users/me", params);
+      return data;
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (params: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
+      const { data } = await api.post<{ success: boolean }>(
+        "/users/me/change-password",
+        params,
+      );
+      return data;
+    },
+  });
+}

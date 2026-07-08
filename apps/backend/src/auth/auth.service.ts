@@ -4,7 +4,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import * as argon2 from 'argon2';
 import { randomBytes } from 'crypto';
 import { UsersService } from '../users/users.service';
 import { OrganizationsService } from '../organizations/organizations.service';
@@ -13,6 +12,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { TokenService } from './token.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { hashPassword, verifyPassword } from '../common/password.util';
 
 export interface RequestMeta {
   ipAddress?: string;
@@ -31,12 +31,6 @@ export class AuthService {
     private readonly auditLogsService: AuditLogsService,
   ) {}
 
-  private async hashPassword(password: string): Promise<string> {
-    // argon2id: resistant to both GPU cracking and side-channel attacks,
-    // the OWASP-recommended default over bcrypt for new applications.
-    return argon2.hash(password, { type: argon2.argon2id });
-  }
-
   async register(dto: RegisterDto, meta: RequestMeta = {}) {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
@@ -45,7 +39,7 @@ export class AuthService {
       throw new ConflictException('Unable to register with these details');
     }
 
-    const passwordHash = await this.hashPassword(dto.password);
+    const passwordHash = await hashPassword(dto.password);
     const emailVerifyToken = randomBytes(32).toString('hex');
 
     const user = await this.usersService.create({
@@ -79,7 +73,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const valid = await argon2.verify(user.passwordHash, dto.password);
+    const valid = await verifyPassword(user.passwordHash, dto.password);
     if (!valid) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -159,7 +153,7 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
-    const passwordHash = await this.hashPassword(newPassword);
+    const passwordHash = await hashPassword(newPassword);
     await this.usersService.resetPassword(user.id, passwordHash);
     // Resetting the password invalidates every existing session.
     await this.tokenService.revokeAllForUser(user.id);

@@ -1554,3 +1554,50 @@ Verified rendering in both English and Hebrew/RTL via Playwright screenshots.
 Rebuilt and restarted both dev servers, this time explicitly checking `ss -ltnp` for the target
 port being free before starting the replacement process (applying the lesson recorded in
 Enhancement 9) rather than a fixed sleep.
+
+## Enhancement 11: real account settings — edit your name and change your password
+
+Found this real gap while re-reading `settings/page.tsx`'s own honest footnote from the original
+build ("Editing these fields... aren't built yet"). Two genuinely missing, standard account-
+management actions for any real SaaS product:
+
+**Backend**:
+- Extracted password hashing/verification out of `AuthService` into a shared
+  `apps/backend/src/common/password.util.ts` (`hashPassword`/`verifyPassword`, both still argon2id)
+  so the new authenticated change-password flow and registration/login use exactly one
+  implementation, not two that could quietly drift apart.
+- New `apps/backend/src/users/users.controller.ts`: `PATCH /users/me` (update display name) and
+  `POST /users/me/change-password` (requires and verifies the *current* password against the real
+  argon2 hash — distinct from the existing unauthenticated forgot-password/reset-password email
+  flow, which only requires inbox access). A successful password change revokes every other active
+  session via `TokenService.revokeAllForUser` — the same session-invalidation behavior the
+  email-based reset flow already had — and both actions write a real audit-log entry.
+- `UsersModule` and `AuthModule` needed `forwardRef()` on both sides to resolve the new circular
+  dependency (`UsersModule` now needs `AuthModule`'s `TokenService`; `AuthModule` already needed
+  `UsersModule`'s `UsersService`) — a standard, well-supported NestJS pattern for this exact
+  situation, not a workaround.
+- New `apps/backend/test/users.e2e-spec.ts` (4 tests, real stack): rejects anonymous profile
+  updates; updates the name for real (reflected in a fresh `GET /auth/me`); rejects a password
+  change with the wrong current password; and — the most meaningful assertion — after a real
+  password change, the *old* refresh token is confirmed revoked (401), the *old* password is
+  confirmed to no longer log in (401), and the *new* password is confirmed to log in (200), proving
+  the hash genuinely changed rather than just returning a success response. Full backend e2e suite:
+  **37/37 passing** (33 previous + 4 new).
+
+**Frontend**: `settings/page.tsx` gained an inline-editable name field (pencil icon → input with
+save/cancel, calls the real endpoint, then `refetchUser()` so the header/sidebar reflect the new
+name immediately) and a new `components/ChangePasswordForm.tsx` with client-side confirm-password
+matching plus the real server error surfaced honestly on a wrong current password. The old
+footnote ("Editing these fields... aren't built yet") was updated to only mention what's still
+genuinely missing (API key management). Verified end-to-end through the real running UI with
+Playwright — not just curl: registered a disposable test account, changed its password through the
+actual form, then confirmed via direct API calls that the old password now fails (401) and the new
+one works (200). The persistent `admin@sentinelai.dev` demo account's name was used to verify the
+edit-name flow live (screenshotted showing "Name updated.") and then explicitly reverted back to
+"Site Admin" afterward so the two intentionally-persistent demo accounts stay in their documented
+state. Also verified in Hebrew/RTL.
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean, `next build` succeeds, 31/31 frontend
+unit tests, 37/37 backend e2e tests. Both dev servers restarted (checking `ss -ltnp` for a genuinely
+free port before starting the replacement process, per the Enhancement 9 lesson) and confirmed
+responding.

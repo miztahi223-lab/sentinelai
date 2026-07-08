@@ -306,7 +306,18 @@
     "organization": "Organization",
     "slug": "Slug",
     "plan": "Plan",
-    "footnote": "Editing these fields and API key management aren't built yet."
+    "footnote": "API key management isn't built yet.",
+    "saveName": "Save",
+    "nameUpdated": "Name updated.",
+    "nameUpdateError": "Could not update your name.",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "passwordMismatch": "The new password and confirmation don't match.",
+    "passwordUpdated": "Password changed. You've been signed out of every other session.",
+    "passwordUpdateError": "Could not change your password — check your current password and try again.",
+    "changePasswordSubmit": "Change password"
   },
   "team": {
     "title": "Team",
