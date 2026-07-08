@@ -8,6 +8,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { EmailModule } from '../email/email.module';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EmailModule } from '../email/email.module';
     UsersModule,
     OrganizationsModule,
     EmailModule,
+    AuditLogsModule,
     // Registered with no default sign options: TokenService always passes
     // an explicit secret + expiresIn per call (derived from config), so
     // there's no meaningful shared default to set here — this registration

@@ -11,6 +11,7 @@ import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { EmailModule } from './email/email.module';
 import { DomainsModule } from './domains/domains.module';
 import { DiscoveryModule } from './discovery/discovery.module';
@@ -46,6 +47,7 @@ import { ContactModule } from './contact/contact.module';
     OrganizationsModule,
     InvitationsModule,
     AlertsModule,
+    AuditLogsModule,
     AuthModule,
     DomainsModule,
     DiscoveryModule,

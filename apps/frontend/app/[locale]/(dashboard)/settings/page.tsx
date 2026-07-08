@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth-context";
 import { useOrganization } from "@/lib/organization-context";
 import { TeamSection } from "@/components/TeamSection";
+import { ActivityLog } from "@/components/ActivityLog";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
@@ -56,6 +57,8 @@ export default function SettingsPage() {
       </section>
 
       <TeamSection organizationId={org?.id} />
+
+      <ActivityLog organizationId={org?.id} />
 
       <p className="text-xs text-gray-600">{t("footnote")}</p>
     </div>

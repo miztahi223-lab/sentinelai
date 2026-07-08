@@ -1309,3 +1309,45 @@ between the two real domains.
 
 Full re-verification: frontend `npm run build` (clean)/`npm run lint` (0 errors)/
 `npx vitest run` (31/31, unchanged), zero browser console errors.
+
+## Enhancement 8 — a real audit log, and a real unread-alerts badge (done, 2026-07-08)
+
+**Audit log**: the `AuditLog` Prisma model has existed since Step 4 of the original build and was
+never written to or read anywhere — a real, quiet gap for a product whose own landing page
+markets itself on "built the way a security tool should be" (real customers in this exact space
+routinely expect an audit trail). Built `AuditLogsModule` (`AuditLogsService.record()` — best-
+effort, logged-but-non-blocking if it ever fails, deliberately not wrapped in the same transaction
+as the action it describes so a logging hiccup can never roll back or block the real operation;
+`GET /audit-logs`, restricted to OWNER/ADMIN via the same shared `assertManagerMembership` helper
+billing and invitations already use) and wired real logging calls into every security-relevant
+action already in this codebase: `user.registered`, `user.login`, `domain.added`,
+`invitation.created`, `invitation.accepted`, `billing.checkout_started`. Frontend: a new
+`ActivityLog` component (added to Settings) that turns each raw action key + its stored metadata
+into an actual human-readable sentence ("Added domain example.com", "Invited x@y.com (Member)")
+rather than showing a technical action string — and doesn't independently guess whether the
+viewer is allowed to see it; it just reflects the real API's own 200-vs-403, the single source of
+truth for that authorization decision.
+
+**Verified end-to-end against real, live data**: new `test/audit-logs.e2e-spec.ts` (6 tests) —
+registers a user, logs in again, adds a domain, invites and accepts a teammate, and confirms a
+real `AuditLog` row exists for every one of those five actions (with the domain name genuinely
+present in the stored metadata), that an OWNER can read them via the API and a plain MEMBER gets a
+real 403. 28/28 e2e tests pass overall (22 existing + 6 new). Live browser verification against
+the real `admin@sentinelai.dev` account caught something genuinely worth documenting rather than
+just "it worked": the account's Activity Log initially showed "No activity recorded yet" even
+after a real fresh login — correct, not a bug, because (a) this account's original
+registration/domain-add/invite events all happened *before* this audit-logging code existed, so
+nothing exists to retroactively show, and (b) `user.login` is deliberately not organization-scoped
+(a login isn't inherently "for" any one of a user's orgs), so it correctly never appears in a
+per-org activity feed. Confirmed the feature genuinely works by triggering one brand-new
+org-scoped action (adding a real domain) and watching it appear immediately, correctly worded, in
+the real browser.
+
+**Unread-alerts sidebar badge**: `Sidebar` now shows a real unread count next to "Alerts" (via the
+same `useAlerts` hook the Alerts page itself uses — no separate/duplicated counting logic to drift
+out of sync). Verified live: showed a real "18" matching the actual number of unread alerts on the
+`admin@sentinelai.dev` account.
+
+Full re-verification: backend `npm run build`/`npm run lint` (0 errors)/`npx jest` (35/35,
+unchanged)/e2e (**28/28**, up from 22); frontend `npm run build`/`npm run lint` (0 errors)/
+`npx vitest run` (31/31, unchanged), zero browser console errors.

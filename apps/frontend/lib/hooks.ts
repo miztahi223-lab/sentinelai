@@ -381,3 +381,30 @@ export function useAcceptInvitation() {
     },
   });
 }
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
+  createdAt: string;
+  user: { name: string; email: string } | null;
+}
+
+export function useAuditLogs(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ["audit-logs", organizationId],
+    queryFn: async () => {
+      const { data } = await api.get<AuditLogEntry[]>("/audit-logs", {
+        params: { organizationId },
+      });
+      return data;
+    },
+    // Only fetched for org owners/admins in practice (the API itself
+    // enforces this — a MEMBER gets a real 403, not just a hidden UI
+    // element), but `retry: false` so a 403 here doesn't spam the network
+    // with automatic retries for a request that will never succeed.
+    enabled: !!organizationId,
+    retry: false,
+  });
+}

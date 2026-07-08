@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useOrganization } from "@/lib/organization-context";
+import { useAlerts } from "@/lib/hooks";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const NAV_ITEMS = [
@@ -30,6 +31,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { organizations, currentOrg, setCurrentOrgId } = useOrganization();
+  // Polled (React Query default refetch-on-window-focus already covers
+  // "came back to the tab"), not real-time push — good enough for a
+  // sidebar badge without adding a websocket/SSE layer this build doesn't
+  // otherwise have.
+  const { data: alerts } = useAlerts(currentOrg?.id);
+  const unreadCount = alerts?.filter((a) => !a.read).length ?? 0;
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-e border-gray-800 bg-gray-950 px-4 py-6">
@@ -79,7 +86,12 @@ export function Sidebar() {
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {t(key)}
+              <span className="flex-1">{t(key)}</span>
+              {key === "alerts" && unreadCount > 0 && (
+                <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-semibold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </Link>
           );
         })}

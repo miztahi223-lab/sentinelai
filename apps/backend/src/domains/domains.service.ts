@@ -6,12 +6,14 @@ import {
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Injectable()
 export class DomainsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly organizationsService: OrganizationsService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   /** Throws if the user isn't a member of the organization. */
@@ -39,13 +41,22 @@ export class DomainsService {
       );
     }
 
-    return this.prisma.domain.create({
+    const domain = await this.prisma.domain.create({
       data: {
         organizationId,
         name,
         verificationToken: randomBytes(16).toString('hex'),
       },
     });
+
+    await this.auditLogsService.record({
+      organizationId,
+      userId,
+      action: 'domain.added',
+      metadata: { name },
+    });
+
+    return domain;
   }
 
   async findAllForOrganization(userId: string, organizationId: string) {

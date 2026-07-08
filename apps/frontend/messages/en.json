@@ -302,6 +302,18 @@
     "roleAdmin": "Admin",
     "roleMember": "Member"
   },
+  "activityLog": {
+    "title": "Activity log",
+    "empty": "No activity recorded yet.",
+    "ownersAdminsOnly": "Only organization owners/admins can view the activity log.",
+    "systemUser": "System",
+    "actionUserRegistered": "Account created",
+    "actionUserLogin": "Signed in",
+    "actionDomainAdded": "Added domain {name}",
+    "actionInvitationCreated": "Invited {email} ({role})",
+    "actionInvitationAccepted": "Joined the organization ({role})",
+    "actionBillingCheckoutStarted": "Started checkout for the {plan} plan"
+  },
   "billing": {
     "title": "Billing",
     "currentPlan": "Current plan: <b>{plan}</b>",

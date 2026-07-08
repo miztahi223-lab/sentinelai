@@ -20,6 +20,7 @@ import { BillingNotConfiguredError, BillingService } from './billing.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { UsersService } from '../users/users.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Controller('billing')
 export class BillingController {
@@ -28,6 +29,7 @@ export class BillingController {
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   @Post('checkout-session')
@@ -52,6 +54,12 @@ export class BillingController {
         successUrl: `${frontendUrl}/billing?checkout=success`,
         cancelUrl: `${frontendUrl}/billing?checkout=cancelled`,
         customerEmail: requester!.email,
+      });
+      await this.auditLogsService.record({
+        organizationId: dto.organizationId,
+        userId: user.userId,
+        action: 'billing.checkout_started',
+        metadata: { plan: dto.plan },
       });
       return { url };
     } catch (error) {

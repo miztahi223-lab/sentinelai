@@ -302,6 +302,18 @@
     "roleAdmin": "מנהל",
     "roleMember": "חבר"
   },
+  "activityLog": {
+    "title": "יומן פעילות",
+    "empty": "עדיין לא נרשמה פעילות.",
+    "ownersAdminsOnly": "רק בעלים/מנהלי ארגון יכולים לצפות ביומן הפעילות.",
+    "systemUser": "מערכת",
+    "actionUserRegistered": "החשבון נוצר",
+    "actionUserLogin": "התחברות",
+    "actionDomainAdded": "הוסף דומיין {name}",
+    "actionInvitationCreated": "הזמין את {email} ({role})",
+    "actionInvitationAccepted": "הצטרף לארגון ({role})",
+    "actionBillingCheckoutStarted": "התחיל תהליך תשלום לתוכנית {plan}"
+  },
   "billing": {
     "title": "חיוב",
     "currentPlan": "תוכנית נוכחית: <b>{plan}</b>",

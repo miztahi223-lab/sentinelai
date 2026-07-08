@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -20,6 +21,7 @@ export class InvitationsService {
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
     private readonly emailService: EmailService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   /** Invite management is restricted to OWNER/ADMIN — delegates to the
@@ -98,6 +100,13 @@ export class InvitationsService {
       inviter?.name ?? 'A teammate',
       token,
     );
+
+    await this.auditLogsService.record({
+      organizationId,
+      userId: inviterUserId,
+      action: 'invitation.created',
+      metadata: { email: normalizedEmail, role },
+    });
 
     return invitation;
   }
@@ -194,6 +203,13 @@ export class InvitationsService {
         data: { acceptedAt: new Date() },
       }),
     ]);
+
+    await this.auditLogsService.record({
+      organizationId: invitation.organizationId,
+      userId,
+      action: 'invitation.accepted',
+      metadata: { role: invitation.role },
+    });
 
     return membership;
   }

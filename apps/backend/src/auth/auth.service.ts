@@ -9,6 +9,7 @@ import { randomBytes } from 'crypto';
 import { UsersService } from '../users/users.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { EmailService } from '../email/email.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { TokenService } from './token.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly organizationsService: OrganizationsService,
     private readonly tokenService: TokenService,
     private readonly emailService: EmailService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   private async hashPassword(password: string): Promise<string> {
@@ -53,13 +55,20 @@ export class AuthService {
       emailVerifyToken,
     });
 
-    await this.organizationsService.createWithOwner(
+    const organization = await this.organizationsService.createWithOwner(
       user.id,
       dto.organizationName,
     );
 
     const tokens = await this.issueTokenPair(user.id, user.email, meta);
     await this.emailService.sendVerificationEmail(user.email, emailVerifyToken);
+    await this.auditLogsService.record({
+      organizationId: organization.id,
+      userId: user.id,
+      action: 'user.registered',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
 
     return { user: this.toPublicUser(user), ...tokens };
   }
@@ -76,6 +85,12 @@ export class AuthService {
     }
 
     const tokens = await this.issueTokenPair(user.id, user.email, meta);
+    await this.auditLogsService.record({
+      userId: user.id,
+      action: 'user.login',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
     return { user: this.toPublicUser(user), ...tokens };
   }
 
