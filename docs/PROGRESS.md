@@ -1842,3 +1842,38 @@ confirmed via `page.evaluate` that hovering a pricing card produces a real non-i
 `transform` (not just a static screenshot assumption); explicitly re-confirmed the billing page's
 "Upgrade" button still fires a real API call through the `TiltCard` wrapper; mobile (390px)
 overflow checked on every newly-touched page — none found.
+
+## Enhancement 17: replace the site-wide background with a live global network map
+
+Requested a background that's alive, shows information, and reads as professional/trustworthy —
+site-wide, not just one page. Matrix-style code rain (used since Enhancement 13) leans more
+"hacker movie" than "enterprise security vendor"; a glowing world map with pulsing data
+connections is the established visual language serious B2B security/threat-intelligence products
+actually use (the genre convention this request was pointing at).
+
+**New `components/WorldMapBackground.tsx`** — a real, continuously-animating canvas background:
+a coarse dot-matrix world map (hand-authored equirectangular point clusters approximating each
+continent — deliberately stylized/low-fidelity, not a precise geographic dataset, and not claiming
+to be real telemetry data, same honesty standard as every other generated visual on this site) with
+several concurrent glowing arcs continuously spawning, drawing in along a gentle bowed flight-path
+curve between random points, holding lit briefly, then fading out — never a static image. Respects
+`prefers-reduced-motion` (freezes arc animation, still shows the static dot map).
+
+**Wired into the already-centralized places** (from Enhancement 15/16's `AmbientBackground`
+extraction, this was a one-file swap that cascaded everywhere): every marketing page, every auth
+page, and terms/privacy headers now show the world map instead of matrix rain. The authenticated
+dashboard shell (`(dashboard)/layout.tsx`, which references the background directly rather than
+through `AmbientBackground` since it needs a different, much fainter opacity) was updated the same
+way — 0.18 opacity there vs 0.55 on marketing pages, preserving the same "ambient texture, not a
+visual statement" restraint established for the dashboard in Enhancement 15.
+
+`MatrixRain.tsx` itself was left in place (a real, still-working, tested component) rather than
+deleted, in case it's wanted again for a specific accent later — it's just no longer referenced
+by any page after this swap.
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean, `next build` succeeds, all 31 frontend
+unit tests pass, full backend e2e suite unaffected (37/37), zero browser console errors. Screenshotted
+the landing page hero (both a narrow and a 1920px-wide viewport to see more of the map), the
+authenticated dashboard (confirming the faint version doesn't compete with real data), and
+Hebrew/RTL (the map itself needs no mirroring — it's a symmetric geographic visual, not directional
+text/UI). Mobile (390px) overflow checked — none found.
