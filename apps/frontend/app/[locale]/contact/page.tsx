@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { isAxiosError } from "axios";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { api } from "@/lib/api";
 
 export default function ContactPage() {
@@ -34,7 +35,9 @@ export default function ContactPage() {
     <>
       <MarketingNav />
       <main className="flex-1">
-        <section className="mx-auto max-w-lg px-6 py-20">
+        <section className="relative overflow-hidden">
+          <AmbientBackground />
+          <div className="relative mx-auto max-w-lg px-6 py-20">
           <h1 className="text-center text-3xl font-semibold text-white">{t("title")}</h1>
           <p className="mx-auto mt-4 max-w-md text-center text-gray-400">{t("subtitle")}</p>
 
@@ -107,6 +110,7 @@ export default function ContactPage() {
               </button>
             </form>
           )}
+          </div>
         </section>
       </main>
       <MarketingFooter />

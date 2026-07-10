@@ -23,7 +23,7 @@ import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { BrowserFrame } from "@/components/BrowserFrame";
-import { MatrixRain } from "@/components/MatrixRain";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { ScanSequence } from "@/components/ScanSequence";
 import { PulseMonitor } from "@/components/PulseMonitor";
 import { TiltCard } from "@/components/TiltCard";
@@ -104,15 +104,7 @@ export default async function Home({
               animated accent doesn't compete with or dilute the "this is a
               real, live screenshot" moment. */}
           <div className="relative overflow-hidden">
-            <MatrixRain className="opacity-[0.14]" />
-            <div
-              aria-hidden
-              className="bg-hero-grid pointer-events-none absolute inset-0"
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute start-1/2 top-[-10rem] h-[28rem] w-[52rem] -translate-x-1/2 rounded-full bg-indigo-600/20 blur-3xl rtl:translate-x-1/2"
-            />
+            <AmbientBackground />
           <div className="relative mx-auto max-w-4xl px-6 pt-20 pb-16 text-center sm:pt-28">
             <span className="inline-flex items-center gap-2 rounded-full border border-indigo-800/60 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-300">
               <ShieldCheck className="h-3.5 w-3.5" />

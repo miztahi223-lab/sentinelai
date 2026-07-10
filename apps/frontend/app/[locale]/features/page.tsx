@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Globe2, ShieldCheck, Bell, FileText, Bot, Radar } from "lucide-react";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 
@@ -27,17 +28,21 @@ export default async function FeaturesPage({
     <>
       <MarketingNav />
       <main className="flex-1">
-        <section className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h1 className="text-3xl font-semibold text-white sm:text-4xl">{t("title")}</h1>
-          <p className="mx-auto mt-4 max-w-xl text-gray-400">{t("subtitle")}</p>
+        <section className="relative overflow-hidden">
+          <AmbientBackground />
+          <div className="relative mx-auto max-w-3xl px-6 py-20 text-center">
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">{t("title")}</h1>
+            <p className="mx-auto mt-4 max-w-xl text-gray-400">{t("subtitle")}</p>
+          </div>
         </section>
 
         <section className="mx-auto max-w-5xl px-6 pb-20">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            {features.map(({ icon: Icon, title, description }) => (
+            {features.map(({ icon: Icon, title, description }, i) => (
               <div
                 key={title}
-                className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:border-gray-700"
+                style={{ animationDelay: `${i * 0.4}s` }}
+                className="animate-gentle-float rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:border-gray-700 motion-reduce:animate-none"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-indigo-500/10">
                   <Icon className="h-5 w-5 text-indigo-400" />

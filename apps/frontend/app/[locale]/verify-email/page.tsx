@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { api } from "@/lib/api";
 
 // Same reasoning as reset-password/page.tsx: `useSearchParams()` needs a
@@ -42,7 +43,8 @@ function VerifyEmailContent() {
   }, [token]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <AmbientBackground />
       <div className="w-full max-w-sm text-center">
         <Link href="/" className="text-2xl font-semibold tracking-tight text-white">
           Sentinel<span className="text-indigo-400">AI</span>

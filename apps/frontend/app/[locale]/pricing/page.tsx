@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Check } from "lucide-react";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { Link } from "@/i18n/navigation";
 import { getPlans } from "@/lib/plans";
 import type { Locale } from "@/i18n/routing";
@@ -29,11 +30,18 @@ export default async function PricingPage({
     <>
       <MarketingNav />
       <main className="flex-1">
-        <section className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h1 className="text-3xl font-semibold text-white sm:text-4xl">{t("title")}</h1>
-          <p className="mx-auto mt-4 max-w-xl text-gray-400">{t("subtitle")}</p>
+        <section className="relative overflow-hidden">
+          <AmbientBackground />
+          <div className="relative mx-auto max-w-3xl px-6 py-20 text-center">
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">{t("title")}</h1>
+            <p className="mx-auto mt-4 max-w-xl text-gray-400">{t("subtitle")}</p>
+          </div>
         </section>
 
+        {/* Pricing cards deliberately don't float/tilt like other card
+            grids on this site — this page's job is scannable, stable
+            side-by-side comparison, and continuous motion would work
+            against that while someone is trying to compare four plans. */}
         <section className="mx-auto max-w-6xl px-6 pb-20">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {plans.map((plan) => {

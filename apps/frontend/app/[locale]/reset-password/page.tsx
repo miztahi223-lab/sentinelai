@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { api } from "@/lib/api";
 import { isAxiosError } from "axios";
 
@@ -51,7 +52,8 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <AmbientBackground />
       <LanguageSwitcher className="absolute top-6 end-6" />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">

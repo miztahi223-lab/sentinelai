@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { isAxiosError } from "axios";
 
 // Same reasoning as login/page.tsx: `useSearchParams()` needs a Suspense
@@ -53,7 +54,8 @@ function RegisterForm() {
     : "/login";
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+      <AmbientBackground />
       <LanguageSwitcher className="absolute top-6 end-6" />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">

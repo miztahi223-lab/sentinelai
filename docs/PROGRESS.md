@@ -1764,3 +1764,42 @@ than one isolated interactive element.
 unit tests pass, zero browser console errors (Playwright `pageerror`/`console` listeners), full
 backend e2e suite unaffected (37/37 — this was a frontend-only change). Screenshotted in English,
 Hebrew/RTL, and mobile (390px) with explicit `scrollWidth > clientWidth` overflow checks.
+
+## Enhancement 15: extend the visual language across the whole site, not just the landing page
+
+Requested directly: the new matrix/ambient visual treatment shouldn't be confined to one page.
+
+**New `components/AmbientBackground.tsx`** — extracted the landing page hero's matrix-rain +
+dot-grid + glow backdrop into a single reusable component (it was inline, one-off markup before)
+so every other page gets the identical treatment instead of a copy-pasted variant that could drift.
+The landing page itself was refactored to use it too, so there's now exactly one implementation.
+
+**Applied consistently across the rest of the public site**:
+- `/features`, `/pricing`, `/contact` — ambient background behind each page's header.
+- `/features` — added the same staggered `gentle-float` to its feature-card grid as the landing
+  page's Features section (previously only the landing page had it).
+- `/pricing` — deliberately left the pricing cards themselves *without* floating/tilt: this page's
+  job is stable, scannable side-by-side comparison, and continuous motion would work against
+  someone trying to compare four plans — a judgment call worth recording, not an oversight.
+- `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email` — all five
+  authentication pages now share the same ambient backdrop as the marketing pages, so the "front
+  door" before login feels like the same product as the marketing site in front of it.
+
+**Extended into the authenticated dashboard app too, deliberately more conservatively**: added the
+same `MatrixRain` to `(dashboard)/layout.tsx`'s main content area, but at roughly a third the
+opacity of the marketing pages (0.05 vs 0.12) and just as ambient background texture — this is a
+working data tool people use daily to manage real security findings, not a landing page, so the
+goal here was "the whole product visually feels like one thing" rather than "make a visual
+statement" that could compete with data readability. Found and fixed a real bug while wiring this
+up: tried to force the canvas to viewport-`fixed` positioning by appending a `fixed` class on top
+of `MatrixRain`'s own `absolute` class — two Tailwind utility classes that set the same CSS
+property don't reliably resolve by the order they appear in a `className` string (only by their
+order in the generated stylesheet, which isn't controlled here), so this could easily have
+silently done nothing. Fixed by wrapping `MatrixRain` in its own dedicated `fixed inset-0`
+container instead of trying to override its internal class.
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean, `next build` succeeds (all locales/
+routes), all 31 frontend unit tests pass, full backend e2e suite unaffected (37/37). Screenshotted
+every touched page (features, pricing, contact, login, register, and a real logged-in dashboard
+view) with zero browser console errors, plus explicit mobile (390px) overflow checks on all five
+public pages — none found.
