@@ -117,3 +117,22 @@ html {
 .animate-ring-expand {
   animation: ring-expand 3.6s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
 }
+
+/* A gentle continuous float — used on feature/trust/small-business cards so
+   the page feels "alive" even before the user interacts with anything,
+   not just on hover. Small and slow on purpose (6px, 5-6s) so it reads as
+   ambient life rather than a distracting bounce; each user of this class
+   sets its own `animation-delay` inline so a grid of cards floats out of
+   sync with its neighbors instead of all bobbing in unison. */
+@keyframes gentle-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.animate-gentle-float {
+  animation: gentle-float 6s ease-in-out infinite;
+}

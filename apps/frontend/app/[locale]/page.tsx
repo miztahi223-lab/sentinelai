@@ -28,6 +28,7 @@ import { ScanSequence } from "@/components/ScanSequence";
 import { PulseMonitor } from "@/components/PulseMonitor";
 import { SonarRings } from "@/components/SonarRings";
 import { TiltCard } from "@/components/TiltCard";
+import { NetworkGlobe } from "@/components/NetworkGlobe";
 import { Link } from "@/i18n/navigation";
 import { getPlans } from "@/lib/plans";
 import type { Locale } from "@/i18n/routing";
@@ -219,10 +220,11 @@ export default async function Home({
               </p>
             </div>
             <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {smallBizPoints.map(({ icon: Icon, title, description }) => (
+              {smallBizPoints.map(({ icon: Icon, title, description }, i) => (
                 <div
                   key={title}
-                  className="flex gap-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6"
+                  style={{ animationDelay: `${i * 0.4}s` }}
+                  className="animate-gentle-float flex gap-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6 motion-reduce:animate-none"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10">
                     <Icon className="h-5 w-5 text-emerald-400" />
@@ -233,6 +235,26 @@ export default async function Home({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Your attack surface, visualized — a real, procedurally-rendered
+            3D network (see NetworkGlobe.tsx), not a stock illustration. */}
+        <section className="relative overflow-hidden border-t border-gray-800/80 py-20">
+          <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-6 lg:grid-cols-2">
+            <div className="order-2 lg:order-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/10 px-3 py-1 text-xs font-medium text-sky-300">
+                <Globe2 className="h-3.5 w-3.5" />
+                {t("globeEyebrow")}
+              </span>
+              <h2 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
+                {t("globeTitle")}
+              </h2>
+              <p className="mt-3 text-sm text-gray-500">{t("globeSubtitle")}</p>
+            </div>
+            <div className="order-1 h-[320px] sm:h-[420px] lg:order-2 lg:h-[460px]">
+              <NetworkGlobe />
             </div>
           </div>
         </section>
@@ -270,10 +292,11 @@ export default async function Home({
               {t("featuresTitle")}
             </h2>
             <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map(({ icon: Icon, title, description }) => (
+              {features.map(({ icon: Icon, title, description }, i) => (
                 <div
                   key={title}
-                  className="group rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:-translate-y-1 hover:border-indigo-900 hover:bg-gray-900"
+                  style={{ animationDelay: `${i * 0.4}s` }}
+                  className="animate-gentle-float group rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:-translate-y-1 hover:border-indigo-900 hover:bg-gray-900 motion-reduce:animate-none"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-md bg-indigo-500/10 transition group-hover:bg-indigo-500/20">
                     <Icon className="h-5 w-5 text-indigo-400" />
@@ -302,27 +325,31 @@ export default async function Home({
                   {t("spotlightReportsDesc")}
                 </p>
               </div>
-              <div className="overflow-hidden rounded-xl border border-gray-800 bg-white shadow-2xl shadow-indigo-950/30">
-                <Image
-                  src="/marketing/report-preview.png"
-                  alt={t("spotlightReportsAlt")}
-                  width={1700}
-                  height={1350}
-                  className="w-full"
-                />
-              </div>
+              <TiltCard>
+                <div className="overflow-hidden rounded-xl border border-gray-800 bg-white shadow-2xl shadow-indigo-950/30">
+                  <Image
+                    src="/marketing/report-preview.png"
+                    alt={t("spotlightReportsAlt")}
+                    width={1700}
+                    height={1350}
+                    className="w-full"
+                  />
+                </div>
+              </TiltCard>
             </div>
 
             <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
-              <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950 shadow-2xl shadow-indigo-950/30">
-                <Image
-                  src="/marketing/alerts-preview.png"
-                  alt={t("spotlightAlertsAlt")}
-                  width={3200}
-                  height={1050}
-                  className="w-full"
-                />
-              </div>
+              <TiltCard>
+                <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950 shadow-2xl shadow-indigo-950/30">
+                  <Image
+                    src="/marketing/alerts-preview.png"
+                    alt={t("spotlightAlertsAlt")}
+                    width={3200}
+                    height={1050}
+                    className="w-full"
+                  />
+                </div>
+              </TiltCard>
               <div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300">
                   <Bell className="h-3.5 w-3.5" />
@@ -374,8 +401,12 @@ export default async function Home({
               {t("trustTitle")}
             </h2>
             <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {trustPoints.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="flex gap-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6">
+              {trustPoints.map(({ icon: Icon, title, description }, i) => (
+                <div
+                  key={title}
+                  style={{ animationDelay: `${i * 0.4}s` }}
+                  className="animate-gentle-float flex gap-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6 motion-reduce:animate-none"
+                >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10">
                     <Icon className="h-5 w-5 text-emerald-400" />
                   </div>

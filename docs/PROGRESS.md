@@ -1728,3 +1728,39 @@ Hebrew/RTL after each fix.
 highest-impact "front door" for this request) and deliberately left the authenticated dashboard
 app's existing indigo UI untouched — it's already tested and familiar, and a full site-wide
 re-theme is a separate, larger decision than what was asked for here.
+
+## Enhancement 14: a real 3D network centerpiece + "alive" motion across the page
+
+Pushed further on the same visual direction: a genuine 3D piece, and continuous (not just
+on-hover) motion spread across more of the page rather than confined to one hero section.
+
+**`components/NetworkGlobe.tsx`** — a real, continuously-rotating 3D wireframe network: ~60 nodes
+placed on a sphere via a Fibonacci-sphere distribution, edges drawn between nodes closer than a
+distance threshold, rendered with hand-written 3D-to-2D perspective projection (rotation matrices,
+a focal-length perspective divide, back-to-front depth sorting so nearer nodes draw on top) on a
+plain 2D canvas — deliberately not a Three.js/WebGL dependency, which would meaningfully grow the
+JS bundle shipped to every marketing-page visitor for one visual. Reacts to real pointer movement
+(tilts toward the cursor) and keeps rotating continuously; respects `prefers-reduced-motion` by
+freezing the idle rotation (pointer-reactive tilt still works, since that's user-initiated, not
+autoplaying). Doubles as an honest metaphor for the real product: nodes are literally what
+"assets" means, edges are literally what "how they connect" means — not decoration disconnected
+from what the tool does. Placed in a new section ("Your entire attack surface, in one live map")
+between the small-business section and "How it works," mirrors correctly under Hebrew/RTL (globe
+and text swap sides via `order-*` utilities), no horizontal overflow on mobile (checked
+programmatically).
+
+**Continuous "alive" motion, not just hover interactions**: added a new `.animate-gentle-float`
+CSS keyframe (globals.css) — a small (6px), slow (6s), staggered-per-card vertical bob — to the
+Features grid, the small-business points, and the Trust points, so those sections feel alive
+before any interaction rather than only reacting to mouse/hover. Respects
+`prefers-reduced-motion` (`motion-reduce:animate-none` on every instance).
+
+**Extended the existing 3D tilt to the other two real screenshots**: the PDF-report and
+alerts-feed spotlight images (previously only the dashboard screenshot had `TiltCard`) now tilt
+toward the cursor too, for a consistent "everything responds" feel across the whole page rather
+than one isolated interactive element.
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean, `next build` succeeds, all 31 frontend
+unit tests pass, zero browser console errors (Playwright `pageerror`/`console` listeners), full
+backend e2e suite unaffected (37/37 — this was a frontend-only change). Screenshotted in English,
+Hebrew/RTL, and mobile (390px) with explicit `scrollWidth > clientWidth` overflow checks.
