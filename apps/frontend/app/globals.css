@@ -83,3 +83,37 @@ html {
     transparent 100%
   );
 }
+
+/* Continuously scrolling heartbeat/EKG waveform — used by PulseMonitor.tsx
+   as a "your monitoring never stops" visual metaphor for the real 24/7
+   re-scanning feature. The path is drawn 3x back-to-back in the SVG and
+   this animation slides it left by exactly one repeat-width, looping
+   seamlessly (no jump cut). */
+@keyframes pulse-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-33.333%);
+  }
+}
+.animate-pulse-scroll {
+  animation: pulse-scroll 4s linear infinite;
+}
+
+/* Slow-expanding, fading concentric rings — a lightweight, CSS-only
+   "depth"/radar-tunnel accent (no WebGL/3D asset available or needed for
+   an honest version of this effect). */
+@keyframes ring-expand {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+.animate-ring-expand {
+  animation: ring-expand 3.6s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}

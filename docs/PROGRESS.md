@@ -1650,3 +1650,81 @@ deployment alone means "fully done."
 external account (domain registrar, hosting provider, SMTP provider, Stripe, Anthropic) that only
 the project owner can create — not more engineering time. This pass closed the gap between "the
 code is ready" and "the deployment steps are ready," so that bottleneck is now the only one left.
+
+## Enhancement 13: Matrix-inspired visual redesign + small/medium business positioning
+
+Requested: shift the landing page's concept toward small/medium businesses without a security
+background, and redesign the visuals to feel more distinctive — "Matrix style," an animated
+sequence, a sense of depth, something that feels special rather than another generic dark SaaS
+template.
+
+**New content — built for small/medium businesses, not security teams**: a new landing-page
+section ("A solution built for small and medium-sized businesses" / "You don't need to know what
+a subdomain is for this to work") with four honest, real-feature-backed reassurance points (no
+jargon, nothing to install, tells you what to fix first, priced for a small business) — every
+point maps to an already-shipped, real capability, reframed for this audience rather than inventing
+new claims. Two new FAQ entries address the same audience directly ("I'm not technical at all — is
+this really for me?", "What do I actually do with the results?"). 25 new i18n keys, en/he parity
+re-verified after every addition (final count re-checked, zero drift).
+
+**New visual components, all genuinely real/working (no faked assets)**:
+- `components/MatrixRain.tsx` — a real, procedurally-generated canvas "digital rain" animation
+  (not a video/GIF asset, since none exists to use honestly). Respects
+  `prefers-reduced-motion`, cleans up its own `requestAnimationFrame` loop and resize listener on
+  unmount, capped at ~20fps (plenty for the effect, cheap on CPU). Deliberately scoped via a
+  wrapper `<div>` to *only* the top hero content (headline through the stats row) — explicitly not
+  extended behind the real product screenshot section below it, so the animated accent doesn't
+  compete with or dilute the "this is a real, live screenshot" claim already on the page.
+- `components/ScanSequence.tsx` — a looping, typed-out terminal animation illustrating the scan
+  workflow (DNS → subdomains → TLS → a dramatic `⚠ CRITICAL — expired TLS certificate found: this
+  site could be exploited` line → headers → score). This is the "image sequence" requested,
+  implemented honestly as a procedurally-generated sequence of frames rather than fabricated
+  photography/3D renders that don't exist — uses a generic placeholder domain
+  (`yourbusiness.com`), never presented as a real scan (the real screenshot further down the page
+  is what carries that claim). The critical-severity line dramatizes something the product
+  genuinely does (flag high/critical findings — the real dashboard screenshot already shows a real
+  HIGH-severity TLS finding) rather than inventing a capability.
+- `components/PulseMonitor.tsx` — a continuously scrolling heartbeat/EKG waveform (pure SVG + CSS
+  keyframe animation) as a literal visual metaphor for the real "24/7 continuous re-scanning"
+  feature/stat already on the page — "your attack surface is watched continuously, the same way a
+  heart monitor never stops."
+- `components/SonarRings.tsx` — slow-expanding, fading concentric rings as a lightweight CSS-only
+  depth/"tunnel" accent behind the pulse monitor. No 3D asset or WebGL scene was attempted — there's
+  no 3D modeling/rendering tool in this build environment, and a rushed 3D scene without real
+  assets would likely look worse than a well-executed 2D depth cue, so this is the honest
+  alternative that still reads as "depth."
+- `components/TiltCard.tsx` — a real, interactive 3D-tilt effect on the product screenshot, driven
+  by actual `mousemove` events recalculating a CSS `perspective`/`rotateX/Y` transform every frame
+  (not a static image or pre-rendered 3D asset). Disabled under `prefers-reduced-motion`.
+
+**Two real RTL bugs found and fixed while verifying in Hebrew** (both follow the same established
+pattern as `BrowserFrame`'s forced-LTR URL bar):
+- `PulseMonitor`'s scrolling waveform was almost entirely cut off under `dir="rtl"` — the `w-[300%]`
+  overflow technique assumes LTR overflow anchoring; fixed with an explicit `dir="ltr"` on the
+  waveform's container (the translated label text outside it stays in the page's real direction).
+- `ScanSequence`'s terminal content was reading right-to-left (dollar sign on the wrong side, `>`
+  prefixes flipped) under Hebrew — real terminal/command output should always read LTR regardless
+  of UI language, same reasoning as a code block; fixed with `dir="ltr"` + `text-start` on the
+  terminal body.
+
+**A visual bug hunted down and confirmed NOT a bug**: initial screenshots appeared to show the
+Matrix rain bleeding past its intended boundary into the real-screenshot section. Debugged with
+an injected debug outline (`page.evaluate` adding a colored border to the exact DOM element) rather
+than guessing — confirmed the canvas and its wrapper both end exactly where intended, and the
+"leakage" seen in earlier low-opacity PNG screenshots was a false read (compression/antialiasing
+noise at 0.14 opacity), not an actual rendering bug. Recorded here since chasing this cost real
+verification time and the resolution (it was fine all along) is itself useful to have on record.
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean (including fixing a genuine
+`react-hooks/set-state-in-effect` lint error in `ScanSequence.tsx` by moving the
+`prefers-reduced-motion` check into a lazy `useState` initializer instead of calling `setState`
+synchronously inside the effect body — the same "derive state during render" pattern already
+established in `auth-context.tsx`/`organization-context.tsx`), `next build` succeeds, all 31
+frontend unit tests pass unchanged, zero browser console errors (checked via Playwright's
+`pageerror`/`console` listeners, not just visual inspection). Screenshotted in English and
+Hebrew/RTL after each fix.
+
+**Scope note for future work**: this pass focused the redesign on the marketing/landing page (the
+highest-impact "front door" for this request) and deliberately left the authenticated dashboard
+app's existing indigo UI untouched — it's already tested and familiar, and a full site-wide
+re-theme is a separate, larger decision than what was asked for here.

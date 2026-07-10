@@ -14,11 +14,20 @@ import {
   Unlock,
   ShieldAlert,
   TrendingUp,
+  MessageCircleQuestion,
+  Zap,
+  ListTodo,
+  Wallet,
 } from "lucide-react";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { BrowserFrame } from "@/components/BrowserFrame";
+import { MatrixRain } from "@/components/MatrixRain";
+import { ScanSequence } from "@/components/ScanSequence";
+import { PulseMonitor } from "@/components/PulseMonitor";
+import { SonarRings } from "@/components/SonarRings";
+import { TiltCard } from "@/components/TiltCard";
 import { Link } from "@/i18n/navigation";
 import { getPlans } from "@/lib/plans";
 import type { Locale } from "@/i18n/routing";
@@ -26,7 +35,8 @@ import type { Locale } from "@/i18n/routing";
 const FEATURE_ICONS = [Radar, ShieldCheck, Bell, Bot, FileText, Globe2];
 const HOW_IT_WORKS_ICONS = [Globe2, ScanSearch, ListChecks];
 const TRUST_ICONS = [Eye, Sparkles, Unlock, ShieldAlert];
-const FAQ_COUNT = 5;
+const SMALL_BIZ_ICONS = [MessageCircleQuestion, Zap, ListTodo, Wallet];
+const FAQ_COUNT = 7;
 
 export default async function Home({
   params,
@@ -64,6 +74,12 @@ export default async function Home({
     description: t(`trustPoint${i + 1}Desc` as "trustPoint1Desc"),
   }));
 
+  const smallBizPoints = SMALL_BIZ_ICONS.map((icon, i) => ({
+    icon,
+    title: t(`smallBizPoint${i + 1}Title` as "smallBizPoint1Title"),
+    description: t(`smallBizPoint${i + 1}Desc` as "smallBizPoint1Desc"),
+  }));
+
   const faqItems = Array.from({ length: FAQ_COUNT }, (_, i) => ({
     question: t(`faq${i + 1}Q` as "faq1Q"),
     answer: t(`faq${i + 1}A` as "faq1A"),
@@ -81,14 +97,21 @@ export default async function Home({
       <main className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden">
-          <div
-            aria-hidden
-            className="bg-hero-grid pointer-events-none absolute inset-0"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute start-1/2 top-[-10rem] h-[28rem] w-[52rem] -translate-x-1/2 rounded-full bg-indigo-600/20 blur-3xl rtl:translate-x-1/2"
-          />
+          {/* Matrix rain + ambient glow are scoped to just this wrapper
+              (headline through the scan sequence + stats) — deliberately
+              NOT extended behind the real product screenshot below, so the
+              animated accent doesn't compete with or dilute the "this is a
+              real, live screenshot" moment. */}
+          <div className="relative overflow-hidden">
+            <MatrixRain className="opacity-[0.14]" />
+            <div
+              aria-hidden
+              className="bg-hero-grid pointer-events-none absolute inset-0"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute start-1/2 top-[-10rem] h-[28rem] w-[52rem] -translate-x-1/2 rounded-full bg-indigo-600/20 blur-3xl rtl:translate-x-1/2"
+            />
           <div className="relative mx-auto max-w-4xl px-6 pt-20 pb-16 text-center sm:pt-28">
             <span className="inline-flex items-center gap-2 rounded-full border border-indigo-800/60 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-300">
               <ShieldCheck className="h-3.5 w-3.5" />
@@ -118,12 +141,32 @@ export default async function Home({
                 {t("ctaSee")}
               </Link>
             </div>
-            <p className="mt-4 text-xs text-gray-500">
-              {t("heroNoCreditCard")}
-            </p>
-            <dl className="mx-auto mt-14 grid max-w-2xl grid-cols-3 gap-4 border-t border-gray-800/80 pt-8">
+            <div className="mt-4 flex flex-col items-center gap-1.5 text-xs text-gray-500 sm:flex-row sm:justify-center sm:gap-4">
+              <span>{t("heroNoCreditCard")}</span>
+              <span className="hidden sm:inline text-gray-700">·</span>
+              <span>{t("heroNoExpertise")}</span>
+            </div>
+          </div>
+
+          {/* Terminal-style animated scan sequence — a procedurally
+              generated illustration of the real workflow (see
+              ScanSequence.tsx for why this isn't presented as live data). */}
+          <div className="relative mx-auto max-w-2xl px-6 pb-6">
+            <ScanSequence />
+          </div>
+
+          {/* Heartbeat/EKG "live monitoring" widget — a real metaphor for
+              the real 24/7 re-scanning feature, with a radiating-rings
+              depth accent behind it. */}
+          <div className="relative mx-auto max-w-2xl px-6 pb-14">
+            <SonarRings className="opacity-40" />
+            <PulseMonitor className="relative" />
+          </div>
+
+          <div className="relative mx-auto max-w-2xl px-6 pb-14">
+            <dl className="grid grid-cols-3 gap-4 border-t border-gray-800/80 pt-8">
               {heroStats.map(({ value, label }) => (
-                <div key={label}>
+                <div key={label} className="text-center">
                   <dt className="sr-only">{label}</dt>
                   <dd className="text-2xl font-semibold text-white sm:text-3xl">
                     {value}
@@ -133,8 +176,11 @@ export default async function Home({
               ))}
             </dl>
           </div>
+          </div>
 
-          {/* Real product preview */}
+          {/* Real product preview — deliberately outside the matrix-rain
+              wrapper above, on the plain dark background, so the real
+              screenshot reads as unambiguously real. */}
           <div className="relative mx-auto max-w-5xl px-6 pb-24">
             <div className="mb-6 flex flex-col items-center gap-2 text-center">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
@@ -148,10 +194,46 @@ export default async function Home({
                 {t("previewSubtitle")}
               </p>
             </div>
-            <BrowserFrame
-              src="/marketing/dashboard-preview.png"
-              alt={t("previewAlt")}
-            />
+            <TiltCard>
+              <BrowserFrame
+                src="/marketing/dashboard-preview.png"
+                alt={t("previewAlt")}
+              />
+            </TiltCard>
+          </div>
+        </section>
+
+        {/* Built for small business owners, not security experts */}
+        <section className="border-t border-gray-800/80 bg-gray-900/20 py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                <MessageCircleQuestion className="h-3.5 w-3.5" />
+                {t("smallBizEyebrow")}
+              </span>
+              <h2 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
+                {t("smallBizTitle")}
+              </h2>
+              <p className="mt-3 text-sm text-gray-500">
+                {t("smallBizSubtitle")}
+              </p>
+            </div>
+            <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {smallBizPoints.map(({ icon: Icon, title, description }) => (
+                <div
+                  key={title}
+                  className="flex gap-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10">
+                    <Icon className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-white">{title}</h3>
+                    <p className="mt-1 text-sm text-gray-500">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
