@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { TiltCard } from "@/components/TiltCard";
 
 interface SecurityScoreCardProps {
   score: number; // 0-100
@@ -75,36 +76,38 @@ export function SecurityScoreCard({ score, previousScore }: SecurityScoreCardPro
           )}
         </div>
 
-        <div className="relative h-[120px] w-[120px] shrink-0">
-          <svg width="120" height="120" viewBox="0 0 120 120" className="-rotate-90">
-            <circle
-              cx="60"
-              cy="60"
-              r="54"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="8"
-              className="text-gray-800"
-            />
-            <circle
-              cx="60"
-              cy="60"
-              r="54"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
-              className={`transition-all duration-500 ${scoreColor(score)}`}
-            />
-          </svg>
-          <span
-            className={`absolute inset-0 flex items-center justify-center text-2xl font-bold ${scoreColor(score)}`}
-          >
-            {scoreToGrade(score)}
-          </span>
-        </div>
+        <TiltCard>
+          <div className="relative h-[120px] w-[120px] shrink-0">
+            <svg width="120" height="120" viewBox="0 0 120 120" className="-rotate-90">
+              <circle
+                cx="60"
+                cy="60"
+                r="54"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="8"
+                className="text-gray-800"
+              />
+              <circle
+                cx="60"
+                cy="60"
+                r="54"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
+                className={`transition-all duration-500 ${scoreColor(score)}`}
+              />
+            </svg>
+            <span
+              className={`absolute inset-0 flex items-center justify-center text-2xl font-bold ${scoreColor(score)}`}
+            >
+              {scoreToGrade(score)}
+            </span>
+          </div>
+        </TiltCard>
       </div>
     </div>
   );

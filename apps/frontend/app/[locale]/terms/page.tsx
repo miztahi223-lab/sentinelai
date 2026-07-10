@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import type { Locale } from "@/i18n/routing";
 
 const LAST_UPDATED = "July 2026";
@@ -103,12 +104,21 @@ export default async function TermsPage({
     <>
       <MarketingNav />
       <main className="flex-1">
-        <section className="mx-auto max-w-3xl px-6 py-20">
-          <h1 className="text-3xl font-semibold text-white sm:text-4xl">{title}</h1>
-          <p className="mt-2 text-sm text-gray-500">
-            {locale === "he" ? `עודכן לאחרונה: ${LAST_UPDATED}` : `Last updated: ${LAST_UPDATED}`}
-          </p>
-          <div className="mt-10 space-y-8">
+        {/* Ambient background is scoped to just the title/date here, not
+            the legal text below — continuous motion behind dense legal
+            reading would hurt exactly the readability this page most
+            needs. */}
+        <div className="relative overflow-hidden">
+          <AmbientBackground />
+          <div className="relative mx-auto max-w-3xl px-6 pt-20 pb-4">
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">{title}</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              {locale === "he" ? `עודכן לאחרונה: ${LAST_UPDATED}` : `Last updated: ${LAST_UPDATED}`}
+            </p>
+          </div>
+        </div>
+        <section className="mx-auto max-w-3xl px-6 pb-20">
+          <div className="mt-6 space-y-8">
             {sections.map((section) => (
               <div key={section.heading}>
                 <h2 className="text-base font-medium text-white">{section.heading}</h2>

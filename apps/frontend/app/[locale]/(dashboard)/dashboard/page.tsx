@@ -10,6 +10,7 @@ import { DomainAssetCard } from "@/components/DomainAssetCard";
 import { SecurityScoreCard } from "@/components/SecurityScoreCard";
 import { AlertCard } from "@/components/AlertCard";
 import { RiskChart } from "@/components/RiskChart";
+import { TiltCard } from "@/components/TiltCard";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
@@ -128,17 +129,19 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <RiskChart
-            data={
-              riskHistory?.map((point) => ({
-                date: new Date(point.date).toLocaleDateString(locale, {
-                  month: "short",
-                  day: "numeric",
-                }),
-                score: point.score,
-              })) ?? []
-            }
-          />
+          <TiltCard>
+            <RiskChart
+              data={
+                riskHistory?.map((point) => ({
+                  date: new Date(point.date).toLocaleDateString(locale, {
+                    month: "short",
+                    day: "numeric",
+                  }),
+                  score: point.score,
+                })) ?? []
+              }
+            />
+          </TiltCard>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div>

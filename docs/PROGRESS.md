@@ -1803,3 +1803,42 @@ routes), all 31 frontend unit tests pass, full backend e2e suite unaffected (37/
 every touched page (features, pricing, contact, login, register, and a real logged-in dashboard
 view) with zero browser console errors, plus explicit mobile (390px) overflow checks on all five
 public pages — none found.
+
+## Enhancement 16: sweep the remaining pages/components — with reasoned exceptions, not gaps
+
+Went through every remaining page and component systematically rather than stopping at a few more
+spots, per direct instruction not to leave the job half-done.
+
+**Added real 3D/motion to**:
+- `SecurityScoreCard.tsx` — the circular score gauge now sits in a `TiltCard` (hover-driven 3D tilt).
+- The dashboard's `RiskChart` (trend chart) — wrapped in `TiltCard` at its usage site in
+  `dashboard/page.tsx`. Confirmed `recharts`' `ResponsiveContainer` still measures/renders
+  correctly through a CSS-transform wrapper (transforms don't trigger reflow).
+- `/pricing` and the in-app `/billing` plan cards — both gained hover-only `TiltCard` tilt.
+  Confirmed real click-through still works after wrapping (clicked "Upgrade" through the tilt
+  wrapper and got the real, honest "not configured" error from the actual API call — not a
+  cosmetic no-op).
+- `/terms`, `/privacy` — added the shared `AmbientBackground` to the title/date header only.
+
+**Deliberately did NOT add continuous motion to** (recorded here so it reads as a judgment call,
+not incomplete work):
+- `AssetCard`/`DomainAssetCard` and any list built from them (the Domains page's tracked-asset
+  list, the dashboard's findings list) — these render as a vertical `space-y-*` stack of repeated
+  rows. Continuous idle float/tilt on every row of a list someone is actively scanning for
+  information is a real usability regression (visually noisy, harder to track which row is which),
+  not "alive" in a good way. Same reasoning already applied to `AssetCard` when it was first built.
+- The pricing/billing cards specifically use hover-only tilt (not the idle `gentle-float` used on
+  marketing feature grids) for the same reason as before: a plan someone is actively comparing
+  shouldn't be moving on its own.
+- Legal text body copy on `/terms`/`/privacy` — motion behind dense text people need to actually
+  read would hurt the one thing that page needs most (readability), so only the header got the
+  ambient treatment.
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean, `next build` succeeds, all 31 frontend
+unit tests pass unchanged (including the existing `SecurityScoreCard.test.tsx` suite, unaffected by
+wrapping the gauge in `TiltCard`), full backend e2e suite unaffected (37/37). Screenshotted pricing,
+terms, privacy, and a real logged-in dashboard/billing view with zero console errors; explicitly
+confirmed via `page.evaluate` that hovering a pricing card produces a real non-identity CSS
+`transform` (not just a static screenshot assumption); explicitly re-confirmed the billing page's
+"Upgrade" button still fires a real API call through the `TiltCard` wrapper; mobile (390px)
+overflow checked on every newly-touched page — none found.

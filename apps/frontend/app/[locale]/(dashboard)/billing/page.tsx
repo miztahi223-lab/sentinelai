@@ -10,6 +10,7 @@ import {
 } from "@/lib/hooks";
 import { useOrganization } from "@/lib/organization-context";
 import { getPlans } from "@/lib/plans";
+import { TiltCard } from "@/components/TiltCard";
 
 export default function BillingPage() {
   const t = useTranslations("billing");
@@ -101,8 +102,8 @@ export default function BillingPage() {
           // isn't English.
           const active = plan.key === currentPlan;
           return (
+            <TiltCard key={plan.name}>
             <div
-              key={plan.name}
               className={`rounded-xl border p-6 transition ${
                 active
                   ? "border-indigo-500 bg-indigo-500/5"
@@ -158,6 +159,7 @@ export default function BillingPage() {
                 </button>
               )}
             </div>
+            </TiltCard>
           );
         })}
       </div>
