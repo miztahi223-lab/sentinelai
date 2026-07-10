@@ -26,9 +26,9 @@ import { BrowserFrame } from "@/components/BrowserFrame";
 import { MatrixRain } from "@/components/MatrixRain";
 import { ScanSequence } from "@/components/ScanSequence";
 import { PulseMonitor } from "@/components/PulseMonitor";
-import { SonarRings } from "@/components/SonarRings";
 import { TiltCard } from "@/components/TiltCard";
 import { NetworkGlobe } from "@/components/NetworkGlobe";
+import { Tunnel } from "@/components/Tunnel";
 import { Link } from "@/i18n/navigation";
 import { getPlans } from "@/lib/plans";
 import type { Locale } from "@/i18n/routing";
@@ -157,11 +157,9 @@ export default async function Home({
           </div>
 
           {/* Heartbeat/EKG "live monitoring" widget — a real metaphor for
-              the real 24/7 re-scanning feature, with a radiating-rings
-              depth accent behind it. */}
+              the real 24/7 re-scanning feature. */}
           <div className="relative mx-auto max-w-2xl px-6 pb-14">
-            <SonarRings className="opacity-40" />
-            <PulseMonitor className="relative" />
+            <PulseMonitor />
           </div>
 
           <div className="relative mx-auto max-w-2xl px-6 pb-14">
@@ -201,6 +199,31 @@ export default async function Home({
                 alt={t("previewAlt")}
               />
             </TiltCard>
+          </div>
+        </section>
+
+        {/* A large, real 3D tunnel flythrough — see Tunnel.tsx. The
+            biggest, most technically-involved visual on this page on
+            purpose: a continuous flythrough with a genuine heartbeat pulse
+            traveling down every cable, not a static decorative accent. */}
+        <section className="relative overflow-hidden border-t border-gray-800/80 bg-black">
+          <div className="relative mx-auto max-w-6xl px-6 py-16 text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-medium text-emerald-300">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              {t("tunnelEyebrow")}
+            </span>
+            <h2 className="mx-auto mt-4 max-w-2xl text-2xl font-semibold text-white sm:text-3xl">
+              {t("tunnelTitle")}
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500">
+              {t("tunnelSubtitle")}
+            </p>
+          </div>
+          <div className="relative h-[420px] w-full sm:h-[520px] lg:h-[600px]">
+            <Tunnel />
           </div>
         </section>
 
