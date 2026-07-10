@@ -37,7 +37,7 @@ const FEATURE_ICONS = [Radar, ShieldCheck, Bell, Bot, FileText, Globe2];
 const HOW_IT_WORKS_ICONS = [Globe2, ScanSearch, ListChecks];
 const TRUST_ICONS = [Eye, Sparkles, Unlock, ShieldAlert];
 const SMALL_BIZ_ICONS = [MessageCircleQuestion, Zap, ListTodo, Wallet];
-const FAQ_COUNT = 7;
+const FAQ_COUNT = 8;
 
 export default async function Home({
   params,
@@ -251,6 +251,48 @@ export default async function Home({
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* A real before/after: the exact same real finding, shown once in
+            raw technical wording and once through SentinelAI's plain-
+            language translation layer (see lib/plainLanguageFindings.ts).
+            Both sides are real — this isn't a mocked-up comparison. */}
+        <section className="border-t border-gray-800/80 py-20">
+          <div className="mx-auto max-w-5xl px-6">
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-300">
+                <ShieldAlert className="h-3.5 w-3.5" />
+                {t("translationEyebrow")}
+              </span>
+              <h2 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
+                {t("translationTitle")}
+              </h2>
+            </div>
+            <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t("translationOtherToolsLabel")}
+                </p>
+                <p className="mt-3 font-mono text-sm text-gray-400">
+                  {t("translationOtherToolsText")}
+                </p>
+              </div>
+              <div className="rounded-xl border border-red-900/50 bg-red-950/10 p-6">
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-400">
+                  {t("translationSentinelLabel")}
+                </p>
+                <p className="mt-3 text-lg font-semibold text-white">
+                  {t("translationSentinelHeadline")}
+                </p>
+                <p className="mt-2 text-sm text-gray-400">
+                  {t("translationSentinelText")}
+                </p>
+              </div>
+            </div>
+            <p className="mx-auto mt-6 max-w-2xl text-center text-xs text-gray-600">
+              {t("translationFootnote")}
+            </p>
           </div>
         </section>
 

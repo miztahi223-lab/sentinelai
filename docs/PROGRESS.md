@@ -1877,3 +1877,52 @@ the landing page hero (both a narrow and a 1920px-wide viewport to see more of t
 authenticated dashboard (confirming the faint version doesn't compete with real data), and
 Hebrew/RTL (the map itself needs no mirroring — it's a symmetric geographic visual, not directional
 text/UI). Mobile (390px) overflow checked — none found.
+
+## Enhancement 18: plain-language, honestly-scary findings — and more for small business owners
+
+Requested: make the alerts scarier, drop jargon like "TLS," and make everything comfortable for
+someone who understands nothing about security — plus more small-business content.
+
+**New `lib/plainLanguageFindings.ts`** — a pure display transform, `toPlainLanguage(title,
+description, locale)`, pattern-matched against the *real* finding titles the risk engine actually
+generates (every one of the ~10 real patterns in `risk-engine.service.ts` is covered: missing/
+invalid/self-signed/expired/expiring TLS certificates, missing security headers, disclosed server
+versions, large IP footprints, recent asset changes). This never invents a different finding — it
+only changes the wording, the same "real data, friendlier presentation" pattern already used for
+the SecurityScoreCard letter grade. Deliberately "scary but true": dramatizes real consequences
+(a real browser warning page, unencrypted form data, a known attack technique) rather than
+inventing scarier ones. An unrecognized finding type falls back to the real original text
+unchanged rather than guessing at a translation that might not be accurate. 14 unit tests (7→14
+after adding locale coverage).
+
+**Found and fixed a real localization gap while verifying in Hebrew**: the first version of this
+mapping only had English output, so a Hebrew-UI user got an English "plain language" headline
+injected into an otherwise-fully-Hebrew page — worse than doing nothing for exactly the
+non-technical audience this feature targets. Fixed by making every mapping locale-aware (real
+Hebrew translations for all 10 finding types, not machine-translated placeholders), verified live
+in the actual dashboard with a real domain's real finding.
+
+**`AlertCard.tsx`** gained an optional `technicalDetail` prop: the plain-language headline is now
+the default, leading view, with the real original technical wording tucked behind a "Show the
+technical detail" toggle — nothing is hidden, it's just no longer the first thing someone has to
+decode. Urgent findings (CRITICAL/HIGH) also get a pulsing icon and an "ACTION NEEDED" label,
+matched to the finding's real severity rather than an independently-invented urgency level. Wired
+into the dashboard's real findings list (the only place in the app that renders raw risk-engine
+findings — confirmed via a repo-wide search before assuming this was the only spot).
+
+**Marketing copy**: the landing page's `ScanSequence` terminal animation no longer says "TLS" (or
+"DNS"/"HTTP" jargon) anywhere — every step rewritten in plain language, and the critical-finding
+line now reads "your website is NOT secure: hackers could steal customer data today" instead of
+naming a certificate. Added a new "The same real finding, two ways" comparison section to the
+landing page showing the *exact* real finding side by side — raw technical wording next to the new
+plain-language translation — proving the claim rather than just asserting it. Added FAQ #8
+("Will the alerts be full of technical terms I won't understand?") addressing this directly, plus
+kept the small-business messaging consistent throughout (18 new i18n keys, en/he parity
+re-verified, zero drift).
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean, `next build` succeeds, all 45 frontend
+unit tests pass (42 previous + new locale-aware coverage), full backend e2e suite unaffected
+(37/37). Screenshotted the real dashboard findings list in both English and Hebrew (confirming the
+technical-detail toggle reveals the real original English text regardless of UI language, since
+that's genuinely what the backend generated), and the new landing-page comparison section. Mobile
+(390px) overflow checked — none found.

@@ -11,6 +11,7 @@ import { SecurityScoreCard } from "@/components/SecurityScoreCard";
 import { AlertCard } from "@/components/AlertCard";
 import { RiskChart } from "@/components/RiskChart";
 import { TiltCard } from "@/components/TiltCard";
+import { toPlainLanguage } from "@/lib/plainLanguageFindings";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
@@ -118,14 +119,22 @@ export default function DashboardPage() {
                   {t("noFindings")}
                 </p>
               )}
-              {risk?.findings.map((f) => (
-                <AlertCard
-                  key={f.id}
-                  severity={f.severity}
-                  message={`${f.title} — ${f.description}`}
-                  createdAt={f.createdAt}
-                />
-              ))}
+              {risk?.findings.map((f) => {
+                const plain = toPlainLanguage(
+                  f.title,
+                  f.description,
+                  locale === "he" ? "he" : "en",
+                );
+                return (
+                  <AlertCard
+                    key={f.id}
+                    severity={f.severity}
+                    message={`${plain.headline} — ${plain.explanation}`}
+                    technicalDetail={`${f.title} — ${f.description}`}
+                    createdAt={f.createdAt}
+                  />
+                );
+              })}
             </div>
           </div>
 

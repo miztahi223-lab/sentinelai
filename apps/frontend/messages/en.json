@@ -51,13 +51,13 @@
     "heroNoCreditCard": "Free plan, no credit card required",
     "heroNoExpertise": "No security background needed",
     "pulseMonitorLabel": "Live monitoring — never stops watching your attack surface",
-    "scanStep1": "resolving DNS records...",
-    "scanStep2": "found 4 subdomains",
-    "scanStep3": "checking TLS certificates...",
-    "scanStep4": "⚠ CRITICAL — expired TLS certificate found: this site could be exploited",
-    "scanStep5": "checking HTTP security headers...",
-    "scanStep6": "2 recommended headers missing",
-    "scanStep7": "Security Score: 74/100 (C) — plain-English report ready",
+    "scanStep1": "looking up your website's address...",
+    "scanStep2": "found 4 connected pages and services",
+    "scanStep3": "checking if your website is actually secure...",
+    "scanStep4": "⚠ CRITICAL — your website is NOT secure: hackers could steal customer data today",
+    "scanStep5": "checking for unlocked doors on your website...",
+    "scanStep6": "2 doors left unlocked",
+    "scanStep7": "Security Score: 74/100 (C) — translated into plain English, ready to read",
     "heroStat1Value": "5",
     "heroStat1Label": "scored categories",
     "heroStat2Value": "0-100",
@@ -118,6 +118,14 @@
     "smallBizPoint3Desc": "One prioritized list, not two hundred alerts. We rank what actually matters so you always know where to start.",
     "smallBizPoint4Title": "Priced for a small business",
     "smallBizPoint4Desc": "Start free. Paid plans begin at $49/month — not the five-figure annual contracts most security tools require.",
+    "translationEyebrow": "The same real finding, two ways",
+    "translationTitle": "You shouldn't need a computer science degree to understand your own website",
+    "translationOtherToolsLabel": "What most security tools show you",
+    "translationOtherToolsText": "No valid TLS certificate observed — No TLS certificate could be retrieved on port 443 — the site may be HTTP-only or unreachable over HTTPS.",
+    "translationSentinelLabel": "What SentinelAI shows you",
+    "translationSentinelHeadline": "Your website is not secure",
+    "translationSentinelText": "Your site has no working security certificate. Visitors likely see a scary warning page instead of your site, and anything they type in — passwords, card numbers — isn't protected on the way there.",
+    "translationFootnote": "Both are the exact same real finding from the exact same real scan — the technical wording is always still one click away, it's just no longer the first thing you have to decode.",
     "globeEyebrow": "Continuous discovery, mapped",
     "globeTitle": "Your entire attack surface, in one live map",
     "globeSubtitle": "Every domain, subdomain, IP, and certificate SentinelAI discovers becomes a node in a map that's redrawn with every scan — so you're never guessing what's actually exposed.",
@@ -147,7 +155,9 @@
     "faq6Q": "I'm not technical at all — is this really for me?",
     "faq6A": "Yes. SentinelAI is built so a business owner with no security background can use it end-to-end: plain-language findings instead of jargon, a prioritized to-do list instead of a raw scan dump, and nothing to install. If you get stuck, a real person reads every message sent through the contact form.",
     "faq7Q": "What do I actually do with the results?",
-    "faq7A": "Every finding tells you what it means and what to do about it in plain language, and — when AI analysis is configured — a specific step-by-step fix. You don't need to interpret raw technical output yourself."
+    "faq7A": "Every finding tells you what it means and what to do about it in plain language, and — when AI analysis is configured — a specific step-by-step fix. You don't need to interpret raw technical output yourself.",
+    "faq8Q": "Will the alerts be full of technical terms I won't understand?",
+    "faq8A": "No. Every alert leads with a plain-English headline — things like \"Your website is not secure\" instead of technical certificate jargon — with real severity so you know what's actually urgent. The original technical wording is still there if you want it, tucked under a \"show technical detail\" toggle, but it's never the first thing you have to read."
   },
   "features": {
     "title": "Built for teams who need to know, not just scan",
@@ -403,7 +413,9 @@
     "findings": "findings"
   },
   "alertCard": {
-    "markRead": "Mark read"
+    "markRead": "Mark read",
+    "actionNeeded": "Action needed",
+    "showTechnicalDetail": "Show the technical detail"
   },
   "securityScoreCard": {
     "title": "Security Score",
