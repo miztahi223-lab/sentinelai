@@ -22,7 +22,7 @@ export function RiskChart({ data }: { data: RiskDataPoint[] }) {
     return (
       <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-sm transition hover:border-gray-700">
         <h3 className="mb-4 text-sm font-medium text-gray-400">{t("title")}</h3>
-        <p className="text-sm text-gray-500">{t("needsMoreScans")}</p>
+        <p className="text-sm text-gray-400">{t("needsMoreScans")}</p>
       </div>
     );
   }

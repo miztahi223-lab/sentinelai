@@ -24,8 +24,32 @@ export interface Domain {
   organizationId: string;
   name: string;
   verified: boolean;
+  verificationToken: string | null;
   createdAt: string;
   _count?: { assets: number };
+}
+
+export interface HealthStatus {
+  status: "ok" | "degraded";
+  database: "ok" | "error";
+  checkedAt: string;
+}
+
+/** Backs the public `/status` page — a real, live check, not a fabricated
+ * historical uptime record this build environment has no real monitoring
+ * data to produce. */
+export function useHealth() {
+  return useQuery({
+    queryKey: ["health"],
+    queryFn: async () => {
+      const { data } = await api.get<HealthStatus>("/health");
+      return data;
+    },
+    // Polled so the page reflects the real current state without a manual
+    // reload, same pattern as the dashboard's own polling hooks.
+    refetchInterval: 15_000,
+    retry: false,
+  });
 }
 
 export function useOrganizations() {
@@ -67,6 +91,22 @@ export function useCreateDomain(organizationId: string | undefined) {
   });
 }
 
+export function useVerifyDomain(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (domainId: string) => {
+      const { data } = await api.patch<Domain>(`/domains/${domainId}/verify`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["domains", organizationId] });
+    },
+  });
+}
+
+export type AiDifficulty = "EASY" | "MODERATE" | "HARD";
+export type AiPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
 export interface Finding {
   id: string;
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
@@ -74,13 +114,45 @@ export interface Finding {
   title: string;
   description: string;
   createdAt: string;
+  aiExplanation?: string | null;
+  aiBusinessImpact?: string | null;
+  aiRemediation?: string | null;
+  aiDifficulty?: AiDifficulty | null;
+  aiPriority?: AiPriority | null;
 }
+
+export function useAnalyzeFinding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (findingId: string) => {
+      const { data } = await api.post<Finding>(`/ai/findings/${findingId}/analyze`);
+      return data;
+    },
+    onSuccess: () => {
+      // The same finding can appear in both the per-domain findings list
+      // and the org-wide "top risks" summary — invalidate both rather than
+      // guessing which one is currently mounted.
+      queryClient.invalidateQueries({ queryKey: ["risk"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    },
+  });
+}
+
+export type FindingCategory =
+  | "SSL"
+  | "HEADERS"
+  | "EXPOSURE"
+  | "CONFIGURATION"
+  | "ASSET_CHANGE"
+  | "DNS"
+  | "TECHNOLOGY";
 
 export interface RiskResult {
   hasScan: boolean;
   scanId?: string;
   scannedAt?: string;
   score: number | null;
+  categories?: Record<FindingCategory, { deduction: number; findings: number }>;
   findings: Finding[];
 }
 
@@ -117,6 +189,57 @@ export function useDomainRiskHistory(domainId: string | undefined) {
       return data;
     },
     enabled: !!domainId,
+  });
+}
+
+export interface DashboardSummary {
+  totalDomains: number;
+  totalAssets: number;
+  activeAlertsCount: number;
+  resolvedAlertsCount: number;
+  latestScan: { scanId: string; domainName: string; finishedAt: string } | null;
+  topRisks: {
+    id: string;
+    domainName: string;
+    severity: Finding["severity"];
+    title: string;
+    description: string;
+    createdAt: string;
+    aiExplanation?: string | null;
+    aiBusinessImpact?: string | null;
+    aiRemediation?: string | null;
+    aiDifficulty?: AiDifficulty | null;
+    aiPriority?: AiPriority | null;
+  }[];
+  upcomingCertExpirations: {
+    id: string;
+    domainName: string;
+    value: string;
+    daysUntilExpiry: number | null;
+  }[];
+  recentChanges: {
+    id: string;
+    type: string;
+    severity: Finding["severity"];
+    message: string;
+    createdAt: string;
+  }[];
+}
+
+export function useDashboardSummary(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ["dashboard-summary", organizationId],
+    queryFn: async () => {
+      const { data } = await api.get<DashboardSummary>("/dashboard/summary", {
+        params: { organizationId },
+      });
+      return data;
+    },
+    enabled: !!organizationId,
+    // Real counts (assets/alerts/latest scan) can change moments after a
+    // scan is triggered elsewhere on the page — refetch periodically
+    // rather than requiring a manual reload, same pattern as useDomainRisk.
+    refetchInterval: 5000,
   });
 }
 
@@ -257,6 +380,7 @@ export function useCreateCheckoutSession() {
     mutationFn: async (params: {
       organizationId: string;
       plan: "STARTER" | "PROFESSIONAL" | "BUSINESS";
+      interval?: "monthly" | "yearly";
     }) => {
       const { data } = await api.post<{ url: string }>(
         "/billing/checkout-session",
@@ -285,6 +409,30 @@ export function useCreateCryptoCheckoutSession() {
   });
 }
 
+export interface PublicScanResult {
+  domain: string;
+  reachable: boolean;
+  score: number;
+  riskLevel: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "STRONG";
+  topFinding: { severity: string; title: string; description: string } | null;
+  additionalFindingsCount: number;
+}
+
+/** The landing page's anonymous "free instant scan" widget — no auth
+ * required (there's no account yet), backed by the real, unauthenticated
+ * `POST /public-scan` endpoint. Same `api` client as every other request;
+ * the backend simply doesn't guard this one route. */
+export function usePublicScan() {
+  return useMutation({
+    mutationFn: async (domain: string) => {
+      const { data } = await api.post<PublicScanResult>("/public-scan", {
+        domain,
+      });
+      return data;
+    },
+  });
+}
+
 export function useTriggerScan(domainId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -292,8 +440,26 @@ export function useTriggerScan(domainId: string | undefined) {
       const { data } = await api.post("/scans", { domainId });
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["risk", domainId] });
+    onSuccess: async () => {
+      const riskKey = ["risk", domainId];
+      const previousScanId = queryClient.getQueryData<RiskResult>(riskKey)?.scanId;
+
+      // A real scan runs asynchronously (BullMQ) and can take up to ~30s of
+      // real DNS/HTTP/TLS work — invalidating once right after the POST
+      // resolves only ever refetches the *previous* scan's still-current
+      // result (this domain already `hasScan: true` from before), and
+      // `useDomainRisk`'s polling stops for good once any scan exists. Left
+      // as a single invalidate, this domain's score/findings would look
+      // frozen forever after the very first scan — poll for a bounded
+      // window until a genuinely new `scanId` actually lands.
+      for (let attempt = 0; attempt < 20; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await queryClient.refetchQueries({ queryKey: riskKey });
+        const latest = queryClient.getQueryData<RiskResult>(riskKey);
+        if (latest?.scanId && latest.scanId !== previousScanId) break;
+      }
+      queryClient.invalidateQueries({ queryKey: ["risk-history", domainId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
     },
   });
 }
@@ -447,6 +613,91 @@ export function useChangePassword() {
         params,
       );
       return data;
+    },
+  });
+}
+
+export interface MfaSetupResult {
+  secret: string;
+  qrCodeDataUrl: string;
+}
+
+/** Begins real TOTP enrollment — stores a pending secret server-side, not yet enabled until `useMfaEnable` confirms it. */
+export function useMfaSetup() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post<MfaSetupResult>("/auth/mfa/setup");
+      return data;
+    },
+  });
+}
+
+export interface MfaEnableResult {
+  backupCodes: string[];
+}
+
+export function useMfaEnable() {
+  return useMutation({
+    mutationFn: async (code: string) => {
+      const { data } = await api.post<MfaEnableResult>("/auth/mfa/enable", {
+        code,
+      });
+      return data;
+    },
+  });
+}
+
+export function useMfaDisable() {
+  return useMutation({
+    mutationFn: async (password: string) => {
+      const { data } = await api.post<{ success: boolean }>(
+        "/auth/mfa/disable",
+        { password },
+      );
+      return data;
+    },
+  });
+}
+
+export interface NotificationSettings {
+  webhookUrl: string | null;
+  slackWebhookUrl: string | null;
+  dailyDigestEnabled: boolean;
+  weeklyDigestEnabled: boolean;
+}
+
+export function useNotificationSettings(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ["notification-settings", organizationId],
+    queryFn: async () => {
+      const { data } = await api.get<NotificationSettings>(
+        "/notification-settings",
+        { params: { organizationId } },
+      );
+      return data;
+    },
+    enabled: !!organizationId,
+  });
+}
+
+export function useUpdateNotificationSettings(
+  organizationId: string | undefined,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: Partial<NotificationSettings>) => {
+      const { data } = await api.patch<NotificationSettings>(
+        "/notification-settings",
+        params,
+        { params: { organizationId } },
+      );
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        ["notification-settings", organizationId],
+        data,
+      );
     },
   });
 }

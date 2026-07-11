@@ -25,7 +25,7 @@ export default function DashboardLayout({
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
+      <div className="flex min-h-screen items-center justify-center text-sm text-gray-400">
         {t("loading")}
       </div>
     );
@@ -33,7 +33,7 @@ export default function DashboardLayout({
 
   return (
     <OrganizationProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen flex-col lg:flex-row">
         <Sidebar />
         {/* A deliberately much fainter version of the marketing site's
             world-map accent (0.18 vs 0.55) — this is a working data tool
@@ -42,7 +42,7 @@ export default function DashboardLayout({
             "make a visual statement." Fixed (not absolute) so it doesn't
             scroll away/repeat awkwardly as the real content scrolls past
             it. */}
-        <main className="relative flex-1 overflow-y-auto bg-gray-950 px-8 py-8">
+        <main id="main-content" className="relative min-w-0 flex-1 overflow-y-auto bg-gray-950 px-4 py-6 sm:px-8 sm:py-8">
           {/* Wrapped in its own `fixed inset-0` container rather than
               trying to override the background component's own `absolute`
               positioning via an appended class — two Tailwind classes

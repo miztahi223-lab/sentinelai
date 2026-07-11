@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { connect, TLSSocket, PeerCertificate } from 'tls';
-import { safeLookup } from './ssrf-guard';
+import { assertHostnameNotLiteralBlockedIp, safeLookup } from './ssrf-guard';
 
 export interface SslInspectionResult {
   valid: boolean;
@@ -33,6 +33,18 @@ export class SslService {
 
   inspect(hostname: string, port = 443): Promise<SslInspectionResult> {
     return new Promise((resolve) => {
+      // `lookup: safeLookup` below is never actually invoked by Node when
+      // `hostname` is already a literal IP address (Node skips DNS
+      // resolution entirely and connects directly) — this synchronous
+      // check is what actually covers that case (see
+      // `assertHostnameNotLiteralBlockedIp`'s own comment for why).
+      try {
+        assertHostnameNotLiteralBlockedIp(hostname);
+      } catch (error) {
+        resolve({ valid: false, reason: (error as Error).message });
+        return;
+      }
+
       let settled = false;
       const finish = (result: SslInspectionResult) => {
         if (settled) return;

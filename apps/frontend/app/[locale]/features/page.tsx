@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Globe2, ShieldCheck, Bell, FileText, Bot, Radar } from "lucide-react";
 import { MarketingNav } from "@/components/MarketingNav";
@@ -5,8 +6,24 @@ import { MarketingFooter } from "@/components/MarketingFooter";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { buildMetadata } from "@/lib/seo";
 
 const FEATURE_ICONS = [Radar, ShieldCheck, Bell, Bot, FileText, Globe2];
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "features" });
+  return buildMetadata({
+    locale,
+    path: "/features",
+    title: `${t("title")} — SentinelAI`,
+    description: t("subtitle"),
+  });
+}
 
 export default async function FeaturesPage({
   params,
@@ -27,7 +44,7 @@ export default async function FeaturesPage({
   return (
     <>
       <MarketingNav />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="relative overflow-hidden">
           <AmbientBackground />
           <div className="relative mx-auto max-w-3xl px-6 py-20 text-center">

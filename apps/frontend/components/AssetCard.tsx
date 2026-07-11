@@ -34,7 +34,7 @@ export function AssetCard({ type, value, active, lastSeenAt, findingsCount = 0 }
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-white">{value}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-400">
             {type} · {t("lastSeen", { date: new Date(lastSeenAt).toLocaleDateString(locale) })}
           </p>
         </div>

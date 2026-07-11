@@ -56,6 +56,7 @@ export class BillingController {
       const url = await this.billingService.createCheckoutSession({
         organizationId: dto.organizationId,
         plan: dto.plan,
+        interval: dto.interval,
         successUrl: `${frontendUrl}/billing?checkout=success`,
         cancelUrl: `${frontendUrl}/billing?checkout=cancelled`,
         customerEmail: requester!.email,

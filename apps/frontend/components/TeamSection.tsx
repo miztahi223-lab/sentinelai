@@ -56,7 +56,7 @@ export function TeamSection({ organizationId }: { organizationId: string | undef
     <section className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:border-gray-700">
       <h2 className="mb-4 text-sm font-medium text-gray-400">{t("title")}</h2>
 
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
         {t("membersTitle")}
       </h3>
       <ul className="space-y-2">
@@ -69,10 +69,10 @@ export function TeamSection({ organizationId }: { organizationId: string | undef
               <p className="truncate font-medium text-gray-100">
                 {member.user.name}
                 {member.user.id === user?.id && (
-                  <span className="ms-2 text-xs text-gray-500">({t("you")})</span>
+                  <span className="ms-2 text-xs text-gray-400">({t("you")})</span>
                 )}
               </p>
-              <p className="truncate text-xs text-gray-500">{member.user.email}</p>
+              <p className="truncate text-xs text-gray-400">{member.user.email}</p>
             </div>
             <span className="shrink-0 rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300">
               {t(ROLE_LABEL_KEY[member.role])}
@@ -83,11 +83,11 @@ export function TeamSection({ organizationId }: { organizationId: string | undef
 
       {canManage && (
         <>
-          <h3 className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-gray-500">
+          <h3 className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-gray-400">
             {t("pendingTitle")}
           </h3>
           {invitations?.length === 0 ? (
-            <p className="text-sm text-gray-500">{t("noPending")}</p>
+            <p className="text-sm text-gray-400">{t("noPending")}</p>
           ) : (
             <ul className="space-y-2">
               {invitations?.map((invitation) => (
@@ -97,7 +97,7 @@ export function TeamSection({ organizationId }: { organizationId: string | undef
                 >
                   <div className="min-w-0">
                     <p className="truncate font-medium text-gray-200">{invitation.email}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-400">
                       {t(ROLE_LABEL_KEY[invitation.role])} ·{" "}
                       {t("expires", {
                         date: new Date(invitation.expiresAt).toLocaleDateString(locale),
@@ -107,7 +107,7 @@ export function TeamSection({ organizationId }: { organizationId: string | undef
                   <button
                     onClick={() => revokeInvitation.mutate(invitation.id)}
                     disabled={revokeInvitation.isPending}
-                    className="shrink-0 rounded-md p-1.5 text-gray-500 transition hover:bg-red-950/60 hover:text-red-300 disabled:opacity-50"
+                    className="shrink-0 rounded-md p-1.5 text-gray-400 transition hover:bg-red-950/60 hover:text-red-300 disabled:opacity-50"
                     aria-label={t("revoke")}
                     title={t("revoke")}
                   >
@@ -118,11 +118,15 @@ export function TeamSection({ organizationId }: { organizationId: string | undef
             </ul>
           )}
 
-          <h3 className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-gray-500">
+          <h3 className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-gray-400">
             {t("inviteTitle")}
           </h3>
           <form onSubmit={handleInvite} className="flex flex-col gap-2 sm:flex-row">
+            <label htmlFor="invite-email" className="sr-only">
+              {t("inviteEmailPlaceholder")}
+            </label>
             <input
+              id="invite-email"
               type="email"
               required
               value={email}
@@ -133,6 +137,7 @@ export function TeamSection({ organizationId }: { organizationId: string | undef
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as "ADMIN" | "MEMBER")}
+              aria-label={t("role")}
               className="rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             >
               <option value="MEMBER">{t("roleMember")}</option>
@@ -160,7 +165,7 @@ export function TeamSection({ organizationId }: { organizationId: string | undef
       )}
 
       {!canManage && (
-        <p className="mt-4 text-xs text-gray-600">{t("onlyOwnersAdmins")}</p>
+        <p className="mt-4 text-xs text-gray-400">{t("onlyOwnersAdmins")}</p>
       )}
     </section>
   );

@@ -1,4 +1,5 @@
 import {
+  assertHostnameNotLiteralBlockedIp,
   isBlockedAddress,
   resolveAndAssertSafe,
   SsrfBlockedError,
@@ -57,6 +58,39 @@ describe('ssrf-guard', () => {
       const result = await resolveAndAssertSafe('example.com');
       expect(typeof result.address).toBe('string');
       expect(isBlockedAddress(result.address)).toBe(false);
+    });
+  });
+
+  describe('assertHostnameNotLiteralBlockedIp', () => {
+    // This function exists to close a real gap: Node's `net`/`http`/`tls`
+    // modules never invoke a custom `lookup` callback (what `safeLookup`
+    // is) when the connection target is already a literal IP address —
+    // reproduced directly against Node's real `http` module in
+    // `webhook.service.spec.ts` (a literal-loopback webhook URL is refused
+    // by this function even though `safeLookup`'s callback never fires for
+    // it). The tests here cover this function's own logic in isolation.
+    it('throws for a literal IP that resolves to a blocked range', () => {
+      expect(() => assertHostnameNotLiteralBlockedIp('127.0.0.1')).toThrow(
+        SsrfBlockedError,
+      );
+      expect(() =>
+        assertHostnameNotLiteralBlockedIp('169.254.169.254'),
+      ).toThrow(SsrfBlockedError);
+      expect(() => assertHostnameNotLiteralBlockedIp('::1')).toThrow(
+        SsrfBlockedError,
+      );
+    });
+
+    it('does not throw for a literal public IP', () => {
+      expect(() =>
+        assertHostnameNotLiteralBlockedIp('93.184.216.34'),
+      ).not.toThrow();
+    });
+
+    it('does not throw for an ordinary hostname (defers to the async lookup path)', () => {
+      expect(() =>
+        assertHostnameNotLiteralBlockedIp('example.com'),
+      ).not.toThrow();
     });
   });
 });

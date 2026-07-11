@@ -142,6 +142,42 @@ export class EmailService implements OnModuleInit {
     );
   }
 
+  async sendDigestEmail(
+    to: string,
+    organizationName: string,
+    period: 'daily' | 'weekly',
+    alerts: { severity: string; message: string }[],
+  ) {
+    const dashboardUrl = `${this.configService.get<string>('FRONTEND_URL')}/alerts`;
+    const periodLabel = period === 'daily' ? 'day' : 'week';
+    const subject =
+      alerts.length > 0
+        ? `Your ${period} SentinelAI summary for ${organizationName}: ${alerts.length} alert(s)`
+        : `Your ${period} SentinelAI summary for ${organizationName}: all clear`;
+
+    const listHtml = alerts
+      .map((a) => `<li>[${a.severity}] ${a.message}</li>`)
+      .join('');
+    const listText = alerts
+      .map((a) => `- [${a.severity}] ${a.message}`)
+      .join('\n');
+
+    await this.send(
+      to,
+      subject,
+      `<p>Here's what happened with ${organizationName} over the last ${periodLabel}.</p>` +
+        (alerts.length > 0
+          ? `<ul>${listHtml}</ul>`
+          : `<p>No new alerts — nothing needs your attention.</p>`) +
+        `<p><a href="${dashboardUrl}">View all alerts</a></p>`,
+      `Here's what happened with ${organizationName} over the last ${periodLabel}.\n\n` +
+        (alerts.length > 0
+          ? listText
+          : 'No new alerts — nothing needs your attention.') +
+        `\n\nView all alerts: ${dashboardUrl}`,
+    );
+  }
+
   async sendReportEmail(to: string, reportTitle: string, pdfPath: string) {
     await this.send(
       to,

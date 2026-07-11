@@ -51,7 +51,7 @@ export function ActivityLog({ organizationId }: { organizationId: string | undef
     return (
       <section className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:border-gray-700">
         <h2 className="mb-2 text-sm font-medium text-gray-400">{t("title")}</h2>
-        <p className="text-xs text-gray-600">{t("ownersAdminsOnly")}</p>
+        <p className="text-xs text-gray-400">{t("ownersAdminsOnly")}</p>
       </section>
     );
   }
@@ -59,14 +59,14 @@ export function ActivityLog({ organizationId }: { organizationId: string | undef
   return (
     <section className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:border-gray-700">
       <h2 className="mb-4 text-sm font-medium text-gray-400">{t("title")}</h2>
-      {logs?.length === 0 && <p className="text-sm text-gray-500">{t("empty")}</p>}
+      {logs?.length === 0 && <p className="text-sm text-gray-400">{t("empty")}</p>}
       <ul className="space-y-3">
         {logs?.map((entry) => (
           <li key={entry.id} className="flex items-start gap-3 text-sm">
-            <History className="mt-0.5 h-4 w-4 shrink-0 text-gray-600" />
+            <History className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
             <div className="min-w-0">
               <p className="text-gray-200">{describeAction(entry, t)}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-400">
                 {entry.user ? `${entry.user.name} · ` : `${t("systemUser")} · `}
                 {new Date(entry.createdAt).toLocaleString(locale)}
               </p>

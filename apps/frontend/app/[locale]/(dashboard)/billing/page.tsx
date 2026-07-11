@@ -31,6 +31,7 @@ export default function BillingPage() {
   const [pendingCryptoPlan, setPendingCryptoPlan] = useState<string | null>(
     null,
   );
+  const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
 
   async function handleUpgrade(plan: "STARTER" | "PROFESSIONAL" | "BUSINESS") {
     if (!org) return;
@@ -40,6 +41,7 @@ export default function BillingPage() {
       const { url } = await checkoutSession.mutateAsync({
         organizationId: org.id,
         plan,
+        interval,
       });
       window.location.assign(url);
     } catch (err) {
@@ -80,7 +82,7 @@ export default function BillingPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-white">{t("title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-400">
           {t.rich("currentPlan", {
             plan: currentPlan,
             b: (chunks) => <span className="font-medium text-gray-200">{chunks}</span>,
@@ -94,8 +96,34 @@ export default function BillingPage() {
         </div>
       )}
 
+      <div className="inline-flex rounded-full border border-gray-800 bg-gray-900/60 p-1">
+        <button
+          onClick={() => setInterval("monthly")}
+          className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+            interval === "monthly"
+              ? "bg-indigo-500 text-white"
+              : "text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          {t("monthly")}
+        </button>
+        <button
+          onClick={() => setInterval("yearly")}
+          className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+            interval === "yearly"
+              ? "bg-indigo-500 text-white"
+              : "text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          {t("yearly")}
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        {plans.map((plan) => {
+        {/* Custom-quote tiers (Enterprise) have no self-serve checkout —
+            shown on the public pricing page with a "Contact sales" link,
+            not here, where every card assumes a real Stripe upgrade path. */}
+        {plans.filter((plan) => !plan.isCustomQuote).map((plan) => {
           // Compared against the stable, locale-independent `key` — never
           // the translated `name` (e.g. "Free" vs "חינם"), which would
           // silently break this comparison the moment the UI language
@@ -111,7 +139,9 @@ export default function BillingPage() {
               }`}
             >
               <h3 className="text-sm font-medium text-gray-300">{plan.name}</h3>
-              <p className="mt-2 text-2xl font-semibold text-white">{plan.price}</p>
+              <p className="mt-2 text-2xl font-semibold text-white">
+                {interval === "yearly" ? plan.priceYearly : plan.priceMonthly}
+              </p>
               <ul className="mt-4 space-y-2">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-xs text-gray-400">
@@ -125,7 +155,7 @@ export default function BillingPage() {
                   <button
                     onClick={() => handleUpgrade(plan.plan!)}
                     disabled={active || pendingPlan === plan.plan}
-                    className="mt-6 w-full rounded-md bg-indigo-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-500"
+                    className="mt-6 w-full rounded-md bg-indigo-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-400"
                   >
                     {active
                       ? t("currentPlanLabel")
@@ -141,7 +171,7 @@ export default function BillingPage() {
                         )
                       }
                       disabled={pendingCryptoPlan === plan.plan}
-                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-xs font-medium text-gray-300 transition hover:border-gray-600 hover:bg-gray-900 disabled:cursor-not-allowed disabled:text-gray-600"
+                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-xs font-medium text-gray-300 transition hover:border-gray-600 hover:bg-gray-900 disabled:cursor-not-allowed disabled:text-gray-400"
                     >
                       <Bitcoin className="h-3.5 w-3.5" />
                       {pendingCryptoPlan === plan.plan
@@ -153,7 +183,7 @@ export default function BillingPage() {
               ) : (
                 <button
                   disabled
-                  className="mt-6 w-full cursor-not-allowed rounded-md border border-gray-700 px-3 py-2 text-xs font-medium text-gray-500"
+                  className="mt-6 w-full cursor-not-allowed rounded-md border border-gray-700 px-3 py-2 text-xs font-medium text-gray-400"
                 >
                   {active ? t("currentPlanLabel") : t("defaultPlan")}
                 </button>
@@ -164,8 +194,8 @@ export default function BillingPage() {
         })}
       </div>
 
-      <p className="text-xs text-gray-600">{t("footnote")}</p>
-      <p className="text-xs text-gray-600">{t("cryptoFootnote")}</p>
+      <p className="text-xs text-gray-400">{t("footnote")}</p>
+      <p className="text-xs text-gray-400">{t("cryptoFootnote")}</p>
     </div>
   );
 }

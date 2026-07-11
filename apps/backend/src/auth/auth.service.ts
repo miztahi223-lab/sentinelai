@@ -10,6 +10,11 @@ import { OrganizationsService } from '../organizations/organizations.service';
 import { EmailService } from '../email/email.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { TokenService } from './token.service';
+import {
+  MfaService,
+  InvalidMfaCodeError,
+  MfaNotSetUpError,
+} from './mfa.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { hashPassword, verifyPassword } from '../common/password.util';
@@ -29,6 +34,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly emailService: EmailService,
     private readonly auditLogsService: AuditLogsService,
+    private readonly mfaService: MfaService,
   ) {}
 
   async register(dto: RegisterDto, meta: RequestMeta = {}) {
@@ -78,6 +84,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    // The password alone is correct, but this account has MFA enabled — no
+    // real session tokens are issued yet. A short-lived challenge token
+    // (signed with a different secret than real access tokens, see
+    // `TokenService.signMfaChallengeToken`) is all the caller gets until
+    // `verifyMfaAndLogin` confirms the second factor too.
+    if (user.mfaEnabled) {
+      return {
+        mfaRequired: true,
+        challengeToken: this.tokenService.signMfaChallengeToken(user.id),
+      };
+    }
+
     const tokens = await this.issueTokenPair(user.id, user.email, meta);
     await this.auditLogsService.record({
       userId: user.id,
@@ -85,7 +103,44 @@ export class AuthService {
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
     });
-    return { user: this.toPublicUser(user), ...tokens };
+    return { mfaRequired: false, user: this.toPublicUser(user), ...tokens };
+  }
+
+  async verifyMfaAndLogin(
+    challengeToken: string,
+    code: string,
+    meta: RequestMeta = {},
+  ) {
+    const userId = this.tokenService.verifyMfaChallengeToken(challengeToken);
+    if (!userId) {
+      throw new UnauthorizedException('Invalid or expired MFA challenge');
+    }
+
+    try {
+      await this.mfaService.verifyLoginCode(userId, code);
+    } catch (error) {
+      if (
+        error instanceof InvalidMfaCodeError ||
+        error instanceof MfaNotSetUpError
+      ) {
+        throw new UnauthorizedException('Invalid or expired code');
+      }
+      throw error;
+    }
+
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired MFA challenge');
+    }
+
+    const tokens = await this.issueTokenPair(user.id, user.email, meta);
+    await this.auditLogsService.record({
+      userId: user.id,
+      action: 'user.login',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
+    return { mfaRequired: false, user: this.toPublicUser(user), ...tokens };
   }
 
   async logout(refreshToken: string) {

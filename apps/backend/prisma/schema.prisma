@@ -25,6 +25,7 @@ enum AssetType {
   URL
   SERVICE
   CERTIFICATE
+  DNS
 }
 
 enum ScanStatus {
@@ -110,6 +111,16 @@ model User {
   emailVerifyToken  String?   @unique
   passwordResetToken  String? @unique
   passwordResetExpiresAt DateTime?
+  // TOTP-based MFA. `mfaSecret` is set (AES-256-GCM encrypted, see
+  // common/crypto.util.ts) the moment setup starts, but `mfaEnabled` only
+  // flips to true once the user proves they can actually generate a valid
+  // code with it — a secret alone doesn't mean 2FA is protecting the
+  // account yet. `mfaBackupCodeHashes` holds argon2 hashes (never the
+  // plaintext codes, same treatment as `passwordHash`); each is removed the
+  // moment it's redeemed, since backup codes are single-use.
+  mfaEnabled        Boolean   @default(false)
+  mfaSecret         String?
+  mfaBackupCodeHashes String[] @default([])
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -153,8 +164,30 @@ model Organization {
   auditLogs   AuditLog[]
   subscription Subscription?
   invitations Invitation[]
+  notificationSettings NotificationSettings?
 
   @@map("organizations")
+}
+
+model NotificationSettings {
+  id                  String   @id @default(uuid())
+  organizationId      String   @unique
+  // A generic outbound webhook — real, arbitrary JSON POST to a URL the
+  // organization controls, not a stand-in for a specific vendor.
+  webhookUrl          String?
+  // Slack's real "Incoming Webhook" URL — Slack-specific because the
+  // payload shape sent to it differs (`{"text": "..."}`), not because a
+  // second delivery mechanism was invented; both are ultimately the same
+  // kind of HTTP POST as `webhookUrl`.
+  slackWebhookUrl     String?
+  dailyDigestEnabled  Boolean  @default(false)
+  weeklyDigestEnabled Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
 }
 
 model Membership {
@@ -273,10 +306,17 @@ model Finding {
   title           String
   description     String
   evidence        Json?
+  // The real number of score points this exact finding deducted at scan
+  // time — the single source of truth the score is computed from (see
+  // `RiskEngineController.scoreFromFindings`), so a re-read of the score
+  // later can never drift from what the risk engine actually decided.
+  points          Int               @default(0)
   status          FindingStatus     @default(OPEN)
   aiExplanation   String?
   aiBusinessImpact String?
   aiRemediation   String?
+  aiDifficulty    String?
+  aiPriority      String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 

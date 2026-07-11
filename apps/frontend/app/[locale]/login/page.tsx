@@ -22,25 +22,49 @@ export default function LoginPage() {
 
 function LoginForm() {
   const t = useTranslations("auth");
-  const { login } = useAuth();
+  const { login, verifyMfa } = useAuth();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? undefined;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Set the moment `login()` reports the account has MFA enabled — the
+  // form below switches to asking for the second-factor code instead of
+  // starting over, since the password was already verified correctly.
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password, redirectTo);
+      const result = await login(email, password, redirectTo);
+      if (result.mfaRequired && result.challengeToken) {
+        setChallengeToken(result.challengeToken);
+      }
     } catch (err) {
       const message = isAxiosError(err)
         ? (err.response?.data as { message?: string })?.message
         : undefined;
       setError(message ?? t("errorDefault"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleVerifyMfa(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await verifyMfa(challengeToken!, mfaCode.trim(), redirectTo);
+    } catch (err) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string })?.message
+        : undefined;
+      setError(message ?? t("mfaErrorDefault"));
     } finally {
       setSubmitting(false);
     }
@@ -59,70 +83,123 @@ function LoginForm() {
           <Link href="/" className="text-2xl font-semibold tracking-tight text-white">
             Sentinel<span className="text-indigo-400">AI</span>
           </Link>
-          <p className="mt-2 text-sm text-gray-400">{t("signInTitle")}</p>
+          <p className="mt-2 text-sm text-gray-400">
+            {challengeToken ? t("mfaTitle") : t("signInTitle")}
+          </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl"
-        >
-          {error && (
-            <div className="rounded-md border border-red-900 bg-red-950/60 px-3 py-2 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-300">
-              {t("email")}
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              placeholder={t("emailPlaceholder")}
-            />
-          </div>
-
-          <div>
-            <div className="mb-1 flex items-center justify-between">
-              <label className="block text-sm font-medium text-gray-300">
-                {t("password")}
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-indigo-400 hover:text-indigo-300"
-              >
-                {t("forgotPassword")}
-              </Link>
-            </div>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              placeholder="••••••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-md bg-indigo-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-50"
+        {challengeToken ? (
+          <form
+            onSubmit={handleVerifyMfa}
+            className="space-y-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl"
           >
-            {submitting ? t("signingIn") : t("signIn")}
-          </button>
-        </form>
+            {error && (
+              <div className="rounded-md border border-red-900 bg-red-950/60 px-3 py-2 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+            <div>
+              <label htmlFor="login-mfa-code" className="mb-1 block text-sm font-medium text-gray-300">
+                {t("mfaCodeLabel")}
+              </label>
+              <input
+                id="login-mfa-code"
+                autoFocus
+                inputMode="numeric"
+                required
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value)}
+                className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-center text-lg tracking-[0.3em] text-white outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                placeholder="000000"
+              />
+              <p className="mt-1.5 text-xs text-gray-400">{t("mfaCodeHint")}</p>
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-md bg-indigo-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {submitting ? t("mfaVerifying") : t("mfaVerify")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setChallengeToken(null);
+                setMfaCode("");
+                setError(null);
+              }}
+              className="w-full text-center text-xs text-gray-400 hover:text-gray-300"
+            >
+              {t("mfaBack")}
+            </button>
+          </form>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl"
+          >
+            {error && (
+              <div className="rounded-md border border-red-900 bg-red-950/60 px-3 py-2 text-sm text-red-300">
+                {error}
+              </div>
+            )}
 
-        <p className="mt-6 text-center text-sm text-gray-400">
-          {t("noAccount")}{" "}
-          <Link href={registerHref} className="font-medium text-indigo-400 hover:text-indigo-300">
-            {t("startTrial")}
-          </Link>
-        </p>
+            <div>
+              <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-gray-300">
+                {t("email")}
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                placeholder={t("emailPlaceholder")}
+              />
+            </div>
+
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="login-password" className="block text-sm font-medium text-gray-300">
+                  {t("password")}
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-indigo-400 hover:text-indigo-300"
+                >
+                  {t("forgotPassword")}
+                </Link>
+              </div>
+              <input
+                id="login-password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                placeholder="••••••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-md bg-indigo-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {submitting ? t("signingIn") : t("signIn")}
+            </button>
+          </form>
+        )}
+
+        {!challengeToken && (
+          <p className="mt-6 text-center text-sm text-gray-400">
+            {t("noAccount")}{" "}
+            <Link href={registerHref} className="font-medium text-indigo-400 hover:text-indigo-300">
+              {t("startTrial")}
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -24,6 +24,9 @@ import { RiskEngineModule } from './risk-engine/risk-engine.module';
 import { AiModule } from './ai/ai.module';
 import { BillingModule } from './billing/billing.module';
 import { ContactModule } from './contact/contact.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { HealthModule } from './health/health.module';
+import { PublicScanModule } from './public-scan/public-scan.module';
 
 @Module({
   imports: [
@@ -60,6 +63,9 @@ import { ContactModule } from './contact/contact.module';
     AiModule,
     BillingModule,
     ContactModule,
+    DashboardModule,
+    HealthModule,
+    PublicScanModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

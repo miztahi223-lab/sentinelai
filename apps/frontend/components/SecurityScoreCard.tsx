@@ -8,14 +8,16 @@ interface SecurityScoreCardProps {
   previousScore?: number;
 }
 
-function scoreColor(score: number): string {
+export function scoreColor(score: number): string {
   if (score >= 80) return "text-emerald-400";
   if (score >= 60) return "text-yellow-400";
   if (score >= 40) return "text-orange-400";
   return "text-red-400";
 }
 
-function scoreLabelKey(score: number): "strong" | "fair" | "weak" | "critical" {
+export function scoreLabelKey(
+  score: number,
+): "strong" | "fair" | "weak" | "critical" {
   if (score >= 80) return "strong";
   if (score >= 60) return "fair";
   if (score >= 40) return "weak";
@@ -32,7 +34,7 @@ function scoreLabelKey(score: number): "strong" | "fair" | "weak" | "critical" {
 // SecurityScorecard presents its own vendor ratings (A-F) alongside the
 // numeric detail, which real-world usage shows lands better with
 // executives/auditors than a bare number does.
-function scoreToGrade(score: number): string {
+export function scoreToGrade(score: number): string {
   if (score >= 97) return "A+";
   if (score >= 93) return "A";
   if (score >= 90) return "A-";
@@ -60,7 +62,7 @@ export function SecurityScoreCard({ score, previousScore }: SecurityScoreCardPro
           <h3 className="text-sm font-medium text-gray-400">{t("title")}</h3>
           <p className={`mt-1 text-3xl font-semibold ${scoreColor(score)}`}>
             {score}
-            <span className="text-base font-normal text-gray-500">/100</span>
+            <span className="text-base font-normal text-gray-400">/100</span>
           </p>
           <p className={`mt-1 text-xs font-medium ${scoreColor(score)}`}>
             {t(scoreLabelKey(score))}

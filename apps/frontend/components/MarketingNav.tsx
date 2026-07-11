@@ -28,7 +28,9 @@ export function MarketingNav() {
           </Link>
         </div>
         <div className="flex items-center gap-3">
-          <LanguageSwitcher className="hidden sm:inline-flex" />
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
           <Link
             href="/login"
             className="text-sm font-medium text-gray-300 transition hover:text-white"

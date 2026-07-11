@@ -8,8 +8,15 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  evaluateDnsSignal,
+  evaluateHeaderSignal,
+  evaluateSslSignal,
+  scoreToRiskLevel,
+  RiskLevel,
+} from './scoring.util';
 
-export type RiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'STRONG';
+export type { RiskLevel };
 
 export interface RiskAnalysisResult {
   score: number; // 0-100, higher is better (matches the dashboard's SecurityScoreCard)
@@ -27,14 +34,6 @@ interface Deduction {
   points: number;
   evidence?: Record<string, unknown>;
 }
-
-const SEVERITY_POINTS: Record<FindingSeverity, number> = {
-  CRITICAL: 30,
-  HIGH: 18,
-  MEDIUM: 10,
-  LOW: 4,
-  INFO: 0,
-};
 
 /**
  * Turns a domain's current asset snapshot into a 0-100 security score plus
@@ -62,8 +61,9 @@ export class RiskEngineService {
       ...this.evaluateSsl(assets),
       ...this.evaluateHeadersAndConfig(assets),
       ...this.evaluateExposure(assets),
+      ...this.evaluateDns(assets),
       ...(await this.evaluateAssetChurn(domainId)),
-    ];
+    ].map((d) => ({ ...d, points: Math.round(d.points) }));
 
     const findings: Finding[] = [];
     for (const d of deductions) {
@@ -78,6 +78,7 @@ export class RiskEngineService {
           category: d.category,
           title: d.title,
           description: d.description,
+          points: d.points,
           evidence: d.evidence
             ? (JSON.parse(JSON.stringify(d.evidence)) as Prisma.InputJsonValue)
             : undefined,
@@ -100,98 +101,33 @@ export class RiskEngineService {
 
     return {
       score,
-      riskLevel: this.scoreToRiskLevel(score),
+      riskLevel: scoreToRiskLevel(score),
       categories,
       recommendations,
       findings,
     };
   }
 
-  private scoreToRiskLevel(score: number): RiskLevel {
-    if (score >= 90) return 'STRONG';
-    if (score >= 70) return 'LOW';
-    if (score >= 50) return 'MEDIUM';
-    if (score >= 30) return 'HIGH';
-    return 'CRITICAL';
-  }
-
-  // --- SSL category ---
+  // --- SSL category --- (shared formula: see `evaluateSslSignal`)
   private evaluateSsl(assets: Asset[]): Deduction[] {
     const cert = assets.find((a) => a.type === AssetType.CERTIFICATE);
-    const deductions: Deduction[] = [];
+    const meta = (cert?.metadata as Record<string, unknown> | null) ?? null;
 
-    if (!cert) {
-      deductions.push({
-        category: FindingCategory.SSL,
-        severity: FindingSeverity.HIGH,
-        title: 'No valid TLS certificate observed',
-        description:
-          'No TLS certificate could be retrieved on port 443 — the site may be HTTP-only or unreachable over HTTPS.',
-        points: SEVERITY_POINTS.HIGH,
-      });
-      return deductions;
-    }
+    const deductions = evaluateSslSignal({
+      inspected: !!cert,
+      valid: meta?.valid as boolean | undefined,
+      selfSigned: meta?.selfSigned as boolean | undefined,
+      daysUntilExpiry: meta?.daysUntilExpiry as number | undefined,
+      reason: typeof meta?.reason === 'string' ? meta.reason : undefined,
+    });
 
-    const meta = cert.metadata as Record<string, unknown> | null;
-    const valid = meta?.valid as boolean | undefined;
-    const selfSigned = meta?.selfSigned as boolean | undefined;
-    const daysUntilExpiry = meta?.daysUntilExpiry as number | undefined;
-    const reason = typeof meta?.reason === 'string' ? meta.reason : undefined;
-
-    if (valid === false) {
-      deductions.push({
-        category: FindingCategory.SSL,
-        severity: FindingSeverity.CRITICAL,
-        title: 'Invalid TLS certificate',
-        description: `The presented TLS certificate failed validation${reason ? `: ${reason}` : ''}.`,
-        points: SEVERITY_POINTS.CRITICAL,
-        evidence: { reason },
-      });
-    }
-
-    if (selfSigned) {
-      deductions.push({
-        category: FindingCategory.SSL,
-        severity: FindingSeverity.HIGH,
-        title: 'Self-signed TLS certificate',
-        description:
-          'The TLS certificate is self-signed rather than issued by a trusted CA — browsers/clients will not trust this connection by default.',
-        points: SEVERITY_POINTS.HIGH,
-      });
-    }
-
-    if (typeof daysUntilExpiry === 'number') {
-      if (daysUntilExpiry <= 0) {
-        deductions.push({
-          category: FindingCategory.SSL,
-          severity: FindingSeverity.CRITICAL,
-          title: 'TLS certificate has expired',
-          description: 'The TLS certificate has already expired.',
-          points: SEVERITY_POINTS.CRITICAL,
-        });
-      } else if (daysUntilExpiry <= 7) {
-        deductions.push({
-          category: FindingCategory.SSL,
-          severity: FindingSeverity.HIGH,
-          title: 'TLS certificate expires within 7 days',
-          description: `TLS certificate expires in ${daysUntilExpiry} day(s) — renew it before it lapses.`,
-          points: SEVERITY_POINTS.HIGH,
-        });
-      } else if (daysUntilExpiry <= 30) {
-        deductions.push({
-          category: FindingCategory.SSL,
-          severity: FindingSeverity.MEDIUM,
-          title: 'TLS certificate expires within 30 days',
-          description: `TLS certificate expires in ${daysUntilExpiry} day(s) — schedule a renewal.`,
-          points: SEVERITY_POINTS.MEDIUM,
-        });
-      }
-    }
-
-    return deductions;
+    return deductions.map((d) => ({
+      ...d,
+      evidence: meta?.reason ? { reason: meta.reason } : undefined,
+    }));
   }
 
-  // --- Headers / Configuration category ---
+  // --- Headers / Configuration category --- (shared formula: see `evaluateHeaderSignal`)
   private evaluateHeadersAndConfig(assets: Asset[]): Deduction[] {
     const urlAsset = assets.find((a) => a.type === AssetType.URL);
     if (!urlAsset) return [];
@@ -200,43 +136,22 @@ export class RiskEngineService {
     const missingHeaders =
       (meta?.missingSecurityHeaders as string[] | undefined) ?? [];
     const headers = (meta?.headers as Record<string, string> | undefined) ?? {};
-    const deductions: Deduction[] = [];
 
-    if (missingHeaders.length > 0) {
-      deductions.push({
-        category: FindingCategory.HEADERS,
-        severity:
-          missingHeaders.length >= 4
-            ? FindingSeverity.MEDIUM
-            : FindingSeverity.LOW,
-        title: `${missingHeaders.length} recommended security header(s) missing`,
-        description: `Missing security headers: ${missingHeaders.join(', ')}. Adding these reduces exposure to clickjacking, MIME-sniffing, and downgrade attacks.`,
-        points:
-          (missingHeaders.length >= 4
-            ? SEVERITY_POINTS.MEDIUM
-            : SEVERITY_POINTS.LOW) * Math.min(1, missingHeaders.length / 6),
-        evidence: { missingHeaders },
-      });
-    }
-
-    // Server/X-Powered-By headers that reveal specific software versions
-    // make it trivially easy to match the target against known CVEs for
-    // that exact version — a configuration issue distinct from "missing
-    // security header" above.
-    const versionLeakHeaders = ['x-powered-by', 'x-aspnet-version'];
-    const leaked = versionLeakHeaders.filter((h) => headers[h]);
-    if (leaked.length > 0) {
-      deductions.push({
-        category: FindingCategory.CONFIGURATION,
-        severity: FindingSeverity.LOW,
-        title: 'Server technology version disclosed in response headers',
-        description: `Response headers reveal specific server technology (${leaked.map((h) => `${h}: ${headers[h]}`).join(', ')}), making it easier to target known vulnerabilities for that exact version.`,
-        points: SEVERITY_POINTS.LOW,
-        evidence: { leaked: leaked.map((h) => ({ [h]: headers[h] })) },
-      });
-    }
-
-    return deductions;
+    return evaluateHeaderSignal({
+      reachable: true,
+      missingSecurityHeaders: missingHeaders,
+      headers,
+    }).map((d) => ({
+      ...d,
+      evidence:
+        d.category === FindingCategory.HEADERS
+          ? { missingHeaders }
+          : {
+              leaked: ['x-powered-by', 'x-aspnet-version']
+                .filter((h) => headers[h])
+                .map((h) => ({ [h]: headers[h] })),
+            },
+    }));
   }
 
   // --- Exposure category ---
@@ -262,6 +177,18 @@ export class RiskEngineService {
     }
 
     return deductions;
+  }
+
+  // --- DNS category --- (shared formula: see `evaluateDnsSignal`)
+  private evaluateDns(assets: Asset[]): Deduction[] {
+    const dnsAsset = assets.find((a) => a.type === AssetType.DNS);
+    if (!dnsAsset) return [];
+
+    const meta = dnsAsset.metadata as Record<string, unknown> | null;
+    return evaluateDnsSignal({
+      hasSpf: !!meta?.hasSpf,
+      hasDmarc: !!meta?.hasDmarc,
+    });
   }
 
   // --- Asset changes category ---

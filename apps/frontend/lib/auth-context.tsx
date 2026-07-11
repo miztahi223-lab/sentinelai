@@ -16,12 +16,27 @@ export interface AuthUser {
   name: string;
   emailVerified: boolean;
   createdAt: string;
+  mfaEnabled: boolean;
+}
+
+export interface LoginResult {
+  mfaRequired: boolean;
+  challengeToken?: string;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string, redirectTo?: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    redirectTo?: string,
+  ) => Promise<LoginResult>;
+  verifyMfa: (
+    challengeToken: string,
+    code: string,
+    redirectTo?: string,
+  ) => Promise<void>;
   register: (
     email: string,
     password: string,
@@ -90,13 +105,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string, redirectTo?: string) => {
+    async (
+      email: string,
+      password: string,
+      redirectTo?: string,
+    ): Promise<LoginResult> => {
       const { data } = await api.post("/auth/login", { email, password });
+      // An MFA-enabled account gets a short-lived challenge token instead of
+      // real session tokens — the caller (the login page) is responsible
+      // for collecting the second-factor code and calling `verifyMfa`.
+      if (data.mfaRequired) {
+        return { mfaRequired: true, challengeToken: data.challengeToken };
+      }
       setTokens(data.accessToken, data.refreshToken);
       setUser(data.user);
       // Supports the "accept a team invitation" flow: someone who clicks an
       // invite link while logged out needs to land back on that exact
       // invitation page after signing in, not always the dashboard.
+      router.push(redirectTo || "/dashboard");
+      return { mfaRequired: false };
+    },
+    [router],
+  );
+
+  const verifyMfa = useCallback(
+    async (challengeToken: string, code: string, redirectTo?: string) => {
+      const { data } = await api.post("/auth/mfa/verify", {
+        challengeToken,
+        code,
+      });
+      setTokens(data.accessToken, data.refreshToken);
+      setUser(data.user);
       router.push(redirectTo || "/dashboard");
     },
     [router],
@@ -141,7 +180,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refetchUser: fetchMe }}
+      value={{
+        user,
+        loading,
+        login,
+        verifyMfa,
+        register,
+        logout,
+        refetchUser: fetchMe,
+      }}
     >
       {children}
     </AuthContext.Provider>

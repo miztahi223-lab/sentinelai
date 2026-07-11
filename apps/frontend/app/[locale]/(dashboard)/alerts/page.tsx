@@ -21,7 +21,7 @@ export default function AlertsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-white">{t("title")}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
+          <p className="mt-1 text-sm text-gray-400">{t("subtitle")}</p>
         </div>
         {hasUnread && (
           <button
@@ -36,9 +36,9 @@ export default function AlertsPage() {
 
       {!isLoading && !hasAlerts && (
         <div className="rounded-xl border border-dashed border-gray-800 bg-gray-900/40 p-8 text-center">
-          <Bell className="mx-auto h-8 w-8 text-gray-600" />
+          <Bell className="mx-auto h-8 w-8 text-gray-400" />
           <h2 className="mt-3 text-sm font-medium text-white">{t("emptyTitle")}</h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">{t("emptyDesc")}</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-400">{t("emptyDesc")}</p>
         </div>
       )}
 

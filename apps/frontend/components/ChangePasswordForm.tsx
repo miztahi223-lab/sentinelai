@@ -52,16 +52,24 @@ export function ChangePasswordForm() {
         {t("changePassword")}
       </h2>
       <form onSubmit={handleSubmit} className="space-y-3">
+        <label htmlFor="change-password-current" className="sr-only">
+          {t("currentPassword")}
+        </label>
         <input
+          id="change-password-current"
           type="password"
           autoComplete="current-password"
           placeholder={t("currentPassword")}
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           required
-          className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
+          className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
+        <label htmlFor="change-password-new" className="sr-only">
+          {t("newPassword")}
+        </label>
         <input
+          id="change-password-new"
           type="password"
           autoComplete="new-password"
           placeholder={t("newPassword")}
@@ -69,9 +77,13 @@ export function ChangePasswordForm() {
           onChange={(e) => setNewPassword(e.target.value)}
           minLength={12}
           required
-          className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
+          className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
+        <label htmlFor="change-password-confirm" className="sr-only">
+          {t("confirmNewPassword")}
+        </label>
         <input
+          id="change-password-confirm"
           type="password"
           autoComplete="new-password"
           placeholder={t("confirmNewPassword")}
@@ -79,7 +91,7 @@ export function ChangePasswordForm() {
           onChange={(e) => setConfirmPassword(e.target.value)}
           minLength={12}
           required
-          className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
+          className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         {message && (
           <p
@@ -93,7 +105,7 @@ export function ChangePasswordForm() {
         <button
           type="submit"
           disabled={changePassword.isPending}
-          className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-500"
+          className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-400"
         >
           {t("changePasswordSubmit")}
         </button>

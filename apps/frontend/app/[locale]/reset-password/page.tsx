@@ -98,10 +98,11 @@ function ResetPasswordForm() {
             )}
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-300">
+              <label htmlFor="reset-password-new" className="mb-1 block text-sm font-medium text-gray-300">
                 {t("newPassword")}
               </label>
               <input
+                id="reset-password-new"
                 type="password"
                 required
                 minLength={12}

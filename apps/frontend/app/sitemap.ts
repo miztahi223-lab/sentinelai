@@ -6,7 +6,19 @@ import { routing } from "@/i18n/routing";
 // use rather than hardcoding a fake production URL that doesn't exist yet.
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const PUBLIC_PATHS = ["", "/features", "/pricing", "/contact", "/terms", "/privacy"];
+const PUBLIC_PATHS = [
+  "",
+  "/features",
+  "/pricing",
+  "/contact",
+  "/terms",
+  "/privacy",
+  "/security",
+  "/about",
+  "/roadmap",
+  "/status",
+  "/accessibility",
+];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

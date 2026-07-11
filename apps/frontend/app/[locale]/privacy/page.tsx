@@ -1,10 +1,15 @@
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { MarketingNav } from "@/components/MarketingNav";
-import { MarketingFooter } from "@/components/MarketingFooter";
-import { AmbientBackground } from "@/components/AmbientBackground";
+import { LegalPageLayout } from "@/components/LegalPageLayout";
 import type { Locale } from "@/i18n/routing";
+import { buildMetadata } from "@/lib/seo";
 
 const LAST_UPDATED = "July 2026";
+
+const META_DESCRIPTION: Record<Locale, string> = {
+  en: "How SentinelAI collects, uses, and protects your data.",
+  he: "כיצד SentinelAI אוסף, משתמש ומגן על הנתונים שלכם.",
+};
 
 const CONTENT: Record<Locale, { title: string; sections: { heading: string; body: string }[] }> = {
   en: {
@@ -91,6 +96,20 @@ const CONTENT: Record<Locale, { title: string; sections: { heading: string; body
   },
 };
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildMetadata({
+    locale,
+    path: "/privacy",
+    title: `${CONTENT[locale].title} — SentinelAI`,
+    description: META_DESCRIPTION[locale],
+  });
+}
+
 export default async function PrivacyPage({
   params,
 }: {
@@ -99,34 +118,8 @@ export default async function PrivacyPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const { title, sections } = CONTENT[locale];
+  const subtitle =
+    locale === "he" ? `עודכן לאחרונה: ${LAST_UPDATED}` : `Last updated: ${LAST_UPDATED}`;
 
-  return (
-    <>
-      <MarketingNav />
-      <main className="flex-1">
-        {/* Ambient background scoped to just the title/date, not the
-            legal text — same reasoning as terms/page.tsx. */}
-        <div className="relative overflow-hidden">
-          <AmbientBackground />
-          <div className="relative mx-auto max-w-3xl px-6 pt-20 pb-4">
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">{title}</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              {locale === "he" ? `עודכן לאחרונה: ${LAST_UPDATED}` : `Last updated: ${LAST_UPDATED}`}
-            </p>
-          </div>
-        </div>
-        <section className="mx-auto max-w-3xl px-6 pb-20">
-          <div className="mt-6 space-y-8">
-            {sections.map((section) => (
-              <div key={section.heading}>
-                <h2 className="text-base font-medium text-white">{section.heading}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-gray-400">{section.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      </main>
-      <MarketingFooter />
-    </>
-  );
+  return <LegalPageLayout title={title} subtitle={subtitle} sections={sections} />;
 }

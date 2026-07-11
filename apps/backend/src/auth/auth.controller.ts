@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpCode,
@@ -11,11 +13,20 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
+import {
+  MfaService,
+  MfaAlreadyEnabledError,
+  MfaNotSetUpError,
+  InvalidMfaCodeError,
+} from './mfa.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { MfaEnableDto } from './dto/mfa-enable.dto';
+import { MfaDisableDto } from './dto/mfa-disable.dto';
+import { MfaVerifyDto } from './dto/mfa-verify.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -33,6 +44,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
+    private readonly mfaService: MfaService,
   ) {}
 
   @Post('register')
@@ -94,6 +106,73 @@ export class AuthController {
       name: record.name,
       emailVerified: record.emailVerified,
       createdAt: record.createdAt,
+      mfaEnabled: record.mfaEnabled,
     };
+  }
+
+  /**
+   * Second step of login for an account with MFA enabled — exchanges the
+   * short-lived challenge token `login()` returned, plus a real TOTP (or
+   * backup) code, for real session tokens. Same throttle ceiling as
+   * `login` itself: this is the endpoint an attacker who's already stolen a
+   * password would be brute-forcing 6-digit codes against.
+   */
+  @Post('mfa/verify')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  verifyMfa(@Body() dto: MfaVerifyDto, @Req() req: Request) {
+    return this.authService.verifyMfaAndLogin(
+      dto.challengeToken,
+      dto.code,
+      requestMeta(req),
+    );
+  }
+
+  @Post('mfa/setup')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async setupMfa(@CurrentUser() user: RequestUser) {
+    const record = await this.usersService.findById(user.userId);
+    if (!record) throw new ConflictException('Account not found');
+    try {
+      return await this.mfaService.beginSetup(user.userId, record.email);
+    } catch (error) {
+      if (error instanceof MfaAlreadyEnabledError) {
+        throw new ConflictException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Post('mfa/enable')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async enableMfa(@Body() dto: MfaEnableDto, @CurrentUser() user: RequestUser) {
+    try {
+      return await this.mfaService.enable(user.userId, dto.code);
+    } catch (error) {
+      if (error instanceof MfaAlreadyEnabledError) {
+        throw new ConflictException(error.message);
+      }
+      if (error instanceof MfaNotSetUpError) {
+        throw new BadRequestException(error.message);
+      }
+      if (error instanceof InvalidMfaCodeError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Post('mfa/disable')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async disableMfa(
+    @Body() dto: MfaDisableDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    await this.mfaService.disable(user.userId, dto.password);
+    return { success: true };
   }
 }

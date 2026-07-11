@@ -21,6 +21,13 @@ export interface AccessTokenPayload {
   email: string;
 }
 
+export interface MfaChallengePayload {
+  sub: string;
+  purpose: 'mfa_challenge';
+}
+
+const MFA_CHALLENGE_TTL_SECONDS = 5 * 60;
+
 /**
  * Handles issuing/verifying short-lived JWT access tokens and long-lived
  * opaque refresh tokens.
@@ -52,6 +59,41 @@ export class TokenService {
     return this.jwtService.verify(token, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
     });
+  }
+
+  /**
+   * A deliberately narrow, short-lived token proving "this caller just
+   * presented the right password for this user" — issued by `login()` when
+   * the account has MFA enabled, in place of real access/refresh tokens.
+   * Signed with a *different* secret (`MFA_CHALLENGE_SECRET`, not
+   * `JWT_ACCESS_SECRET`) and verified directly here rather than through
+   * `JwtStrategy`/`JwtAuthGuard` — the strategy's `validate()` only ever
+   * looks at `sub`/`email` and would happily accept any correctly-signed
+   * token as a real session, so the one thing that actually prevents this
+   * challenge token from being replayed as a full access token is that it
+   * is signed with a key `JwtStrategy` never accepts.
+   */
+  signMfaChallengeToken(userId: string): string {
+    const payload: MfaChallengePayload = {
+      sub: userId,
+      purpose: 'mfa_challenge',
+    };
+    return this.jwtService.sign(payload as unknown as Record<string, unknown>, {
+      secret: this.configService.get<string>('MFA_CHALLENGE_SECRET'),
+      expiresIn: MFA_CHALLENGE_TTL_SECONDS,
+    });
+  }
+
+  /** Returns the user ID if `token` is a valid, unexpired MFA challenge token — null otherwise (never throws). */
+  verifyMfaChallengeToken(token: string): string | null {
+    try {
+      const payload = this.jwtService.verify<MfaChallengePayload>(token, {
+        secret: this.configService.get<string>('MFA_CHALLENGE_SECRET'),
+      });
+      return payload.purpose === 'mfa_challenge' ? payload.sub : null;
+    } catch {
+      return null;
+    }
   }
 
   private hashToken(token: string): string {

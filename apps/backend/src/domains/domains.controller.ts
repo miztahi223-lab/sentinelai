@@ -4,6 +4,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -44,5 +45,10 @@ export class DomainsController {
     const domain = await this.domainsService.findOne(user.userId, id);
     if (!domain) throw new NotFoundException('Domain not found');
     return domain;
+  }
+
+  @Patch(':id/verify')
+  verify(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.domainsService.verify(user.userId, id);
   }
 }

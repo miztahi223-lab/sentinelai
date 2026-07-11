@@ -53,7 +53,7 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-white">{t("title")}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
+          <p className="mt-1 text-sm text-gray-400">{t("subtitle")}</p>
         </div>
         <button
           onClick={handleGenerate}
@@ -71,9 +71,9 @@ export default function ReportsPage() {
 
       {!isLoading && !hasReports && (
         <div className="rounded-xl border border-dashed border-gray-800 bg-gray-900/40 p-8 text-center">
-          <FileText className="mx-auto h-8 w-8 text-gray-600" />
+          <FileText className="mx-auto h-8 w-8 text-gray-400" />
           <h2 className="mt-3 text-sm font-medium text-white">{t("notBuiltTitle")}</h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">{t("notBuiltDesc")}</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-400">{t("notBuiltDesc")}</p>
         </div>
       )}
 
@@ -91,7 +91,7 @@ export default function ReportsPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-white">{report.title}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-400">
                     {t("generatedAt", {
                       date: new Date(report.generatedAt).toLocaleString(locale),
                     })}

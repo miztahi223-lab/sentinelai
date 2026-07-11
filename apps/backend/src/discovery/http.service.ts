@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
-import { safeLookup } from './ssrf-guard';
+import { assertHostnameNotLiteralBlockedIp, safeLookup } from './ssrf-guard';
 
 export interface HttpProbeResult {
   reachable: boolean;
@@ -43,6 +43,13 @@ export class HttpService {
     const start = Date.now();
 
     try {
+      // `lookup: safeLookup` below is never actually invoked by Node when
+      // `hostname` is already a literal IP address (Node skips DNS
+      // resolution entirely and connects directly) — this synchronous
+      // check is what actually covers that case (see
+      // `assertHostnameNotLiteralBlockedIp`'s own comment for why).
+      assertHostnameNotLiteralBlockedIp(hostname);
+
       const response = await axios.get(url, {
         timeout: TIMEOUT_MS,
         maxRedirects: 5,

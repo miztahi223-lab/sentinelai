@@ -76,10 +76,11 @@ function RegisterForm() {
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-300">
+            <label htmlFor="register-name" className="mb-1 block text-sm font-medium text-gray-300">
               {t("fullName")}
             </label>
             <input
+              id="register-name"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -89,10 +90,11 @@ function RegisterForm() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-300">
+            <label htmlFor="register-org" className="mb-1 block text-sm font-medium text-gray-300">
               {t("companyName")}
             </label>
             <input
+              id="register-org"
               required
               value={organizationName}
               onChange={(e) => setOrganizationName(e.target.value)}
@@ -102,10 +104,11 @@ function RegisterForm() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-300">
+            <label htmlFor="register-email" className="mb-1 block text-sm font-medium text-gray-300">
               {t("email")}
             </label>
             <input
+              id="register-email"
               type="email"
               required
               value={email}
@@ -116,10 +119,11 @@ function RegisterForm() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-300">
+            <label htmlFor="register-password" className="mb-1 block text-sm font-medium text-gray-300">
               {t("password")}
             </label>
             <input
+              id="register-password"
               type="password"
               required
               minLength={12}

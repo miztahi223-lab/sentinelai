@@ -77,7 +77,10 @@ describe('Users (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/users/me/change-password')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ currentPassword: 'TotallyWrong123!', newPassword: 'BrandNewPassword456!' })
+      .send({
+        currentPassword: 'TotallyWrong123!',
+        newPassword: 'BrandNewPassword456!',
+      })
       .expect(401);
   });
 

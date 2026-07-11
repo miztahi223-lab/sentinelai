@@ -6,7 +6,9 @@ import { notFound } from "next/navigation";
 import "../globals.css";
 import { QueryProvider } from "@/lib/query-provider";
 import { AuthProvider } from "@/lib/auth-context";
+import { SkipLink } from "@/components/SkipLink";
 import { routing, directionForLocale, type Locale } from "@/i18n/routing";
+import { buildMetadata } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,12 +29,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
-  const title = t("title");
-  const description = t("description");
 
   return {
-    title,
-    description,
+    ...buildMetadata({
+      locale,
+      path: "",
+      title: t("title"),
+      description: t("description"),
+    }),
     // Explicit, absolute icon path — without this, browsers on a locale-
     // prefixed page (e.g. `/he/domains`) sometimes request the favicon
     // relative to the current path (`/he/favicon.ico`), which 404s since
@@ -41,23 +45,6 @@ export async function generateMetadata({
     // before adding this.
     icons: { icon: "/favicon.ico" },
     metadataBase: new URL(SITE_URL),
-    alternates: {
-      languages: Object.fromEntries(
-        routing.locales.map((l) => [l, `${SITE_URL}/${l}`]),
-      ),
-    },
-    openGraph: {
-      title,
-      description,
-      siteName: "SentinelAI",
-      locale,
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
   };
 }
 
@@ -103,6 +90,7 @@ export default async function RootLayout({
         </div>
 
         <NextIntlClientProvider locale={locale as Locale}>
+          <SkipLink />
           <QueryProvider>
             <AuthProvider>{children}</AuthProvider>
           </QueryProvider>

@@ -17,6 +17,24 @@ const PLAN_PRICE_ENV_VAR: Record<Exclude<SubscriptionPlan, 'FREE'>, string> = {
   BUSINESS: 'STRIPE_PRICE_BUSINESS',
 };
 
+// A separate, optional set of env vars for the real annual Stripe Price
+// objects the public pricing page's "Yearly" toggle checks out against
+// (Enhancement 27) — optional because, same as the monthly prices before
+// them, no real Stripe account exists in this build environment to create
+// them in. Requesting a yearly checkout for a plan whose yearly price
+// isn't configured fails honestly (`BillingNotConfiguredError`) rather
+// than silently falling back to the monthly price, which would charge a
+// real customer a different amount than the one they saw on the pricing
+// page.
+const PLAN_PRICE_ENV_VAR_YEARLY: Record<
+  Exclude<SubscriptionPlan, 'FREE'>,
+  string
+> = {
+  STARTER: 'STRIPE_PRICE_STARTER_YEARLY',
+  PROFESSIONAL: 'STRIPE_PRICE_PROFESSIONAL_YEARLY',
+  BUSINESS: 'STRIPE_PRICE_BUSINESS_YEARLY',
+};
+
 /**
  * Real Stripe integration (the actual `stripe` SDK, real API calls) for
  * subscription checkout, the billing portal, and webhook-driven plan sync.
@@ -65,15 +83,18 @@ export class BillingService {
   async createCheckoutSession(params: {
     organizationId: string;
     plan: Exclude<SubscriptionPlan, 'FREE'>;
+    interval?: 'monthly' | 'yearly';
     successUrl: string;
     cancelUrl: string;
     customerEmail: string;
   }): Promise<string> {
     const stripe = this.requireStripe();
 
-    const priceId = this.configService.get<string>(
-      PLAN_PRICE_ENV_VAR[params.plan],
-    );
+    const envVar =
+      params.interval === 'yearly'
+        ? PLAN_PRICE_ENV_VAR_YEARLY[params.plan]
+        : PLAN_PRICE_ENV_VAR[params.plan];
+    const priceId = this.configService.get<string>(envVar);
     if (!priceId) {
       throw new BillingNotConfiguredError();
     }

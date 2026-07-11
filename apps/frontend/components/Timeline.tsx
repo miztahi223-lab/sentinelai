@@ -21,7 +21,7 @@ export function Timeline({ events }: { events: TimelineEvent[] }) {
   const locale = useLocale();
 
   if (events.length === 0) {
-    return <p className="text-sm text-gray-500">{t("empty")}</p>;
+    return <p className="text-sm text-gray-400">{t("empty")}</p>;
   }
 
   return (
@@ -35,9 +35,9 @@ export function Timeline({ events }: { events: TimelineEvent[] }) {
           />
           <p className="text-sm font-medium text-gray-100">{event.title}</p>
           {event.description && (
-            <p className="mt-0.5 text-sm text-gray-500">{event.description}</p>
+            <p className="mt-0.5 text-sm text-gray-400">{event.description}</p>
           )}
-          <p className="mt-1 text-xs text-gray-600">
+          <p className="mt-1 text-xs text-gray-400">
             {new Date(event.timestamp).toLocaleString(locale)}
           </p>
         </li>

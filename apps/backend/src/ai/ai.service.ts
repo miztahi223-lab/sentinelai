@@ -2,10 +2,22 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 
+export type FindingDifficulty = 'EASY' | 'MODERATE' | 'HARD';
+export type FindingPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
 export interface FindingAnalysis {
   explanation: string;
   businessImpact: string;
   remediation: string;
+  // How hard the fix itself is to implement — independent of severity (a
+  // CRITICAL finding can still be a five-minute config change, and a LOW
+  // one can require a real migration), so this is its own real signal, not
+  // derived from severity.
+  difficulty: FindingDifficulty;
+  // How urgently to act, factoring in both severity and how easy the fix
+  // is — distinct from `severity` itself, which only measures how bad the
+  // issue is, not how soon it's practical to address it.
+  priority: FindingPriority;
 }
 
 export class AiNotConfiguredError extends Error {
@@ -126,10 +138,12 @@ export class AiService {
   }): Promise<FindingAnalysis> {
     const prompt = [
       'You are a security analyst assistant. For the following security finding, respond with',
-      'exactly three sections, each on its own line prefixed by the label shown:',
+      'exactly five sections, each on its own line prefixed by the label shown:',
       'EXPLANATION: <plain-language explanation of the technical issue, 1-2 sentences>',
       'IMPACT: <concrete business impact if exploited, 1-2 sentences>',
       'REMEDIATION: <specific, actionable fix, 1-2 sentences>',
+      'DIFFICULTY: <one word, exactly one of: Easy, Moderate, Hard — how hard the fix itself is to implement>',
+      'PRIORITY: <one word, exactly one of: Low, Medium, High, Urgent — how urgently to act, factoring in both severity and how easy the fix is>',
       '',
       `Severity: ${finding.severity}`,
       `Category: ${finding.category}`,
@@ -146,7 +160,41 @@ export class AiService {
       /EXPLANATION:\s*(.+)/i.exec(raw)?.[1]?.trim() ?? raw.trim();
     const businessImpact = /IMPACT:\s*(.+)/i.exec(raw)?.[1]?.trim() ?? '';
     const remediation = /REMEDIATION:\s*(.+)/i.exec(raw)?.[1]?.trim() ?? '';
-    return { explanation, businessImpact, remediation };
+    const difficulty = this.parseDifficulty(
+      /DIFFICULTY:\s*(\w+)/i.exec(raw)?.[1],
+    );
+    const priority = this.parsePriority(/PRIORITY:\s*(\w+)/i.exec(raw)?.[1]);
+    return { explanation, businessImpact, remediation, difficulty, priority };
+  }
+
+  // The model is asked for exactly one of a small fixed set of words, but
+  // its output is still free text, not a real enum — normalized here
+  // rather than trusted verbatim, with a safe, honest middle-ground
+  // default (never silently picked as "easy"/"low" in a way that could
+  // make a real issue look less urgent than it is) if parsing fails.
+  private parseDifficulty(word: string | undefined): FindingDifficulty {
+    const normalized = word?.toUpperCase();
+    if (
+      normalized === 'EASY' ||
+      normalized === 'MODERATE' ||
+      normalized === 'HARD'
+    ) {
+      return normalized;
+    }
+    return 'MODERATE';
+  }
+
+  private parsePriority(word: string | undefined): FindingPriority {
+    const normalized = word?.toUpperCase();
+    if (
+      normalized === 'LOW' ||
+      normalized === 'MEDIUM' ||
+      normalized === 'HIGH' ||
+      normalized === 'URGENT'
+    ) {
+      return normalized;
+    }
+    return 'MEDIUM';
   }
 
   async generateExecutiveSummary(params: {

@@ -10,25 +10,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { DomainsService } from '../domains/domains.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { Finding, ScanStatus } from '@prisma/client';
-
-// Kept in one place so `latestForDomain` and `historyForDomain` can never
-// silently drift into computing the score two different ways.
-const SEVERITY_POINTS: Record<Finding['severity'], number> = {
-  CRITICAL: 30,
-  HIGH: 18,
-  MEDIUM: 10,
-  LOW: 4,
-  INFO: 0,
-};
-
-function scoreFromFindings(findings: Pick<Finding, 'severity'>[]): number {
-  const totalDeduction = findings.reduce(
-    (sum, f) => sum + SEVERITY_POINTS[f.severity],
-    0,
-  );
-  return Math.max(0, Math.min(100, 100 - totalDeduction));
-}
+import { ScanStatus } from '@prisma/client';
+import { categoryBreakdown, scoreFromFindings } from './scoring.util';
 
 // How many historical data points the trend chart shows — a cap, not a
 // time window, since scan frequency varies by plan (Step 13's Free=weekly
@@ -74,6 +57,7 @@ export class RiskEngineController {
       scanId: scan.id,
       scannedAt: scan.finishedAt,
       score: scoreFromFindings(scan.findings),
+      categories: categoryBreakdown(scan.findings),
       findings: scan.findings,
     };
   }

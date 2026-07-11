@@ -184,4 +184,88 @@ describe('RiskEngineService', () => {
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0].category).toBe(FindingCategory.CONFIGURATION);
   });
+
+  it('flags missing SPF and DMARC as separate DNS findings', async () => {
+    const fakePrisma = createFakePrisma([
+      // A healthy certificate isolates the DNS category under test, same
+      // pattern as the headers test above.
+      makeAsset({
+        type: AssetType.CERTIFICATE,
+        value: 'fingerprint',
+        metadata: { valid: true, selfSigned: false, daysUntilExpiry: 200 },
+      }),
+      makeAsset({
+        type: AssetType.DNS,
+        value: 'example.com',
+        metadata: { hasSpf: false, hasDmarc: false },
+      }),
+    ]);
+    const service = new RiskEngineService(fakePrisma as any);
+
+    const result = await service.analyzeDomain('scan-1', 'domain-1');
+
+    const dnsFindings = result.findings.filter(
+      (f) => f.category === FindingCategory.DNS,
+    );
+    expect(dnsFindings).toHaveLength(2);
+    expect(
+      dnsFindings.every((f) => f.severity === FindingSeverity.MEDIUM),
+    ).toBe(true);
+    // 100 - 10 (SPF) - 10 (DMARC) = 80
+    expect(result.score).toBe(80);
+  });
+
+  it('does not flag DNS findings when both SPF and DMARC are present', async () => {
+    const fakePrisma = createFakePrisma([
+      makeAsset({
+        type: AssetType.CERTIFICATE,
+        value: 'fingerprint',
+        metadata: { valid: true, selfSigned: false, daysUntilExpiry: 200 },
+      }),
+      makeAsset({
+        type: AssetType.DNS,
+        value: 'example.com',
+        metadata: { hasSpf: true, hasDmarc: true },
+      }),
+    ]);
+    const service = new RiskEngineService(fakePrisma as any);
+
+    const result = await service.analyzeDomain('scan-1', 'domain-1');
+
+    expect(
+      result.findings.filter((f) => f.category === FindingCategory.DNS),
+    ).toHaveLength(0);
+    expect(result.score).toBe(100);
+  });
+
+  it('persists a whole-number `points` on every finding, even for fractionally-weighted deductions', async () => {
+    const fakePrisma = createFakePrisma([
+      makeAsset({
+        type: AssetType.CERTIFICATE,
+        value: 'fingerprint',
+        metadata: { valid: true, selfSigned: false, daysUntilExpiry: 200 },
+      }),
+      makeAsset({
+        type: AssetType.URL,
+        value: 'https://example.com/',
+        metadata: {
+          headers: {},
+          // Only 1 of 6 real headers missing — the fractional-weight case
+          // (`SEVERITY_POINTS.LOW * (1/6)` = 0.667) that used to leak a
+          // non-integer score.
+          missingSecurityHeaders: ['x-frame-options'],
+        },
+      }),
+    ]);
+    const service = new RiskEngineService(fakePrisma as any);
+
+    const result = await service.analyzeDomain('scan-1', 'domain-1');
+
+    for (const finding of result.findings) {
+      expect(
+        Number.isInteger((finding as unknown as { points: number }).points),
+      ).toBe(true);
+    }
+    expect(Number.isInteger(result.score)).toBe(true);
+  });
 });

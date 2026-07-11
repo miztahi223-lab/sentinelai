@@ -34,7 +34,7 @@ export default function ContactPage() {
   return (
     <>
       <MarketingNav />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="relative overflow-hidden">
           <AmbientBackground />
           <div className="relative mx-auto max-w-lg px-6 py-20">
@@ -56,10 +56,11 @@ export default function ContactPage() {
                 </div>
               )}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-300">
+                <label htmlFor="contact-name" className="mb-1 block text-sm font-medium text-gray-300">
                   {t("name")}
                 </label>
                 <input
+                  id="contact-name"
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -67,10 +68,11 @@ export default function ContactPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-300">
+                <label htmlFor="contact-email" className="mb-1 block text-sm font-medium text-gray-300">
                   {t("email")}
                 </label>
                 <input
+                  id="contact-email"
                   type="email"
                   required
                   value={form.email}
@@ -79,10 +81,11 @@ export default function ContactPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-300">
+                <label htmlFor="contact-subject" className="mb-1 block text-sm font-medium text-gray-300">
                   {t("subject")}
                 </label>
                 <input
+                  id="contact-subject"
                   required
                   value={form.subject}
                   onChange={(e) => setForm({ ...form, subject: e.target.value })}
@@ -90,10 +93,11 @@ export default function ContactPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-300">
+                <label htmlFor="contact-message" className="mb-1 block text-sm font-medium text-gray-300">
                   {t("message")}
                 </label>
                 <textarea
+                  id="contact-message"
                   required
                   rows={5}
                   value={form.message}

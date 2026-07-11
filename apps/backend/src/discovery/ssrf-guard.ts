@@ -1,4 +1,5 @@
 import { lookup as dnsLookup, LookupAddress } from 'dns';
+import { isIP } from 'net';
 import { promisify } from 'util';
 import ipaddr from 'ipaddr.js';
 
@@ -106,10 +107,31 @@ export async function resolveAndAssertSafe(
 }
 
 /**
+ * A real gap the `lookup`-option guard alone cannot close: Node's own
+ * `net`/`http`/`tls` modules only invoke a custom `lookup` callback when the
+ * target host actually needs DNS resolution. When the host is *already* a
+ * literal IP address (e.g. a webhook URL of `https://169.254.169.254/` —
+ * this app's domain-name validation happens to accept all-numeric labels
+ * too, so `127.0.0.1` is a valid "domain name" as far as that regex is
+ * concerned), Node skips the `lookup` step entirely and connects directly,
+ * meaning `safeLookup` below silently never runs at all. Every real caller
+ * (`http.service.ts`, `ssl.service.ts`, `webhook.service.ts`) must call this
+ * synchronous, pre-connection check first — it's the only thing that
+ * actually covers the literal-IP case.
+ */
+export function assertHostnameNotLiteralBlockedIp(hostname: string): void {
+  if (isIP(hostname) !== 0 && isBlockedAddress(hostname)) {
+    throw new SsrfBlockedError(hostname, hostname);
+  }
+}
+
+/**
  * A `dns.lookup`-signature-compatible function (works directly as axios's
  * `lookup` config option and as `tls.connect`'s/`net.connect`'s `lookup`
  * option) that resolves + validates in one step. Node then connects to
- * exactly the address this callback supplies.
+ * exactly the address this callback supplies. Only ever invoked by Node for
+ * *hostnames* that need resolution — see `assertHostnameNotLiteralBlockedIp`
+ * above for the literal-IP case this can never cover.
  */
 export function safeLookup(
   hostname: string,

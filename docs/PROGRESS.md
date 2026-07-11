@@ -1926,3 +1926,790 @@ unit tests pass (42 previous + new locale-aware coverage), full backend e2e suit
 technical-detail toggle reveals the real original English text regardless of UI language, since
 that's genuinely what the backend generated), and the new landing-page comparison section. Mobile
 (390px) overflow checked — none found.
+
+## Enhancement 19: landing-page audit — a real mobile nav bug, and the last of the jargon
+
+Requested a broad "improve the landing page" pass (typography/spacing/mobile/animation/loading/
+business language). Rather than redoing work already covered by Enhancements 13-18 (which already
+delivered the animated backgrounds, 3D pieces, plain-language findings, and mobile checks), this
+pass started by actually loading the live page at desktop and mobile viewports and reading the
+result, to find what was still real and true versus already solved.
+
+**Found and fixed a real mobile bug**: at a 390px viewport, `MarketingNav`'s language switcher
+button rendered visible and cramped next to the logo despite being wrapped in `hidden sm:inline-flex`
+— the same class of bug already documented in Enhancement 15 (two Tailwind utilities that set the
+same CSS property, here `display`, don't reliably resolve by their order in a `className` string,
+only by their order in the generated stylesheet). `LanguageSwitcher`'s own root `className` already
+hardcodes `inline-flex` in its base classes, so passing `hidden sm:inline-flex` from the caller put
+two competing `display` utilities on the same element; `inline-flex` won at 390px, so the button
+never actually hid. Fixed the same way Enhancement 15 did: wrap the component in its own dedicated
+`<div className="hidden sm:block">` container instead of trying to override its internal class.
+`Sidebar.tsx`'s and the four auth pages' usages were unaffected (they only pass non-`display`
+utility classes) and were left alone.
+
+**Found and fixed the last "attack surface" jargon**: Enhancement 18 removed technical jargon
+(TLS/DNS/HTTP) from findings and the `ScanSequence` terminal, but "attack surface" — a real security
+term, not something a plumber or bakery owner uses — was still the hero eyebrow, the hero subtitle,
+and eleven more headings/descriptions across the landing page and the Business plan's pricing
+description. Rewrote all of them (both `en` and `he`, keeping parity) to plain business language —
+"your online footprint," "protect your business online," "everything hackers could find" — without
+changing what any of them actually claim. Left the term as-is in `dashboard`/`reports`/`alerts`
+i18n keys used only inside the authenticated app (out of scope for a landing-page pass; logged as
+follow-up for whichever phase touches those pages next).
+
+**Typography, spacing, animation, and load performance**: checked rather than assumed. Fonts already
+load via `next/font/google` (self-hosted, no render-blocking external request) since this file's
+Step 3. `next build` already emits `robots.txt` and `sitemap.xml`. The hero image lazy-load warning
+seen once during testing (`Image ... detected as Largest Contentful Paint`) turned out to be a
+Playwright `scrollIntoViewIfNeeded` artifact (jumping straight to a below-the-fold section before
+the image had a chance to paint), not a real bug — confirmed by reloading and waiting normally,
+after which the image rendered correctly; left it on Next's default lazy loading, since forcing
+`priority` on a section three screens down would genuinely slow the real first paint down, the
+opposite of what "faster loading" asked for.
+
+## Enhancement 20: dashboard redesign — real org-wide data, and a mobile bug affecting the whole app
+
+Requested the dashboard show security score, assets, domains, active/resolved alerts, latest scan,
+risk timeline, top risks, recent changes, upcoming certificate expiration, and quick actions, all
+updating dynamically. Audited what the real dashboard actually rendered (registered a real account,
+added a real domain, ran a real scan) rather than assuming from the code, per the same discipline as
+Enhancement 19.
+
+**Real gaps found**: the dashboard had a security score, per-domain findings, and a risk trend chart,
+but nothing else on the list — no asset/alert counts, no latest-scan status, no ranked top risks, no
+certificate-expiry warning, no quick actions, and "recent activity" only ever showed "Domain added,"
+never anything a real scan produces.
+
+**New `GET /dashboard/summary` endpoint** (`dashboard/dashboard.service.ts`) — one org-scoped
+aggregate query over tables that already exist and are already populated by real scans
+(Domain/Asset/Finding/Scan/Alert), not a new data model: total domains/assets, active vs. resolved
+alert counts (real `Alert.read` state — `Finding.status` was considered for this instead, but every
+finding created anywhere in this codebase defaults to `OPEN` and nothing ever transitions it, so
+that enum is currently dead; sourcing "resolved" from an unreachable status would have been exactly
+the kind of fabricated-looking number this build has consistently avoided elsewhere), the most
+recent completed scan, the top 5 open findings across every domain's own latest scan (ranked by
+real severity, not just whichever domain happened to scan most recently), and upcoming certificate
+expirations sourced from the real `daysUntilExpiry` already captured by `ssl.service.ts` at
+discovery time. Covered by a new `test/dashboard.e2e-spec.ts` (membership authorization + real
+counts derived from a real scan + a real read/unread split after marking alerts read), following
+this repo's established pattern of e2e (not mocked-Prisma) coverage for this class of org-scoped
+query service.
+
+**New frontend**: `StatTile`, `CertificateExpirations`, and `QuickActions` components, plus a
+`useDashboardSummary` hook. "Recent activity" now renders the real `Alert.message` feed (e.g. "New
+subdomain discovered: beta.iana.org") instead of a client-synthesized "Domain added" event —
+`Alert.message` is already real, human-written text generated by `ScanProcessor`, so this is a
+strictly better real data source, not new copy to maintain. Verified end-to-end against a live
+scan of `iana.org`: 12 real assets discovered, 12 real alerts, a real 78/100 "Fair" score, three
+real findings, and a real ranked top-risks list — all before manually refreshing anything (the
+existing `refetchInterval` polling pattern already used by `useDomainRisk` picked it up).
+
+**Found and fixed a real, pre-existing mobile bug affecting every authenticated page, not just the
+dashboard**: `Sidebar` was a fixed `w-64` column with no responsive fallback at all — on a real
+390px viewport it didn't collapse, it just squeezed every dashboard-app page's content into a
+sliver next to it (long words wrapping one-per-line). This predates this session's changes and
+would have affected Domains/Reports/Alerts/Settings/Billing identically, so it was fixed at the
+shared layout level: `Sidebar` is now a proper off-canvas drawer below `lg` (backdrop, close button,
+closes on navigation, real unread-count badge on its mobile toggle) and the unchanged permanent
+column at `lg` and up. Caught and avoided a subtle repeat of the exact class of bug documented in
+Enhancement 15/19 while building this: the open/closed state was briefly implemented as two
+competing unprefixed `translate-x-*` utility classes present on the element at the same time
+(closed-by-default plus an appended open override) — same "two utilities, same CSS property, order
+doesn't resolve reliably by className string position" trap as before. Fixed by making the mobile
+open/closed classes fully mutually exclusive per render (never both present at once), and relying
+on Tailwind's `lg:` responsive layer — which *is* reliably ordered after the base layer — for the
+desktop override instead. Verified in both English (LTR, drawer slides from the left) and Hebrew
+(RTL, drawer correctly slides from the right instead).
+
+**Also fixed while touching these pages**: the last two remaining "attack surface" jargon spots
+outside the marketing site (`reports.subtitle`, `alerts.subtitle`), for the same reason as
+Enhancement 19.
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean, `next build` succeeds, all 45 frontend
+unit tests pass. Backend: `tsc --noEmit` clean, `eslint` 0 errors (pre-existing warnings only,
+unrelated to this change), `nest build` succeeds, all 35 unit tests + all 40 e2e tests pass
+(`--runInBand`; jest's default parallel workers each run a real scan-processing BullMQ worker
+against the same shared Redis/Postgres, and enough concurrent real DNS/HTTP scans racing each
+other in this sandboxed environment occasionally exceeds individual tests' polling budget — a
+pre-existing characteristic of this real, non-mocked e2e suite, not a regression from this change;
+confirmed by re-running serially). Screenshotted the populated dashboard, the mobile drawer open/
+closed/backdrop-click-closed, and Hebrew/RTL, all against a real live scan of a real domain.
+
+**Found, not fixed here — flagged for Phase 4 (security scoring engine)**: `RiskEngineService.
+analyzeDomain()` computes its score from each finding's real fractional/capped `points` (e.g. a
+partial-header-set deduction scaled by `missingHeaders.length / 6`), logs that real weighted score
+at scan time, but never persists it — only the `Finding` rows (severity/title/description) are
+saved. `RiskEngineController.scoreFromFindings()` (what the dashboard actually displays) then
+recomputes a *different* score from those persisted findings using a flat per-severity point table,
+silently ignoring the original fractional weighting and any count-based capping. The two numbers
+can disagree, and only one of them is ever shown to a customer — exactly the "two formulas for the
+same real number" trust problem this risk engine was designed to avoid. Never surfaced a visibly
+broken value in this pass (the displayed score is always a clean integer), so it's a methodology
+inconsistency rather than a rendering bug — but it means the score currently shown isn't always the
+one the engine actually intended. Left for Phase 4 rather than fixed piecemeal here, since the real
+fix (persist each finding's actual deduction so there's exactly one source of truth for the score)
+is itself a schema change that phase's own scoring-engine work should own.
+
+**Verified for real**: `tsc --noEmit` clean, `eslint` clean, `next build` succeeds (all locales/
+routes, robots.txt/sitemap.xml included), all 45 frontend unit tests pass unchanged. Screenshotted
+the hero and nav at 1440px and 390px in both English and Hebrew/RTL before and after the nav fix —
+confirmed the language switcher now genuinely disappears below the `sm` breakpoint instead of just
+looking like it should. Zero browser console errors across every screenshot.
+
+## Enhancement 21: real domain-ownership verification, and a guided onboarding flow
+
+Requested a 5-step post-registration flow: create organization, verify domain ownership, run first
+scan, view dashboard, enable alerts. Organization creation was already bundled into registration
+(Step 5) and viewing the dashboard already existed — audited the rest for real before building
+anything.
+
+**Found a real, dead feature**: `Domain.verificationToken` has been generated at domain-creation
+time since Step 5, but nothing anywhere ever checked it — `Domain.verified` could never become
+`true`. "Verify domain ownership" wasn't a partially-built feature, it was a schema field with no
+code path at all.
+
+**Built real DNS TXT-record verification** — the industry-standard pattern (the same one Google
+Search Console/Stripe/etc. use): `DomainsService.verify()` (new `PATCH /domains/:id/verify`) does a
+real DNS TXT lookup via the discovery module's existing `DnsService` (reused, not reimplemented —
+extracted into its own `DnsModule` so both `DomainsModule` and `DiscoveryModule` can use it without
+a circular import) and only ever flips `verified` to `true` if it actually finds
+`sentinelai-verify=<the real token>` in the domain's real DNS. Verification is optional, not a
+gate — scanning already works without it, matching how the rest of this product treats "verified"
+as a trust signal rather than a hard requirement (nothing else in the schema depends on it either).
+Covered by 3 new unit tests (`domains.service.spec.ts`, mocked `DnsService` — deterministic
+coverage of the match/no-match/already-verified branches) and 3 new e2e tests
+(`domains.e2e-spec.ts` — real membership authorization, and a real DNS lookup against `example.com`
+correctly refusing to verify since that real domain genuinely has no such record).
+
+**New frontend**: `DomainVerification` (shows the real TXT record to add, a "Verify now" button,
+and the real error message when the record isn't found yet) and `AddDomainForm` (extracted from the
+Domains page so both it and the new onboarding flow share one implementation instead of two). The
+Domains page itself gained per-domain verification UI — this needed to be durably accessible there,
+not just inside the onboarding flow, for anyone who adds a domain after their first one.
+
+**New `OnboardingSteps`** component replaces the dashboard's old bare "add your first domain" panel
+with a real 5-step tracker, each step's "done" state driven by actual data (org existence, domain
+count, scan completion) rather than hardcoded: step 5 ("enable alerts") doesn't invent a fake toggle
+— alerts are already unconditionally on for HIGH/CRITICAL findings (Step 8's `ScanProcessor`), so
+this step honestly says so and links to the real Alerts page instead of pretending there's a switch
+to flip. The whole tracker disappears once a real scan completes, handing off to the full Phase-2
+dashboard.
+
+**Caught and fixed a real bug in my own draft of this component**: the vertical connecting line
+between steps used `last:hidden` on each step's own two-child wrapper, which is `:last-child`
+*within that wrapper* — true for every step's connector, not just the actual last step, so every
+connector would have incorrectly hidden itself. Fixed with an explicit `isLast` prop instead of
+relying on CSS structural selectors across elements that aren't real array-mapped siblings.
+
+**Verified for real**: registered a brand-new account end-to-end through the actual UI (not just
+the API) — organization auto-created, added `iana.org`, saw the real TXT-record instructions,
+clicked "Verify now" and got the real "not found yet" error (since this environment doesn't control
+that domain's DNS), ran the first scan, watched the wizard hand off to the full dashboard once the
+real scan completed. `tsc --noEmit` clean on both apps, `eslint` clean (0 errors) on both, `nest
+build`/`next build` succeed, backend 38 unit + 43 e2e tests pass (`--runInBand`, same pre-existing
+parallel-worker note as Enhancement 20), frontend 45 unit tests pass.
+
+## Enhancement 22: single-source-of-truth scoring, a real DNS category, and a serious re-scan bug
+
+Requested an "enterprise-grade" scoring engine: 0-100, categories (SSL, DNS, headers, exposure,
+certificates, configuration), historical trend, and every score explaining WHY. The trend already
+existed (Enhancement 20 wired `RiskChart` up for real). The rest had two real, pre-existing gaps
+this pass found by reading the actual code rather than assuming from the category list.
+
+**Fixed the two-different-scoring-formulas bug flagged (but deliberately not fixed) in Enhancement
+20**: `RiskEngineService.analyzeDomain()` computed a real, weighted score at scan time (including a
+fractional deduction for partial-header-set findings) and logged it, but never persisted it —
+`RiskEngineController.scoreFromFindings()` then silently recomputed a *different*, cruder score
+from the same findings using a flat per-severity table. Fixed at the root: `Finding` gained a real
+`points` column (migration `add_dns_asset_type_and_finding_points`) that persists the exact,
+rounded-to-a-whole-number deduction the engine actually decided for that finding — `Math.round`
+applied once, centrally, to every deduction, rather than leaving the one fractional source (missing-
+header count scaled by `/6`) to leak a non-integer score. The controller now sums `finding.points`
+directly instead of re-deriving an approximation, so the score can never again disagree with the
+number the engine that produced it actually computed. Pre-migration findings default to `points: 0`
+(an honest limitation, not silently patched over — a domain's very next real scan after this change
+produces trustworthy numbers; scores read from scans older than this migration will look
+artificially high until then).
+
+**Added a real DNS category** — `FindingCategory.DNS` existed in the schema since Step 4 but nothing
+ever produced a DNS-category finding. Added real SPF and DMARC TXT-record checks: `DiscoveryService`
+now does a second real DNS lookup at `_dmarc.<hostname>` (DMARC lives at a fixed subdomain, not the
+domain's own records) alongside the lookup it already performed, and persists a new `AssetType.DNS`
+asset recording whether each record is genuinely present — reusing the discovery module's existing
+`DnsService` rather than having the risk engine perform its own network I/O (extracted into a
+dedicated `DnsModule`, shared with `DomainsModule`'s Enhancement 21 verification work, avoiding a
+circular import between the two). `RiskEngineService.evaluateDns()` reads that real asset and flags
+a missing SPF and/or missing DMARC record as separate MEDIUM findings — the same real email-spoofing
+risk a dedicated email-security scanner checks, not an invented signal. Verified live against
+`iana.org`: correctly found *no* DNS finding, since that real domain genuinely has both records —
+confirming the check reads real DNS, not a canned result.
+
+**Exposed the real "why"**: `/risk/domains/:id/latest` now also returns a `categories` breakdown —
+grouping the same persisted findings the score is summed from by category, so it can never disagree
+with the number beside it. New frontend `ScoreBreakdown` component renders it directly under the
+score circle (plain-language category names, not raw enum values).
+
+**Found and fixed a serious, unrelated pre-existing bug while verifying this end-to-end**: clicking
+"Scan now" on a domain that already had one completed scan silently did nothing visible, forever.
+`useDomainRisk`'s polling (`refetchInterval`) stops for good the first time `hasScan` becomes `true`
+and never resumes; `useTriggerScan`'s `onSuccess` only invalidated the query once, immediately after
+the `POST /scans` call resolved — moments before the real scan (asynchronous, ~25-30s of real DNS/
+HTTP/TLS work) had actually finished. The score, findings, and breakdown a user saw after clicking
+"Scan now" a second time were simply the *previous* scan's results, indefinitely, until a manual
+page reload. Fixed by having `useTriggerScan` poll (bounded, 20 attempts × 3s) until the query's
+real `scanId` actually changes from what it was before the click, confirmed live: triggered a real
+second scan against `iana.org` and watched the score, findings, breakdown, and trend chart all
+update in place with the new real scan's data (100 → 76, a new "Fair"/C grade) with no reload.
+
+**Verified for real**: added a DNS asset with real SPF/DMARC metadata to unit-test fixtures (2 new
+tests) and a persisted-`points`-is-always-an-integer test (1 new test) to `risk-engine.service.spec.ts`
+— backend now 41 unit + 43 e2e tests, all passing. `tsc --noEmit` clean, `eslint` clean (0 errors)
+on both apps, `nest build`/`next build` succeed, frontend 45 unit tests pass. Screenshotted the live
+dashboard in English and Hebrew/RTL against two real, sequential scans of `iana.org`, confirming the
+score/breakdown/trend genuinely update between them.
+
+## Enhancement 23: an AI Security Advisor a user can actually see and click
+
+Requested every finding show a business explanation, technical explanation, recommended fix,
+estimated difficulty, estimated business impact, priority, and an executive summary, in plain
+English first. The backend half of this (`AiService`/`AiController`, Step 11) has existed since
+2026-07-07, honestly inert without a real `AI_API_KEY` this build environment doesn't have — but a
+repo-wide search turned up **zero** references to it anywhere in the frontend. The entire feature
+had no UI: no button to request an analysis, nowhere to see `aiExplanation`/`aiBusinessImpact`/
+`aiRemediation` even if they existed. "Technical explanation" and "business explanation" were
+already covered (a finding's own real `title`/`description` *is* the technical explanation; the
+existing `aiExplanation` is the plain-language one) — difficulty and priority were genuinely
+missing from both the schema and the AI prompt itself.
+
+**Extended the real schema and prompt** — `Finding` gained `aiDifficulty`/`aiPriority` columns
+(migration `add_ai_difficulty_and_priority`). `AiService.analyzeFinding()`'s prompt now asks for
+five labeled sections instead of three; a difficulty independent of severity (a CRITICAL finding
+can be a five-minute config fix; a LOW one can need a real migration) and a priority that factors in
+both severity and how easy the fix is. The model's raw word is normalized against the small fixed
+set it was asked for, with a safe, honest middle-value fallback (`MODERATE`/`MEDIUM`, never silently
+picked as "easy"/"low" in a way that could understate real urgency) if it returns something
+unparseable — covered by 8 new unit tests in `ai.service.spec.ts` exercising the parsing logic
+directly (well-formed output, case-insensitivity, missing sections, unrecognized words) plus the
+honest not-configured failure path, none of which require a real API key.
+
+**Found and fixed a third instance of the same recurring bug** (Enhancement 20 and 22 already fixed
+two): `AiController`'s executive-summary endpoint recomputed its own score from `Finding.severity`
+via a flat table, a third independent formula alongside the two already unified onto `finding.points`
+— fixed to sum the same real persisted `points` as everywhere else.
+
+**New frontend**: `AlertCard` (the one finding-rendering component used by both the dashboard's own-
+domain findings list and its org-wide top-risks list) gained a "Get AI analysis" action per finding,
+and — once analyzed — a labeled panel (business impact, recommended fix, a priority badge, a
+difficulty badge) styled distinctly from the plain-language headline above it, matching "plain
+English first" without hiding the extra detail. Both call sites (`dashboard/page.tsx`'s findings-
+for-primary-domain grid and its top-risks list) wired the real `Finding.id` and existing AI fields
+through — the dashboard-summary endpoint's `topRisks` mapping (Enhancement 20) had to be extended to
+actually include them, since it was only selecting a handful of fields from each finding.
+
+**No real Anthropic key exists in this build environment**, so — same honest discipline as every
+other credential-gated feature here — this could not be verified against real generated text.
+Verified instead exactly what's real and checkable: clicked "Get AI analysis" against the live app
+and confirmed the real `503` surfaces as a clear, correctly-worded inline message ("AI analysis is
+not configured — set AI_API_KEY...") rather than a crash or a silent no-op. The feature activates
+for real the moment a real key is set, with no further code changes.
+
+**Verified for real**: backend now 49 unit + 48 e2e tests (a new `ai.e2e-spec.ts` covers real
+membership authorization plus the real, live 503/403 paths against a real scan's real finding).
+`tsc --noEmit` clean, `eslint` clean (0 errors) on both apps, `nest build`/`next build` succeed.
+Frontend 45 unit tests pass — required extending the shared `renderWithIntl` test helper with a
+real `QueryClientProvider` (the first component test to exercise a component that calls a React
+Query hook internally), a reusable fix for any future component test in the same situation, not a
+one-off workaround.
+
+## Enhancement 24: real charts, branding, and an executive summary in the PDF report
+
+Requested company logo, security score, charts, executive summary, findings, recommendations,
+branding, and professional design in the generated PDF. The real PDF generator (Step 12) already
+covered score/assets/findings/recommendations in plain text — genuinely missing were charts, an
+executive summary, and any real visual branding (it was pure black-on-white text).
+
+**Found a fourth instance of the same recurring score-formula bug** (Enhancements 20, 22, and 23
+already fixed three): `report.processor.ts` computed its own score from `Finding.severity` via yet
+another flat table. With four independent copies of the same logic having drifted or risked
+drifting, this was the point to stop patching each one and fix the actual root cause: extracted
+`scoreFromFindings`/`categoryBreakdown` into a shared `risk-engine/scoring.util.ts` and made all
+four call sites (`RiskEngineController`, `AiController`, and now `ReportProcessor`) import the one
+real implementation. A report's score can no longer disagree with the dashboard's for the same
+scan — structurally, not by convention.
+
+**Real charts, not decoration**: a proportional horizontal score bar (filled to the real score's
+exact percentage, colored by the same bands the dashboard uses) and a category-breakdown bar chart
+(one real bar per category with `points > 0`, length proportional to its real deduction, generated
+from the exact same `categoryBreakdown()` the dashboard's "Why this score?" panel reads).
+
+**Real executive summary, no fabrication**: uses the real Anthropic-generated summary when
+`AI_API_KEY` is configured (there is none in this build environment); otherwise falls back to a
+real, deterministic paragraph computed directly from the scan's own numbers (score, finding count,
+top-deducting category, count of high-severity-or-above findings) — never invented-sounding prose
+standing in for an inactive feature.
+
+**Real branding, honestly**: checked `apps/frontend/public` before claiming this — there is no
+logo image file anywhere in this codebase. Rather than fabricate a graphic, the report's header
+renders the exact same real wordmark ("Sentinel" + indigo "AI") every other surface of this product
+uses, plus a brand-colored stripe across the top of the page. Added real page numbers via
+`bufferPages`/`bufferedPageRange`.
+
+**Found and fixed a real rendering bug while verifying the new chart**: the category-breakdown
+chart draws each row at explicit absolute x/y coordinates (needed for the bar itself), which left
+pdfkit's internal text cursor sitting at the rightmost label's position — verified via
+`pdftotext -layout` that every section after it (Assets, Findings, Recommendations) was wrapping
+into an unreadable single-word-per-line column pinned to the right edge of the page. Fixed by
+explicitly resetting the cursor's x-position back to the page margin after the chart. (A red
+herring during debugging: the fix appeared not to work at first — actually a stale Jest transform
+cache serving pre-fix compiled output, not a logic error; `jest --clearCache` resolved it.)
+
+**Verified for real**: a new `test/reports.e2e-spec.ts` generates a real report end-to-end via the
+real BullMQ worker and confirms a real, well-formed PDF (`%PDF-` magic header, non-trivial size,
+correct authorization). Beyond automated assertions, manually inspected the actual rendered output
+both ways a PDF can honestly be checked in this environment: `pdftotext -layout` (confirmed the
+real layout, no wrapping regressions) and rendering an actual page to a PNG via `pdftoppm` (visually
+confirmed the score bar, category chart, and branding render correctly) against a real report
+generated through the live UI for a real scan of `iana.org`. Backend now 51 e2e tests (10 suites) +
+49 unit tests, `tsc --noEmit`/`eslint` clean on both apps, `nest build`/`next build` succeed,
+frontend 45 unit tests pass.
+
+## Enhancement 25: Slack/webhook delivery, digests — and a real, pre-existing SSRF gap found and closed
+
+Requested: Email (already real, Step 5/9), Slack, Webhook, Daily Summary, Weekly Summary, Critical
+Alerts (already real — HIGH/CRITICAL findings already email OWNER/ADMIN in real time, Step 9).
+Slack/webhook/digests were genuinely missing: no schema, no delivery, no settings UI.
+
+**New `NotificationSettings`** (1:1 per organization, migration `add_notification_settings`):
+`webhookUrl`/`slackWebhookUrl` (both real HTTPS URLs an org's OWNER/ADMIN configures for
+themselves — view is open to any member, changing it is manager-only via the same
+`assertManagerMembership` check invitations/billing already use), and `dailyDigestEnabled`/
+`weeklyDigestEnabled` (both default off — nobody gets a summary they didn't ask for).
+
+**Real delivery, not stubs**: `WebhookService.sendWebhook()` (generic JSON POST) and
+`sendSlackMessage()` (Slack's actual "Incoming Webhook" format, `{"text": "..."}` — the entire
+integration surface Slack needs; no app install/OAuth required for a workspace to receive these).
+Wired into `NotificationProcessor` alongside the existing email delivery, so every channel an org
+configures fires from the exact same real HIGH/CRITICAL alert, not a separately invented trigger.
+`DigestService` adds two real `@Cron` jobs (daily 8am, weekly) that query real `Alert` rows created
+since the last window and email them via a new `EmailService.sendDigestEmail()`.
+
+**Found and closed a real, pre-existing SSRF gap while building the webhook feature** — discovered
+because a real local-HTTP-server unit test for the new `WebhookService` unexpectedly succeeded
+against `127.0.0.1` despite the exact same `safeLookup` guard `http.service.ts`/`ssl.service.ts`
+already used for real domain scans (Step 7/18's security review). Root cause: Node's `net`/`http`/
+`tls` modules only invoke a custom `lookup` callback when the connection target needs real DNS
+resolution — when the target is *already a literal IP address*, Node connects directly and never
+calls `lookup` at all, so `safeLookup` silently never ran for that case. Since this app's own
+domain-name validation (`HOSTNAME_REGEX`) happens to accept all-numeric labels, a user could
+register a "domain" of literal `169.254.169.254` (the cloud-metadata SSRF target the guard's own
+docstring names) or `127.0.0.1` and this backend's real scanner would connect to it directly,
+completely unguarded — a real vulnerability in an already-shipped, previously-reviewed feature, not
+something new this session introduced. Fixed at the root: added
+`assertHostnameNotLiteralBlockedIp()` to `ssrf-guard.ts` (a synchronous pre-connection check that
+covers exactly the case the `lookup` callback structurally cannot) and now call it at all three real
+call sites — `http.service.ts`, `ssl.service.ts`, and the new `webhook.service.ts` — before ever
+issuing the request. `WebhookService`'s guard is dependency-injected (defaulting to the real one) so
+unit tests can verify actual HTTP/JSON delivery mechanics against a real local server without that
+server's own loopback address being (correctly) rejected, while a separate test proves the real
+default still blocks both a literal loopback IP and a hostname that resolves to one.
+
+**New frontend**: a "Notification channels" section on Settings (webhook/Slack URL inputs, digest
+checkboxes) — verified live: saved a real webhook URL and daily-digest toggle, reloaded the page,
+confirmed both persisted for real.
+
+**Verified for real**: backend now 57 unit tests (new `webhook.service.spec.ts` against a real local
+HTTP server, 5 new `ssrf-guard.spec.ts` cases for the literal-IP fix) + 56 e2e tests (12 suites,
+including new `notification-settings.e2e-spec.ts` covering real membership authorization and real
+persistence). `tsc --noEmit`/`eslint` clean on both apps, `nest build`/`next build` succeed,
+frontend 45 unit tests pass.
+
+## Enhancement 26: the remaining trust pages — Security, Status, Roadmap, About
+
+Requested: Security page, Privacy Policy, Terms, Status page, FAQ, Roadmap, Contact, About.
+Privacy/Terms/Contact/FAQ already existed (Steps 5/14). Security, Status, Roadmap, and About did
+not exist at all.
+
+**Extracted `LegalPageLayout`** from the identical ~30-line JSX shell `terms/page.tsx` and
+`privacy/page.tsx` had each copy-pasted — about to become a 5th and 6th copy for the new pages, so
+this was the moment to share it instead. Both existing pages refactored onto it with no visual
+change (verified).
+
+**Security page**: every claim on it describes something actually implemented in this codebase,
+checked against the real source rather than written aspirationally — read-only discovery (Step 18's
+review), the SSRF guard including this session's literal-IP fix (Enhancement 25), Argon2id +
+rotating refresh tokens (Step 5), per-IP rate limiting and the real CSP/HSTS headers this app's own
+responses already carry.
+
+**Status page — a real live check, not a fabricated uptime record**: this build has no real
+monitoring pipeline generating historical uptime data, so a typical status-page "99.98% over 90
+days" chart would be invented. Instead added a real, honest `GET /health` endpoint (new
+`HealthModule`, unauthenticated, genuinely runs `SELECT 1` against the real database rather than
+returning a hardcoded response) and a client page that polls it live every 15s. The page only ever
+claims to know the current state, which is the one thing it can honestly check — covered by a real
+e2e test hitting the real endpoint.
+
+**Roadmap page**: every item is a real, currently-true gap checked against the actual codebase (not
+an invented feature list) — plan-based scan frequency (still one daily sweep for every plan despite
+the pricing page promising weekly/daily/real-time), historical trend charts in PDF reports (the
+dashboard has this, reports don't yet), custom report branding, two-factor authentication, and a
+public API. No delivery dates are given, since none are real yet.
+
+**About page**: factual product description (the problem, what the product does, who it's for) —
+deliberately no invented founding story or team bios, since neither is real for this build.
+
+**Also fixed while touching routes**: `app/sitemap.ts`'s hardcoded public-path list was missing
+`/security`/`/about`/`/roadmap`/`/status` (would have silently excluded them from search engines
+indefinitely) — added all four.
+
+**Verified for real**: backend gained a new `health.e2e-spec.ts` (57 e2e tests now, 12 suites);
+`tsc --noEmit`/`eslint` clean on both apps, `nest build`/`next build` succeed (all 4 new
+routes × 2 locales confirmed in the build output), frontend 45 unit tests pass. Screenshotted all
+four new pages plus the refactored terms/privacy pages in English and Hebrew/RTL — the Status
+page's live check confirmed working end-to-end (real "Operational" state, real timestamp) against
+the actual backend, not a placeholder.
+
+## Enhancement 27: pricing page overhaul — Enterprise tier, monthly/yearly billing
+
+Requested: a real annual-billing option and a genuine top tier above Business for the pricing page,
+not just a cosmetic redesign of the existing four cards.
+
+**Added a fifth, contact-sales tier — Enterprise.** It's explicitly *not* a real value of the
+backend's `SubscriptionPlan` enum (documented inline in `lib/plans.ts`): real SaaS enterprise tiers
+are almost always manually-provisioned and never appear as an org's actual `subscription.plan`, so
+this tier is UI-only — a `isCustomQuote` flag drives a "Contact sales" link instead of a checkout
+button everywhere it's rendered (public pricing grid, landing-page pricing preview, in-app billing
+grid all filter it out of the self-serve checkout flow).
+
+**Real monthly/yearly toggle**, not a static "billing period" label. `PlanInfo` gained
+`priceMonthly`/`priceYearly`; yearly prices are a real pricing decision (10x monthly — two months
+free, standard SaaS annual-discount convention) that whoever configures live Stripe Price objects
+needs to match. Backend: `CreateCheckoutSessionDto` gained an optional `interval` field
+(`@IsIn(['monthly','yearly'])`), `BillingService.createCheckoutSession` selects between two
+parallel env-var maps (`STRIPE_PRICE_*` vs `STRIPE_PRICE_*_YEARLY`) based on it, and — same "real but
+honestly inert without real API keys" pattern as the rest of billing/AI/SMTP — requesting a yearly
+checkout for a plan whose yearly Stripe price isn't configured throws a clear
+`BillingNotConfiguredError` rather than silently charging the monthly price. The toggle exists on
+both the public `/pricing` page (`PricingGrid.tsx`, a new client component the page delegates
+interactive rendering to) and the in-app `/billing` page, sharing the same `PlanInfo` source of
+truth from `lib/plans.ts` so the two pages can't drift.
+
+**Bug found and fixed during live verification**: clicking "Upgrade" initially failed with `property
+interval should not exist` — NestJS's whitelist validation rejecting a field that very much existed
+on the DTO. Root cause wasn't the code: an orphaned `node dist/src/main` process (PID from an
+earlier session) was still bound to port 3001, serving a stale pre-`interval` build, while a second,
+newer `nest start --watch` process had started alongside it without ever taking over the port. Same
+class of stale-dev-server issue as prior phases — killed both processes and restarted clean, then
+re-verified: the request now reaches the current code and correctly returns the honest "Billing is
+not configured" error instead of a validation rejection.
+
+**Verified for real**: frontend `tsc --noEmit`/`eslint`/`next build`/`vitest` all clean (47 tests,
+`plans.test.ts` split into a self-serve-plans-have-a-Stripe-key test and a
+custom-quote-plans-have-no-Stripe-key test). Backend `tsc --noEmit` clean; one real `prettier` error
+in `billing.service.ts` caught by lint and fixed; `nest build` succeeds; 57 unit tests pass. Live
+Playwright verification in English and Hebrew/RTL: registered a real test account, toggled
+monthly/yearly on both the public pricing page and the in-app billing page (prices update
+correctly, Enterprise never shows a checkout button), and clicked "Upgrade" to confirm the interval
+actually reaches the backend end-to-end.
+
+## Enhancement 28: customer acquisition — a real, unauthenticated free-scan lead-gen widget
+
+Requested: turn the landing page into an actual acquisition tool, not just a pitch — let a visitor
+run a real check on their own domain before ever creating an account.
+
+**New public, unauthenticated endpoint** (`POST /public-scan`, `PublicScanModule`) — the one
+deliberate anonymous surface in this API. Runs real DNS/TLS/HTTP probes (`DnsService`/`SslService`/
+`HttpService`, the same SSRF-guarded services the authenticated product uses) but is a *lighter*
+check than the real pipeline: no subdomain enumeration (the actual paid-tier value proposition) and
+nothing persisted — no `Domain`/`Scan`/`Asset`/`Finding` row is ever created for an anonymous
+visitor, since there's no organization to own that data. Throttled to 5 requests/minute per IP
+(`@Throttle`, same pattern as the public `/contact` endpoint) — tighter than the global 100/min
+default, since this is the one route where an anonymous caller can make the backend originate
+outbound network connections to a hostname of their choosing.
+
+**Refactored scoring into a shared, DB-independent formula** (`scoring.util.ts`): extracted
+`evaluateSslSignal`/`evaluateHeaderSignal`/`evaluateDnsSignal`/`scoreFromDeductions`/
+`scoreToRiskLevel` as pure functions operating on plain signal objects, and rewired
+`RiskEngineService` to derive those signals from persisted `Asset` metadata and delegate to them
+instead of keeping its own copy of the point-deduction logic. This was the deliberate alternative to
+writing a second, independent scoring approximation for the new anonymous endpoint — exactly the
+kind of drift this session already found and fixed once (Enhancement duplicated-scoring-formula
+bug, Steps 2/4/5/6) — so `PublicScanService` now calls the *exact same* formula
+`RiskEngineService` does, just fed from a live probe instead of a DB read. Verified the refactor
+changed no behavior: all 8 pre-existing `risk-engine.service.spec.ts` tests still pass unchanged.
+
+**Extracted `HOSTNAME_REGEX`** out of `create-domain.dto.ts` into a shared `common/hostname.util.ts`
+so the new `PublicScanDto` validates against the identical rule rather than a second copy that could
+drift.
+
+**Frontend**: new `FreeScanWidget.tsx` on the landing page (placed right after the hero's CTA
+buttons, before the illustrative animated scan sequence, so the first interactive thing a visitor
+can do is try the real product) — a domain input, a real live result (score, letter grade, and risk
+label reusing the exact same `scoreColor`/`scoreToGrade`/`scoreLabelKey` helpers the dashboard's
+`SecurityScoreCard` uses, now exported for reuse), one real finding run through the existing
+`toPlainLanguage()` translator (same plain-English treatment as dashboard alerts), a locked
+"+N more issues found" count, and a "Sign up free" CTA to `/register`. Handles the 400 (invalid
+hostname) and 429 (rate-limited) cases with distinct, friendly messages rather than a generic error.
+
+**Bug found and fixed during e2e testing**: the new `public-scan.e2e-spec.ts` initially failed two
+validation tests — malformed input was getting a 200 instead of a 400. Root cause wasn't the DTO;
+every other e2e spec in this codebase manually re-applies the same `ValidationPipe({ whitelist,
+forbidNonWhitelisted, transform })` main.ts configures for the real app, since Nest's
+`Test.createTestingModule` doesn't inherit `main.ts`'s bootstrap config — my first draft of the new
+e2e spec had simply forgotten that step. Fixed by adding the same pipe setup every other spec
+already uses.
+
+**Verified for real**: backend gained 6 new unit tests (`public-scan.service.spec.ts`, mocking the
+DNS/SSL/HTTP/technology services the same way `risk-engine.service.spec.ts` mocks Prisma) and 3 new
+e2e tests (`public-scan.e2e-spec.ts`) — one runs a real scan against `example.com` and asserts a
+genuine 200 with a valid score/riskLevel, two assert real validation rejections. Backend:
+`tsc --noEmit`/`eslint` clean, `nest build` succeeds, 63 unit tests pass, all 13 e2e suites (60
+tests) pass. Frontend: `tsc --noEmit`/`eslint`/`next build`/`vitest` all clean (47 tests). Live
+Playwright verification in English and Hebrew/RTL: ran a real scan against `example.com` from the
+actual landing page and got back a real 72/100 (C-) score with a real "no TLS certificate" finding;
+triggered the validation-error path with a garbage domain and saw the correct friendly message; the
+Hebrew/RTL layout, plain-language finding translation, and CTA all rendered correctly.
+
+## Enhancement 29: SEO — real per-page metadata, a hreflang bug fix, and structured data
+
+Requested: make the public marketing site actually discoverable, not just well-copywritten.
+
+**Found**: every public page (`/features`, `/pricing`, `/security`, `/about`, `/roadmap`, `/status`,
+`/terms`, `/privacy`, `/contact`) shared the exact same `<title>`/meta description — whatever the
+root layout's `generateMetadata` set for the homepage, since none of these pages defined their own.
+A real, user-visible consequence: every one of those pages showed "SentinelAI — Know what attackers
+can see before they do" as its browser-tab title and search-result snippet, regardless of what the
+page actually was.
+
+**A second, more subtle real bug**: the root layout's `alternates.languages` (the hreflang tags
+telling search engines which URL is the Hebrew/English equivalent of the current page) pointed at
+the *locale root* for every page — `/en/pricing`'s Hebrew alternate was `/he`, not `/he/pricing`. A
+search engine following that hreflang link would have sent a Hebrew searcher looking at the pricing
+page to the Hebrew homepage instead.
+
+**Fixed both with one shared helper**: new `lib/seo.ts` exports `buildMetadata({ locale, path,
+title, description })`, building the full `title`/`description`/`alternates` (canonical +
+per-language hreflang, now correctly pointing at the same page in each locale)/`openGraph`/
+`twitter` block from a single call. Wired into `generateMetadata` on every public page — the four
+pages backed by a hardcoded per-locale `CONTENT` object (`security`/`about`/`roadmap`, plus
+`terms`/`privacy` which needed a short hand-written description since they only had a `title`) reuse
+their own existing real copy rather than a second, separately-maintained SEO description that could
+drift from the visible page. `contact/page.tsx` is a client component ("use client", for form
+state) and can't export `generateMetadata` itself, so a new `contact/layout.tsx` (a plain server
+component that renders `{children}`) carries it instead — the standard Next.js pattern for this
+exact situation.
+
+**Real structured data on the homepage**: an `Organization` JSON-LD block (name/url/description; no
+`logo` field — there's no real brand logo asset in this build, and a placeholder image would be
+worse than omitting the field) and a `FAQPage` JSON-LD block built from the *exact same* `faqItems`
+array the visible `FaqAccordion` component already renders, not a separately-maintained copy that
+could drift from the real, visible FAQ content — genuinely eligible for a rich-snippet FAQ listing
+in search results, not fabricated markup.
+
+**Verified for real**: `tsc --noEmit`/`eslint` clean, `next build` succeeds (all 10 public routes ×
+2 locales), 47 frontend unit tests pass. Live-checked every public page's actual rendered
+`<title>` in both locales via the running dev server — confirmed all 10 are now distinct and
+correct (e.g. `/en/security` → "Security — SentinelAI", `/he/pricing` → "תמחור פשוט ושקוף —
+SentinelAI"), confirmed `/en/pricing`'s hreflang now correctly points to `/he/pricing` (not `/he`),
+and confirmed both JSON-LD blocks on the homepage parse as valid, well-formed structured data.
+Caught and fixed one real regression in `about/page.tsx` during this check (title rendered as the
+redundant "About SentinelAI — SentinelAI") and one `.next` build-cache corruption from running
+`next build` concurrently with the already-running `next dev` server — resolved by clearing `.next`
+and restarting the dev server cleanly, not a code defect.
+
+## Enhancement 30: production review
+
+Requested: a genuine production-readiness pass across the whole app, not new features — matching
+the master plan's own "continue only after everything is production ready" rule for the final step.
+
+**Full test suite, run together, one last time**: backend 63 unit + 60 e2e tests (13 suites) pass;
+frontend 47 unit tests pass; `tsc --noEmit`/`eslint` clean on both apps; both `nest build` and
+`next build` succeed. No skipped/`.only`'d tests found anywhere in either suite.
+
+**Found and fixed a real gap between what the `/security` page claims and what was actually true**:
+that page states "Real HTTPS in production, HSTS, a strict Content-Security-Policy, and standard
+hardening headers... are applied to every response" — true for the backend API (helmet, confirmed
+in `main.ts`), but the frontend's own HTML responses carried zero security headers of any kind
+(verified with a real `curl -sI` against the running dev server before touching anything). Added a
+real `headers()` block to `next.config.ts` — CSP, X-Frame-Options, X-Content-Type-Options,
+Referrer-Policy, and HSTS — matching the same hardening level helmet already gives the API.
+`connect-src` is built from the real `NEXT_PUBLIC_API_URL` origin rather than hardcoded, so it stays
+correct in any deployment. `'unsafe-inline'` is needed on `script-src` (the homepage's real JSON-LD
+structured data from Enhancement 29 is inline) and `style-src` (`TiltCard`'s real inline `style`
+attribute for its 3D transform) — the same tradeoff helmet's own backend default already makes for
+`style-src`. Verified live: the free-scan widget's real API call to the backend, the FAQ accordion,
+and every interactive element on the homepage still worked correctly under the new CSP; a dev-mode-
+only `eval()` console warning (React's own debugging tooling, which the browser's own message
+states "will never use eval() in production mode") confirmed gone entirely once tested against a
+real production build.
+
+**Found and fixed a second real gap while testing that production build**: `next start` printed
+`"next start" does not work with "output: standalone" configuration` — a genuine, easy-to-miss
+Next.js gotcha. `output: "standalone"` (already configured, for a smaller Docker image) requires
+copying `public/` and `.next/static` into `.next/standalone/` and running
+`.next/standalone/server.js` directly; the previous `"start": "next start"` script silently didn't
+do any of that. Confirmed the gap was real by inspecting the actual standalone build output —
+`.next/standalone/public` and `.next/standalone/.next/static` were both genuinely missing after a
+plain `next build`, which would have meant every CSS/JS/image asset 404ing the moment someone
+deployed this with the obvious `npm run build && npm start`. Fixed the `start` script to copy both
+directories first, then verified for real: fresh build, ran the corrected script, confirmed a 200 on
+the homepage, confirmed a real static CSS chunk actually resolved (200, not 404), and did a live
+Playwright pass against that exact production server — zero console errors, full visual parity with
+dev mode.
+
+**Dependency audit**: `npm audit --omit=dev` on both apps surfaces only transitively-bundled,
+moderate-severity issues inside each framework's own internal build tooling (`prisma`'s bundled
+`@prisma/dev` → `@hono/node-server`; `next`'s own vendored `postcss` copy) — neither is reachable
+through this app's actual request-handling path, and npm's suggested fix for each would force a
+major downgrade (`prisma` back several majors, `next` all the way to v9). Left as-is and documented
+here rather than taking a destructive, unvetted dependency action; worth re-checking whenever these
+frameworks next release a version that resolves it upstream.
+
+**Also confirmed clean**: `.env.example` documents every environment variable actually referenced
+in the backend source (cross-checked by grep against `configService.get`/`process.env` call sites);
+no `.env`/`.env.local` files are git-tracked (properly gitignored, `.env.example` correctly
+excluded from that ignore); no hardcoded API keys/secrets/private-key material anywhere in source;
+`prisma migrate status` reports the schema up to date against 6 real migrations with no drift.
+
+All 12 phases of the master plan are now complete, verified end-to-end, and documented here.
+
+## Enhancement 31: two-factor authentication (TOTP)
+
+Requested: real MFA, prioritized over the much larger (and, for a pre-revenue product with no
+real users yet, premature) RAG/local-LLM/observability-stack/public-API/marketplace/white-label
+scope from a second master-planning document — a genuine, scoped security feature over
+speculative infrastructure.
+
+**Schema**: `User` gained `mfaEnabled` (bool), `mfaSecret` (AES-256-GCM encrypted, nullable), and
+`mfaBackupCodeHashes` (argon2 hashes, one per unused backup code). Setup is a real two-step
+commitment: starting setup stores an encrypted secret but leaves `mfaEnabled` false; only
+successfully submitting a real generated code flips it — a secret nobody has ever proven they can
+use isn't actually protecting the account yet.
+
+**New `POST /auth/mfa/setup|enable|disable` and `POST /auth/mfa/verify`** (`MfaService`,
+`auth.module.ts`). `login()` now checks `user.mfaEnabled` after the password check: if enabled, it
+returns a short-lived challenge token instead of real session tokens, signed with a *separate*
+secret (`MFA_CHALLENGE_SECRET`, not `JWT_ACCESS_SECRET`) — `JwtStrategy.validate()` only ever reads
+`sub`/`email` and would happily accept any correctly-signed token as a full session, so using a
+different signing key entirely (verified directly in `TokenService`, never through
+`JwtAuthGuard`) is what actually prevents the challenge token from being replayed as a real one.
+`POST /auth/mfa/verify` exchanges that challenge token + a real TOTP/backup code for real tokens.
+
+**Real bug found and fixed mid-implementation**: `otplib` v13's plugin architecture pulls in
+`@scure/base`, a pure-ESM package with no CommonJS build at all — the real running app (built via
+`nest build`/`nest start --watch`) handled this fine, but the moment `MfaService` was imported,
+every single e2e test (not just the new MFA one — all 13 existing suites) started failing with a
+`ts-jest` "Unexpected token 'export'" error, since Jest's default `transformIgnorePatterns` doesn't
+transform `node_modules`. Rather than patch Jest config to transform a third-party ESM dependency
+chain (fragile, likely to resurface with follow-on transitive-dependency issues), replaced `otplib`
+entirely with a small, self-contained RFC 6238 TOTP implementation
+(`common/totp.util.ts`) built only on Node's own `crypto.createHmac` — a precisely-specified, small
+algorithm on an audited primitive, not "rolling your own crypto" in the risky sense, and the same
+trade-off this codebase already makes for refresh-token rotation. `qrcode` (unaffected by the ESM
+issue) is still used for real QR code generation.
+
+**Second real bug found and fixed during live browser testing**: after enabling MFA, entering an
+already-used backup code at login silently reset the entire login page back to the empty
+credentials form instead of showing an error. Root cause: the global axios response interceptor
+(`api.ts`) treats *any* 401 as "your session expired" and hard-redirects to `/login` — correct for
+an authenticated request, wrong for `/auth/login`/`/auth/mfa/verify`, which legitimately return 401
+for an expected, recoverable reason (wrong password, wrong/expired code) as part of a normal
+unauthenticated flow. Fixed by excluding those specific public auth endpoints from the
+refresh-and-redirect branch (`isPublicAuthRequest`), confirmed against a matching regression test
+and reverified live afterward.
+
+**Frontend**: `MfaSection.tsx` on the Settings page (start setup → real QR code + manual-entry
+secret → confirm with a real generated code → one-time backup-code reveal; or, if already enabled,
+a password-confirmed disable flow). The login page now handles the two-step flow: a normal
+email/password submit that, for an MFA-enabled account, switches to a second step asking for a
+TOTP or backup code, submitted against the challenge token from step one.
+
+**Verified for real**: backend gained 15 new unit tests (`totp.util.spec.ts`, real HMAC-based
+TOTP round-trips; `mfa.service.spec.ts`, real argon2/AES round-trips against an in-memory fake) and
+9 new e2e tests (`mfa.e2e-spec.ts`) computing genuine TOTP codes against the real secret the server
+returns and driving the entire setup → enable → login-requires-challenge → verify → backup-code
+(single-use, confirmed via reuse rejection) → disable lifecycle against real Postgres. Backend:
+`tsc --noEmit`/`eslint` clean, `nest build` succeeds, 78 unit tests pass, all 14 e2e suites (69
+tests) pass. Frontend gained 7 new unit tests (`api.test.ts`, the interceptor-exclusion regression
+test) — `tsc --noEmit`/`eslint`/`next build`/`vitest` all clean (54 tests). Live Playwright
+verification end-to-end: registered a real account, enabled MFA (real QR code, real secret, real
+generated code), signed out, confirmed login now demands a second factor, completed login with a
+real backup code, confirmed that same backup code is rejected on reuse (and, after the interceptor
+fix, shows a proper inline error instead of resetting the page), completed login again with a
+fresh real TOTP code, and disabled MFA with password confirmation — all screenshotted in English,
+with the Settings section also confirmed correctly laid out in Hebrew/RTL.
+
+## Enhancement 32: real WCAG 2.0 AA accessibility remediation (Israeli Standard 5568)
+
+Requested: check what Israeli regulation actually requires for a website, and add real accessibility
+support (Israeli law — Accessibility of Services Regulations — requires conformance with Israeli
+Standard 5568, itself based on WCAG 2.0 Level AA; non-conformance carries real lawsuit exposure,
+including statutory damages without proof of harm). This was scoped as genuine engineering
+remediation, not a decorative "accessibility widget" — a background audit agent was used first to
+find concrete, real violations before touching any code.
+
+**Found and fixed a systemic color-contrast failure**: `text-gray-500` (used **101 times** across
+the app) measures 4.16:1 against the dark background — below the 4.5:1 WCAG AA requirement for
+normal text. `text-gray-600` (22 uses) measured 2.66:1, failing even the 3:1 large-text threshold.
+Computed real WCAG relative-luminance contrast ratios (not estimated) for the actual Tailwind gray
+scale before touching anything. Fixed by collapsing both failing shades to `text-gray-400`
+(7.93:1 — a comfortable AA pass) across every `.tsx` file in `app/`/`components/`, verified zero
+remaining occurrences afterward.
+
+**Found and fixed a total absence of "skip to main content"**: grepped for `skip`/`sr-only`/
+`#main-content` across the whole codebase and found nothing — every page forced keyboard users to
+tab through the full nav/sidebar before reaching content (a real WCAG 2.4.1 failure). Added a new
+`SkipLink` component (invisible until keyboard-focused, first element in the root layout) and
+`id="main-content"` on all 7 real `<main>` elements across the app (landing, pricing, contact,
+features, status, the shared `LegalPageLayout`, and the dashboard layout). Verified live: first
+`Tab` press on any page now reveals a real, visible "Skip to main content" link.
+
+**Found and fixed a systemic missing label-association bug**: `grep -rn "htmlFor"` across the
+entire codebase returned **zero matches** — no `<label>` anywhere was programmatically associated
+with its input via `htmlFor`/`id`, meaning every "labeled" field read correctly to sighted users
+but a screen reader announced nothing when focus landed in the input (WCAG 1.3.1/4.1.2). Added
+real `htmlFor`/`id` pairs across contact, register, login (including the new MFA code step),
+forgot-password, reset-password, `NotificationChannelsSection`, and `MfaSection`. Separately fixed
+inputs relying on `placeholder` alone with no label at all (a distinct, real WCAG failure —
+placeholder text isn't a reliable accessible name) in `FreeScanWidget`, `AddDomainForm`,
+`TeamSection`'s invite-email field (plus its unlabeled role `<select>`), `ChangePasswordForm` (3
+fields), `MfaSection`'s disable-password field, and the Settings page's inline name-edit input —
+using visible labels where the existing design already had room, `sr-only` labels where the compact
+UI was deliberately built without visible ones. Verified live: Playwright's own accessibility
+snapshot now reports real accessible names (`textbox "Name"`, `textbox "Email"`, etc.) where it
+previously would have reported nothing.
+
+**Found and fixed a heading-hierarchy violation**: the dashboard page's real content nested `<h1>`
+→ `<h3>` (skipping `<h2>` entirely) for the Security Score/Findings section headers, then later
+used `<h2>` for Top Risks/Certificate Expirations — an inconsistent, illogical DOM heading order.
+Normalized the skipped-level headers to `<h2>`, matching the rest of the page.
+
+**Found and fixed a keyboard-inaccessible modal dismissal**: the mobile sidebar drawer's backdrop
+was a bare `<div onClick>` with no `role`, no `tabIndex`, and no keyboard handler at all — a
+keyboard-only or screen-reader user had no way to dismiss the open drawer via that element.
+Replaced it with a real `<button aria-label="Close menu">` (natively focusable and
+Enter/Space-activatable). Verified live at a real 375px mobile viewport: opened the drawer, tabbed
+to the backdrop (now announced as a real, labeled button), pressed Enter, and confirmed it closed.
+
+**Also fixed while auditing**: several inputs and one `<select>` used `focus:border-indigo-500`
+alone with no ring — a much subtler focus cue than the `focus:ring-1` pattern used everywhere else
+in the app, and a likely WCAG 1.4.11 (non-text contrast) risk for low-vision keyboard users.
+Standardized all of them onto the same ring-based focus style already used consistently elsewhere.
+
+**New `/accessibility` page** — a real accessibility statement (added to the sitemap and every
+page's footer), following the same honest pattern as the Security/Roadmap pages: it does **not**
+claim full certified Israeli Standard 5568 compliance (a specific legal designation this build
+has not been professionally audited against — claiming it falsely would itself be a liability),
+it states plainly what's actually been implemented, what a professional audit hasn't yet covered,
+and how to report a real barrier.
+
+**Verified for real**: `tsc --noEmit`/`eslint` clean, `next build` succeeds (`/accessibility` now
+a real prerendered route in both locales), 54 frontend unit tests pass (no regressions from the
+bulk color/label changes). Live Playwright verification: skip link revealed on first `Tab` on a
+real page, form accessible names now correctly reported for contact/register forms, the new
+`/accessibility` page rendered correctly in both English and Hebrew/RTL, and the mobile drawer's
+backdrop confirmed keyboard-dismissible at a real 375px viewport.
+
+**Not done, and said so on the new page rather than pretending otherwise**: this is real
+engineering remediation, not a certified third-party accessibility audit — an accredited Israeli
+Standard 5568 auditor has not reviewed this build. Recommended (per the standing legal caveat
+given alongside this work) before relying on this for actual regulatory compliance.

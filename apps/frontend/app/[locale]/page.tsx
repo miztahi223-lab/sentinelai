@@ -25,6 +25,7 @@ import { FaqAccordion } from "@/components/FaqAccordion";
 import { BrowserFrame } from "@/components/BrowserFrame";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { ScanSequence } from "@/components/ScanSequence";
+import { FreeScanWidget } from "@/components/FreeScanWidget";
 import { PulseMonitor } from "@/components/PulseMonitor";
 import { TiltCard } from "@/components/TiltCard";
 import { NetworkGlobe } from "@/components/NetworkGlobe";
@@ -32,6 +33,7 @@ import { Tunnel } from "@/components/Tunnel";
 import { Link } from "@/i18n/navigation";
 import { getPlans } from "@/lib/plans";
 import type { Locale } from "@/i18n/routing";
+import { SITE_URL } from "@/lib/seo";
 
 const FEATURE_ICONS = [Radar, ShieldCheck, Bell, Bot, FileText, Globe2];
 const HOW_IT_WORKS_ICONS = [Globe2, ScanSearch, ListChecks];
@@ -52,6 +54,7 @@ export default async function Home({
   setRequestLocale(locale);
 
   const t = await getTranslations("landing");
+  const tMeta = await getTranslations("meta");
   const tPlans = await getTranslations("plans");
   // See the comment on the equivalent call in the billing page — a safe
   // narrowing cast, not a real type mismatch.
@@ -91,11 +94,42 @@ export default async function Home({
     label: t(`heroStat${i}Label` as "heroStat1Label"),
   }));
 
+  // Real structured data for search engines — derived from the exact same
+  // copy rendered on the page (the FAQ schema is built from the same
+  // `faqItems` the visible `FaqAccordion` uses), not a separate, editable
+  // copy that could drift from what a visitor actually sees. No `logo` on
+  // the Organization schema — there's no real brand logo asset in this
+  // build yet, and a placeholder/generic image would be worse than none.
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "SentinelAI",
+    url: `${SITE_URL}/${locale}`,
+    description: tMeta("description"),
+  };
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <MarketingNav />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden">
           {/* Matrix rain + ambient glow are scoped to just this wrapper
@@ -134,11 +168,20 @@ export default async function Home({
                 {t("ctaSee")}
               </Link>
             </div>
-            <div className="mt-4 flex flex-col items-center gap-1.5 text-xs text-gray-500 sm:flex-row sm:justify-center sm:gap-4">
+            <div className="mt-4 flex flex-col items-center gap-1.5 text-xs text-gray-400 sm:flex-row sm:justify-center sm:gap-4">
               <span>{t("heroNoCreditCard")}</span>
               <span className="hidden sm:inline text-gray-700">·</span>
               <span>{t("heroNoExpertise")}</span>
             </div>
+          </div>
+
+          {/* The real, interactive lead-gen tool — a visitor's own domain,
+              scanned live, right here. Deliberately placed before the
+              illustrative animated sequence below so the first interactive
+              thing a visitor can do is try the actual product, not just
+              watch a mockup of it. */}
+          <div className="relative mx-auto max-w-xl px-6 pb-14">
+            <FreeScanWidget />
           </div>
 
           {/* Terminal-style animated scan sequence — a procedurally
@@ -162,7 +205,7 @@ export default async function Home({
                   <dd className="text-2xl font-semibold text-white sm:text-3xl">
                     {value}
                   </dd>
-                  <p className="mt-1 text-xs text-gray-500">{label}</p>
+                  <p className="mt-1 text-xs text-gray-400">{label}</p>
                 </div>
               ))}
             </dl>
@@ -181,7 +224,7 @@ export default async function Home({
               <h2 className="text-xl font-semibold text-white sm:text-2xl">
                 {t("previewTitle")}
               </h2>
-              <p className="max-w-xl text-sm text-gray-500">
+              <p className="max-w-xl text-sm text-gray-400">
                 {t("previewSubtitle")}
               </p>
             </div>
@@ -210,7 +253,7 @@ export default async function Home({
             <h2 className="mx-auto mt-4 max-w-2xl text-2xl font-semibold text-white sm:text-3xl">
               {t("tunnelTitle")}
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500">
+            <p className="mx-auto mt-3 max-w-xl text-sm text-gray-400">
               {t("tunnelSubtitle")}
             </p>
           </div>
@@ -230,7 +273,7 @@ export default async function Home({
               <h2 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
                 {t("smallBizTitle")}
               </h2>
-              <p className="mt-3 text-sm text-gray-500">
+              <p className="mt-3 text-sm text-gray-400">
                 {t("smallBizSubtitle")}
               </p>
             </div>
@@ -246,7 +289,7 @@ export default async function Home({
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-white">{title}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{description}</p>
+                    <p className="mt-1 text-sm text-gray-400">{description}</p>
                   </div>
                 </div>
               ))}
@@ -271,7 +314,7 @@ export default async function Home({
             </div>
             <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                   {t("translationOtherToolsLabel")}
                 </p>
                 <p className="mt-3 font-mono text-sm text-gray-400">
@@ -290,7 +333,7 @@ export default async function Home({
                 </p>
               </div>
             </div>
-            <p className="mx-auto mt-6 max-w-2xl text-center text-xs text-gray-600">
+            <p className="mx-auto mt-6 max-w-2xl text-center text-xs text-gray-400">
               {t("translationFootnote")}
             </p>
           </div>
@@ -308,7 +351,7 @@ export default async function Home({
               <h2 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
                 {t("globeTitle")}
               </h2>
-              <p className="mt-3 text-sm text-gray-500">{t("globeSubtitle")}</p>
+              <p className="mt-3 text-sm text-gray-400">{t("globeSubtitle")}</p>
             </div>
             <div className="order-1 h-[320px] sm:h-[420px] lg:order-2 lg:h-[460px]">
               <NetworkGlobe />
@@ -323,7 +366,7 @@ export default async function Home({
               <h2 className="text-2xl font-semibold text-white sm:text-3xl">
                 {t("howItWorksTitle")}
               </h2>
-              <p className="mt-3 text-sm text-gray-500">{t("howItWorksSubtitle")}</p>
+              <p className="mt-3 text-sm text-gray-400">{t("howItWorksSubtitle")}</p>
             </div>
             <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
               {steps.map(({ icon: Icon, title, description }, i) => (
@@ -335,7 +378,7 @@ export default async function Home({
                     {i + 1}
                   </p>
                   <h3 className="mt-1 text-sm font-medium text-white">{title}</h3>
-                  <p className="mx-auto mt-2 max-w-xs text-sm text-gray-500">{description}</p>
+                  <p className="mx-auto mt-2 max-w-xs text-sm text-gray-400">{description}</p>
                 </div>
               ))}
             </div>
@@ -359,7 +402,7 @@ export default async function Home({
                     <Icon className="h-5 w-5 text-indigo-400" />
                   </div>
                   <h3 className="mt-4 text-sm font-medium text-white">{title}</h3>
-                  <p className="mt-2 text-sm text-gray-500">{description}</p>
+                  <p className="mt-2 text-sm text-gray-400">{description}</p>
                 </div>
               ))}
             </div>
@@ -378,7 +421,7 @@ export default async function Home({
                 <h3 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
                   {t("spotlightReportsTitle")}
                 </h3>
-                <p className="mt-3 text-sm text-gray-500">
+                <p className="mt-3 text-sm text-gray-400">
                   {t("spotlightReportsDesc")}
                 </p>
               </div>
@@ -415,7 +458,7 @@ export default async function Home({
                 <h3 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
                   {t("spotlightAlertsTitle")}
                 </h3>
-                <p className="mt-3 text-sm text-gray-500">
+                <p className="mt-3 text-sm text-gray-400">
                   {t("spotlightAlertsDesc")}
                 </p>
               </div>
@@ -435,7 +478,7 @@ export default async function Home({
               <h2 className="mt-4 text-2xl font-semibold text-white sm:text-3xl">
                 {t("whyNowTitle")}
               </h2>
-              <p className="mt-3 text-sm text-gray-500">{t("whyNowBody")}</p>
+              <p className="mt-3 text-sm text-gray-400">{t("whyNowBody")}</p>
             </div>
             <div className="rounded-xl border border-amber-900/40 bg-amber-500/5 p-8 text-center">
               <p className="text-5xl font-bold text-amber-300 sm:text-6xl">
@@ -444,7 +487,7 @@ export default async function Home({
               <p className="mx-auto mt-3 max-w-sm text-sm text-gray-400">
                 {t("whyNowStatLabel")}
               </p>
-              <p className="mt-4 text-xs text-gray-600">
+              <p className="mt-4 text-xs text-gray-400">
                 {t("whyNowStatSource")}
               </p>
             </div>
@@ -469,7 +512,7 @@ export default async function Home({
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-white">{title}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{description}</p>
+                    <p className="mt-1 text-sm text-gray-400">{description}</p>
                   </div>
                 </div>
               ))}
@@ -484,14 +527,17 @@ export default async function Home({
               {t("pricingTitle")}
             </h2>
             <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-4">
-              {plans.map((plan) => (
+              {/* Enterprise (contact-sales, no fixed price) is left for the
+                  full /pricing page — this teaser only shows the four
+                  self-serve tiers. */}
+              {plans.filter((plan) => !plan.isCustomQuote).map((plan) => (
                 <div
                   key={plan.name}
                   className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:border-gray-700"
                 >
                   <h3 className="text-sm font-medium text-gray-300">{plan.name}</h3>
                   <p className="mt-2 text-2xl font-semibold text-white">{plan.price}</p>
-                  <p className="mt-2 text-xs text-gray-500">{plan.description}</p>
+                  <p className="mt-2 text-xs text-gray-400">{plan.description}</p>
                 </div>
               ))}
             </div>
@@ -523,7 +569,7 @@ export default async function Home({
           <h2 className="text-2xl font-semibold text-white sm:text-3xl">
             {t("finalCtaTitle")}
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-gray-500">
+          <p className="mx-auto mt-3 max-w-md text-sm text-gray-400">
             {t("finalCtaSubtitle")}
           </p>
           <Link

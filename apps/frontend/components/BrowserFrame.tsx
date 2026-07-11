@@ -25,7 +25,7 @@ export function BrowserFrame({
           <span className="h-2.5 w-2.5 rounded-full bg-gray-700" />
           <span className="h-2.5 w-2.5 rounded-full bg-gray-700" />
         </div>
-        <div className="mx-auto flex min-w-0 max-w-xs flex-1 items-center justify-center gap-1.5 rounded-md bg-gray-950/80 px-3 py-1 text-xs text-gray-500">
+        <div className="mx-auto flex min-w-0 max-w-xs flex-1 items-center justify-center gap-1.5 rounded-md bg-gray-950/80 px-3 py-1 text-xs text-gray-400">
           <span dir="ltr" className="truncate">
             {url}
           </span>

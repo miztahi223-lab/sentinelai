@@ -35,12 +35,26 @@ describe.each([
     expect(free[0].plan).toBeUndefined();
   });
 
-  it("every paid plan has a Stripe plan key matching the backend's SubscriptionPlan enum", () => {
-    const paidPlans = plans.filter((p) => p.key !== "FREE");
-    expect(paidPlans.length).toBeGreaterThan(0);
-    for (const plan of paidPlans) {
+  it("every self-serve paid plan has a Stripe plan key matching the backend's SubscriptionPlan enum", () => {
+    // Excludes Free (no purchase) and any custom-quote tier (Enterprise —
+    // real SaaS enterprise tiers are contact-sales/manually-provisioned,
+    // not a self-serve Stripe checkout, so it legitimately has no Stripe
+    // plan key either).
+    const selfServePaidPlans = plans.filter(
+      (p) => p.key !== "FREE" && !p.isCustomQuote,
+    );
+    expect(selfServePaidPlans.length).toBeGreaterThan(0);
+    for (const plan of selfServePaidPlans) {
       expect(plan.plan).toBeDefined();
       expect(VALID_STRIPE_PLAN_KEYS).toContain(plan.plan);
+    }
+  });
+
+  it("every custom-quote plan has no Stripe plan key (nothing to self-serve checkout)", () => {
+    const customQuotePlans = plans.filter((p) => p.isCustomQuote);
+    expect(customQuotePlans.length).toBeGreaterThan(0);
+    for (const plan of customQuotePlans) {
+      expect(plan.plan).toBeUndefined();
     }
   });
 

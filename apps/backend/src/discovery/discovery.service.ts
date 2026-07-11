@@ -56,13 +56,22 @@ export class DiscoveryService {
     const observedAssetIds: string[] = [];
     const newAssets: Asset[] = [];
 
-    const [dnsResult, sslResult, httpResult, discoveredSubdomains] =
-      await Promise.all([
-        this.dnsService.lookup(hostname),
-        this.sslService.inspect(hostname),
-        this.httpService.probe(hostname),
-        this.subdomainService.enumerate(hostname),
-      ]);
+    const [
+      dnsResult,
+      dmarcResult,
+      sslResult,
+      httpResult,
+      discoveredSubdomains,
+    ] = await Promise.all([
+      this.dnsService.lookup(hostname),
+      // DMARC lives at a fixed `_dmarc.` subdomain, not the domain's own
+      // TXT records — a real, separate lookup, not derived from the one
+      // above.
+      this.dnsService.lookup(`_dmarc.${hostname}`),
+      this.sslService.inspect(hostname),
+      this.httpService.probe(hostname),
+      this.subdomainService.enumerate(hostname),
+    ]);
 
     const track = (result: { asset: Asset; isNew: boolean }) => {
       observedAssetIds.push(result.asset.id);
@@ -96,6 +105,25 @@ export class DiscoveryService {
         }),
       );
     }
+
+    // --- Persist a DNS security-hygiene asset (SPF/DMARC presence) ---
+    // Real signal from real TXT lookups, not inferred — an email domain
+    // with neither record is genuinely easier to spoof, the same real
+    // finding a dedicated email-security scanner would flag.
+    const hasSpf = dnsResult.txt.some((chunks) =>
+      chunks.join('').toLowerCase().startsWith('v=spf1'),
+    );
+    const hasDmarc = dmarcResult.txt.some((chunks) =>
+      chunks.join('').toLowerCase().startsWith('v=dmarc1'),
+    );
+    track(
+      await this.assetService.upsertObservedAsset({
+        domainId,
+        type: AssetType.DNS,
+        value: hostname,
+        metadata: { hasSpf, hasDmarc },
+      }),
+    );
 
     // --- Persist certificate asset ---
     let technologies: string[] = [];

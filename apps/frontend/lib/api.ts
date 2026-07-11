@@ -57,6 +57,19 @@ async function performRefresh(): Promise<string | null> {
   }
 }
 
+// Public auth endpoints that legitimately return 401 for a normal, expected
+// reason (wrong password, wrong/expired MFA code) — not "your session
+// died". Without this exclusion, a wrong code on the MFA step would be
+// treated exactly like an expired session: the interceptor finds no
+// refresh token (there never was a session yet), then hard-redirects to
+// /login, wiping the in-progress verification step and swallowing the
+// error before the login page's own `catch` block ever sees it.
+const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/mfa/verify", "/auth/register"];
+
+export function isPublicAuthRequest(url: string | undefined): boolean {
+  return !!url && PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -64,7 +77,11 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isPublicAuthRequest(originalRequest.url)
+    ) {
       originalRequest._retry = true;
 
       if (!refreshPromise) {

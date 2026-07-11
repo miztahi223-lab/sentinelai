@@ -10,6 +10,8 @@ import { useUpdateProfile } from "@/lib/hooks";
 import { TeamSection } from "@/components/TeamSection";
 import { ActivityLog } from "@/components/ActivityLog";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
+import { MfaSection } from "@/components/MfaSection";
+import { NotificationChannelsSection } from "@/components/NotificationChannelsSection";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
@@ -48,22 +50,23 @@ export default function SettingsPage() {
     <div className="max-w-2xl space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-white">{t("title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
+        <p className="mt-1 text-sm text-gray-400">{t("subtitle")}</p>
       </div>
 
       <section className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:border-gray-700">
         <h2 className="mb-4 text-sm font-medium text-gray-400">{t("account")}</h2>
         <dl className="space-y-3 text-sm">
           <div className="flex items-center justify-between gap-3">
-            <dt className="text-gray-500">{t("name")}</dt>
+            <dt className="text-gray-400">{t("name")}</dt>
             {editingName ? (
               <div className="flex items-center gap-1.5">
                 <input
                   autoFocus
+                  aria-label={t("name")}
                   value={nameDraft}
                   onChange={(e) => setNameDraft(e.target.value)}
                   maxLength={100}
-                  className="w-40 rounded-md border border-gray-700 bg-gray-950 px-2 py-1 text-sm text-gray-100 focus:border-indigo-500 focus:outline-none"
+                  className="w-40 rounded-md border border-gray-700 bg-gray-950 px-2 py-1 text-sm text-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
                 <button
                   onClick={saveName}
@@ -76,7 +79,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => setEditingName(false)}
                   aria-label="Cancel"
-                  className="rounded p-1 text-gray-500 hover:bg-gray-800"
+                  className="rounded p-1 text-gray-400 hover:bg-gray-800"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -87,7 +90,7 @@ export default function SettingsPage() {
                 <button
                   onClick={startEditingName}
                   aria-label={t("saveName")}
-                  className="rounded p-1 text-gray-500 hover:bg-gray-800 hover:text-gray-300"
+                  className="rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-300"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -106,11 +109,11 @@ export default function SettingsPage() {
             </p>
           )}
           <div className="flex justify-between">
-            <dt className="text-gray-500">{t("email")}</dt>
+            <dt className="text-gray-400">{t("email")}</dt>
             <dd className="text-gray-100">{user?.email}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-gray-500">{t("emailVerified")}</dt>
+            <dt className="text-gray-400">{t("emailVerified")}</dt>
             <dd className={user?.emailVerified ? "text-emerald-400" : "text-yellow-400"}>
               {user?.emailVerified ? t("verified") : t("pendingVerification")}
             </dd>
@@ -120,29 +123,33 @@ export default function SettingsPage() {
 
       <ChangePasswordForm />
 
+      <MfaSection />
+
       <section className="rounded-xl border border-gray-800 bg-gray-900/60 p-6 transition hover:border-gray-700">
         <h2 className="mb-4 text-sm font-medium text-gray-400">{t("organization")}</h2>
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <dt className="text-gray-500">{t("name")}</dt>
+            <dt className="text-gray-400">{t("name")}</dt>
             <dd className="text-gray-100">{org?.name}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-gray-500">{t("slug")}</dt>
+            <dt className="text-gray-400">{t("slug")}</dt>
             <dd className="text-gray-100">{org?.slug}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-gray-500">{t("plan")}</dt>
+            <dt className="text-gray-400">{t("plan")}</dt>
             <dd className="text-gray-100">{org?.subscription?.plan ?? "FREE"}</dd>
           </div>
         </dl>
       </section>
 
+      <NotificationChannelsSection organizationId={org?.id} />
+
       <TeamSection organizationId={org?.id} />
 
       <ActivityLog organizationId={org?.id} />
 
-      <p className="text-xs text-gray-600">{t("footnote")}</p>
+      <p className="text-xs text-gray-400">{t("footnote")}</p>
     </div>
   );
 }

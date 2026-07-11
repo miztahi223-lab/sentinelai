@@ -14,6 +14,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { AiNotConfiguredError, AiProviderError, AiService } from './ai.service';
+import { scoreFromFindings } from '../risk-engine/scoring.util';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
@@ -72,6 +73,8 @@ export class AiController {
           aiExplanation: analysis.explanation,
           aiBusinessImpact: analysis.businessImpact,
           aiRemediation: analysis.remediation,
+          aiDifficulty: analysis.difficulty,
+          aiPriority: analysis.priority,
         },
       });
     });
@@ -96,13 +99,7 @@ export class AiController {
       throw new ForbiddenException('You do not have access to this scan');
     }
 
-    const totalDeduction = scan.findings.reduce((sum, f) => {
-      const points = { CRITICAL: 30, HIGH: 18, MEDIUM: 10, LOW: 4, INFO: 0 }[
-        f.severity
-      ];
-      return sum + points;
-    }, 0);
-    const score = Math.max(0, Math.min(100, 100 - totalDeduction));
+    const score = scoreFromFindings(scan.findings);
 
     return this.runAiCall(async () => {
       const summary = await this.aiService.generateExecutiveSummary({
