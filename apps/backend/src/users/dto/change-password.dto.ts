@@ -1,11 +1,10 @@
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { IsString } from 'class-validator';
+import { StrongPassword } from '../../common/decorators/strong-password.decorator';
 
 export class ChangePasswordDto {
   @IsString()
   currentPassword!: string;
 
-  @IsString()
-  @MinLength(12, { message: 'Password must be at least 12 characters long' })
-  @MaxLength(128)
+  @StrongPassword()
   newPassword!: string;
 }

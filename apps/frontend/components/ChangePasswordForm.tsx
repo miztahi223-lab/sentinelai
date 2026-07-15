@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { isAxiosError } from "axios";
 import { useChangePassword } from "@/lib/hooks";
+import {
+  PasswordStrengthHint,
+  passwordMeetsRequirements,
+} from "@/components/PasswordStrengthHint";
 
 /**
  * Changing your password from an authenticated session — distinct from the
@@ -79,6 +83,7 @@ export function ChangePasswordForm() {
           required
           className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
+        <PasswordStrengthHint password={newPassword} />
         <label htmlFor="change-password-confirm" className="sr-only">
           {t("confirmNewPassword")}
         </label>
@@ -104,7 +109,7 @@ export function ChangePasswordForm() {
         )}
         <button
           type="submit"
-          disabled={changePassword.isPending}
+          disabled={changePassword.isPending || !passwordMeetsRequirements(newPassword)}
           className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-gray-800 disabled:text-gray-400"
         >
           {t("changePasswordSubmit")}

@@ -6,6 +6,10 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import {
+  PasswordStrengthHint,
+  passwordMeetsRequirements,
+} from "@/components/PasswordStrengthHint";
 import { api } from "@/lib/api";
 import { isAxiosError } from "axios";
 
@@ -111,11 +115,12 @@ function ResetPasswordForm() {
                 className="w-full rounded-md border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 placeholder={t("passwordPlaceholder")}
               />
+              <PasswordStrengthHint password={password} />
             </div>
 
             <button
               type="submit"
-              disabled={status === "submitting"}
+              disabled={status === "submitting" || !passwordMeetsRequirements(password)}
               className="w-full rounded-md bg-indigo-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-50"
             >
               {status === "submitting" ? t("resettingPassword") : t("resetPasswordButton")}
