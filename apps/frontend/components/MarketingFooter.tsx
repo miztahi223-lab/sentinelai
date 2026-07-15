@@ -9,7 +9,7 @@ export function MarketingFooter() {
     <footer className="border-t border-gray-800">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-gray-400 sm:flex-row">
         <p>
-          &copy; {new Date().getFullYear()} SentinelAI. {tFooter("rights")}
+          &copy; {new Date().getFullYear()} DomeCortex AI. {tFooter("rights")}
         </p>
         <div className="flex flex-wrap justify-center gap-6">
           <Link href="/features" className="transition hover:text-gray-300">

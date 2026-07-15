@@ -17,7 +17,7 @@ import { DnsService } from '../discovery/dns.service';
 // this. Matches the industry-standard pattern (Google Search Console,
 // Stripe, etc. all use a `<vendor>-verification=<token>` TXT record).
 export function verificationTxtValue(token: string): string {
-  return `sentinelai-verify=${token}`;
+  return `domecortex-verify=${token}`;
 }
 
 @Injectable()

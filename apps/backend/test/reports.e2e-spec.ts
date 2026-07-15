@@ -16,8 +16,8 @@ describe('Reports (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const ownerEmail = `e2e-reports-owner-${Date.now()}@sentinelai.dev`;
-  const outsiderEmail = `e2e-reports-outsider-${Date.now()}@sentinelai.dev`;
+  const ownerEmail = `e2e-reports-owner-${Date.now()}@domecortex.dev`;
+  const outsiderEmail = `e2e-reports-outsider-${Date.now()}@domecortex.dev`;
 
   let ownerToken: string;
   let outsiderToken: string;

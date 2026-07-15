@@ -14,7 +14,7 @@ import { AppModule } from './../src/app.module';
 describe('Users (e2e)', () => {
   let app: INestApplication<App>;
 
-  const email = `e2e-users-${Date.now()}@sentinelai.dev`;
+  const email = `e2e-users-${Date.now()}@domecortex.dev`;
   const originalPassword = 'SuperSecret123!';
   let accessToken: string;
   let refreshToken: string;

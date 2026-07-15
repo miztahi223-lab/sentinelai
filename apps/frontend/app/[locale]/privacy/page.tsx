@@ -7,8 +7,8 @@ import { buildMetadata } from "@/lib/seo";
 const LAST_UPDATED = "July 2026";
 
 const META_DESCRIPTION: Record<Locale, string> = {
-  en: "How SentinelAI collects, uses, and protects your data.",
-  he: "כיצד SentinelAI אוסף, משתמש ומגן על הנתונים שלכם.",
+  en: "How DomeCortex AI collects, uses, and protects your data.",
+  he: "כיצד DomeCortex AI אוסף, משתמש ומגן על הנתונים שלכם.",
 };
 
 const CONTENT: Record<Locale, { title: string; sections: { heading: string; body: string }[] }> = {
@@ -105,7 +105,7 @@ export async function generateMetadata({
   return buildMetadata({
     locale,
     path: "/privacy",
-    title: `${CONTENT[locale].title} — SentinelAI`,
+    title: `${CONTENT[locale].title} — DomeCortex AI`,
     description: META_DESCRIPTION[locale],
   });
 }

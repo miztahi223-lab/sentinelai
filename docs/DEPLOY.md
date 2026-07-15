@@ -1,4 +1,4 @@
-# Deploying SentinelAI for real
+# Deploying DomeCortex AI for real
 
 This is the copy-paste runbook for the day you have a real domain and a host.
 Everything in the product itself is already built, tested, and containerized
@@ -28,6 +28,9 @@ not a fresh investigation.
    AI-generated remediation guidance and executive summaries.
 6. *(Optional)* A real Coinbase Commerce account, if you want the crypto
    payment option live too.
+7. *(Optional)* A real Sentry project (sentry.io, free tier is enough to
+   start) — without it, errors are still logged to container logs via pino as
+   before, just not aggregated/alerted on anywhere.
 
 ## Steps
 
@@ -47,12 +50,12 @@ curl -fsSL https://get.docker.com | sh
 ### 3. Copy the repo and the pre-filled secrets to the server
 
 ```bash
-git clone <your-repo-url> sentinelai
-cd sentinelai
+git clone <your-repo-url> domecortex
+cd domecortex
 # Copy the .env.production file this build already generated for you
 # (JWT secrets and a Postgres password are already real, random values —
 # never regenerate these once real users exist, or every session breaks).
-scp .env.production youruser@yourserver:~/sentinelai/.env.production
+scp .env.production youruser@yourserver:~/domecortex/.env.production
 ```
 
 ### 4. Fill in the remaining real values in `.env.production`
@@ -69,7 +72,7 @@ SMTP_HOST=...          # from your SMTP provider
 SMTP_PORT=587
 SMTP_USER=...
 SMTP_PASS=...
-SMTP_FROM="SentinelAI <noreply@yourdomain.com>"
+SMTP_FROM="DomeCortex AI <noreply@yourdomain.com>"
 CONTACT_EMAIL=you@yourdomain.com
 
 STRIPE_SECRET_KEY=sk_live_...
@@ -79,6 +82,13 @@ STRIPE_PRICE_PROFESSIONAL=price_...
 STRIPE_PRICE_BUSINESS=price_...
 
 AI_API_KEY=sk-ant-...
+
+# Optional — leave blank to skip error tracking entirely
+SENTRY_DSN=https://...@o0.ingest.sentry.io/...          # backend project
+NEXT_PUBLIC_SENTRY_DSN=https://...@o0.ingest.sentry.io/...  # frontend project (can be a separate Sentry project)
+SENTRY_ORG=...            # only needed for readable source maps on the frontend
+SENTRY_PROJECT=...
+SENTRY_AUTH_TOKEN=...
 ```
 
 ### 5. Bring the stack up
@@ -125,10 +135,12 @@ scan actually runs.
   `app/[locale]/privacy`) have real, substantive written content — not
   placeholder text — but were not reviewed by an actual lawyer. Worth a
   real legal review before processing real payments.
-- **No error-tracking/monitoring service** (Sentry, Datadog, etc.) is wired
-  in yet. Not hard to add (a few lines in `main.ts` / the frontend root
-  layout), but genuinely not done — recommended before real user traffic so
-  production errors aren't only visible in container logs.
+- **Error tracking (Sentry) is wired in but inert without a real DSN.** Both
+  apps call `Sentry.init` already (backend: `SENTRY_DSN`; frontend:
+  `NEXT_PUBLIC_SENTRY_DSN`) and the backend reports every unhandled 5xx via a
+  global exception filter — but with no DSN configured, this is a genuine
+  no-op (same pattern as Stripe/AI before a real key exists), so production
+  errors are still only visible in container logs until you set one.
 - **No CI deploy step** — `.github/workflows/ci.yml` runs tests/build on
   every push but doesn't deploy anywhere; deployment above is manual until
   you tell me which host you picked, at which point I can add a real

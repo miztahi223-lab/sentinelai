@@ -61,7 +61,7 @@ function totp(
 describe('MFA (e2e)', () => {
   let app: INestApplication<App>;
 
-  const email = `e2e-mfa-${Date.now()}@sentinelai.dev`;
+  const email = `e2e-mfa-${Date.now()}@domecortex.dev`;
   const password = 'SuperSecret123!';
   let accessToken: string;
   let secret: string;

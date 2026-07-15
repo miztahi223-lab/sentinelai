@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     const refreshToken =
       typeof window !== "undefined"
-        ? localStorage.getItem("sentinelai_refresh_token")
+        ? localStorage.getItem("domecortex_refresh_token")
         : null;
     try {
       if (refreshToken) {

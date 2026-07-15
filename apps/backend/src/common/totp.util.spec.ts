@@ -52,9 +52,9 @@ describe('totp.util', () => {
 
   it('builds a real otpauth:// URI usable by authenticator apps', () => {
     const secret = generateTotpSecret();
-    const url = totpAuthUrl(secret, 'user@example.com', 'SentinelAI');
+    const url = totpAuthUrl(secret, 'user@example.com', 'DomeCortex AI');
     expect(url).toMatch(/^otpauth:\/\/totp\//);
     expect(url).toContain(`secret=${secret}`);
-    expect(url).toContain('issuer=SentinelAI');
+    expect(url).toContain('issuer=DomeCortex+AI');
   });
 });

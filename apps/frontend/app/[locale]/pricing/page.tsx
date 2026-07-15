@@ -18,7 +18,7 @@ export async function generateMetadata({
   return buildMetadata({
     locale,
     path: "/pricing",
-    title: `${t("title")} — SentinelAI`,
+    title: `${t("title")} — DomeCortex AI`,
     description: t("subtitle"),
   });
 }

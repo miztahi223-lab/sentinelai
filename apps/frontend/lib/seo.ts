@@ -35,7 +35,7 @@ export function buildMetadata(params: {
     openGraph: {
       title,
       description,
-      siteName: "SentinelAI",
+      siteName: "DomeCortex AI",
       locale,
       type: "website",
       url: `${SITE_URL}/${locale}${path}`,

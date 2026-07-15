@@ -1,10 +1,10 @@
 {
   "brand": {
-    "name": "SentinelAI"
+    "name": "DomeCortex AI"
   },
   "meta": {
-    "title": "SentinelAI — Know what attackers can see before they do",
-    "description": "Continuous website and online security monitoring, a clear 0-100 security score, and AI-powered fixes explained in plain English — start free, no credit card required."
+    "title": "DomeCortex AI — Know what attackers can see before they do",
+    "description": "An Iron Dome for your website: continuous security monitoring, a clear 0-100 security score, and AI-powered fixes explained in plain English — start free, no credit card required."
   },
   "nav": {
     "features": "Features",
@@ -50,10 +50,10 @@
     "errorDefault": "Could not accept this invitation."
   },
   "landing": {
-    "heroEyebrow": "Security monitoring for business owners",
+    "heroEyebrow": "An Iron Dome for small business websites",
     "heroTitleLine1": "Know what attackers can see",
     "heroTitleLine2": "before they do.",
-    "heroSubtitle": "SentinelAI continuously checks your website and online accounts for weaknesses hackers could exploit, explains what's wrong in plain English, and tells you exactly what to fix — before it costs you customers or data.",
+    "heroSubtitle": "DomeCortex AI continuously checks your website and online accounts for weaknesses hackers could exploit, explains what's wrong in plain English, and tells you exactly what to fix — before it costs you customers or data.",
     "ctaStart": "Start free trial",
     "ctaSee": "See how it works",
     "heroNoCreditCard": "Free plan, no credit card required",
@@ -73,17 +73,17 @@
     "heroStat3Value": "24/7",
     "heroStat3Label": "continuous re-scanning",
     "previewTitle": "This is the actual product — not a mockup",
-    "previewSubtitle": "A real security score, real findings, on a real tracked domain — every screenshot on this page is a live screen from SentinelAI.",
+    "previewSubtitle": "A real security score, real findings, on a real tracked domain — every screenshot on this page is a live screen from DomeCortex AI.",
     "previewBadge": "Live dashboard",
-    "previewAlt": "SentinelAI dashboard showing a security score of 78/100 (C+) for iana.org with three real findings, including a missing TLS certificate and a missing permissions-policy header",
+    "previewAlt": "DomeCortex AI dashboard showing a security score of 78/100 (C+) for iana.org with three real findings, including a missing TLS certificate and a missing permissions-policy header",
     "spotlightReportsBadge": "PDF reports",
     "spotlightReportsTitle": "A report you can actually hand to your board",
     "spotlightReportsDesc": "One click generates a clean, exportable PDF — score, every asset discovered, every finding with severity, and a plain-language recommendations list. Download it or email it straight to yourself.",
-    "spotlightReportsAlt": "A real generated SentinelAI PDF security report showing a score of 72/100, 6 discovered assets, and 3 findings with severity levels and recommendations",
+    "spotlightReportsAlt": "A real generated DomeCortex AI PDF security report showing a score of 72/100, 6 discovered assets, and 3 findings with severity levels and recommendations",
     "spotlightAlertsBadge": "Real-time alerts",
     "spotlightAlertsTitle": "See the change the moment it happens",
     "spotlightAlertsDesc": "New subdomain, new IP, a certificate about to expire — every change to your online footprint lands in one feed, with an unread count that follows you around the app.",
-    "spotlightAlertsAlt": "A real SentinelAI alerts feed listing newly discovered subdomains and IP addresses for iana.org, each with a timestamp and a mark-as-read action",
+    "spotlightAlertsAlt": "A real DomeCortex AI alerts feed listing newly discovered subdomains and IP addresses for iana.org, each with a timestamp and a mark-as-read action",
     "featuresTitle": "Everything you need to protect your business online",
     "feature1Title": "Continuous asset discovery",
     "feature1Desc": "Automatically maps your subdomains, IPs, TLS certificates, and exposed services — no manual inventory required.",
@@ -117,7 +117,7 @@
     "whyNowStatSource": "Source: IBM Cost of a Data Breach Report (ibm.com/reports/data-breach)",
     "smallBizEyebrow": "A solution built for small and medium-sized businesses",
     "smallBizTitle": "You don't need to know what a subdomain is for this to work",
-    "smallBizSubtitle": "Most security monitoring tools are built for enterprise security teams. SentinelAI is built for the small or medium-sized business that doesn't have one — whether the \"security team\" is you, alone, right now.",
+    "smallBizSubtitle": "Most security monitoring tools are built for enterprise security teams. DomeCortex AI is built for the small or medium-sized business that doesn't have one — whether the \"security team\" is you, alone, right now.",
     "smallBizPoint1Title": "No jargon",
     "smallBizPoint1Desc": "Every finding is explained in plain language — what it means, why it matters, and what to do about it. Not a technical scan dump you need a specialist to translate.",
     "smallBizPoint2Title": "Nothing to install",
@@ -130,16 +130,16 @@
     "translationTitle": "You shouldn't need a computer science degree to understand your own website",
     "translationOtherToolsLabel": "What most security tools show you",
     "translationOtherToolsText": "No valid TLS certificate observed — No TLS certificate could be retrieved on port 443 — the site may be HTTP-only or unreachable over HTTPS.",
-    "translationSentinelLabel": "What SentinelAI shows you",
+    "translationSentinelLabel": "What DomeCortex AI shows you",
     "translationSentinelHeadline": "Your website is not secure",
     "translationSentinelText": "Your site has no working security certificate. Visitors likely see a scary warning page instead of your site, and anything they type in — passwords, card numbers — isn't protected on the way there.",
     "translationFootnote": "Both are the exact same real finding from the exact same real scan — the technical wording is always still one click away, it's just no longer the first thing you have to decode.",
     "globeEyebrow": "Continuous discovery, mapped",
     "globeTitle": "Everything hackers could find, in one live map",
-    "globeSubtitle": "Every domain, subdomain, IP, and certificate SentinelAI discovers becomes a node in a map that's redrawn with every scan — so you're never guessing what's actually exposed.",
+    "globeSubtitle": "Every domain, subdomain, IP, and certificate DomeCortex AI discovers becomes a node in a map that's redrawn with every scan — so you're never guessing what's actually exposed.",
     "tunnelEyebrow": "Monitoring that never sleeps",
     "tunnelTitle": "Every second, your business is being watched — by us, not them",
-    "tunnelSubtitle": "Each pulse traveling down this line is a heartbeat — the same rhythm as SentinelAI's re-scans, running continuously in the background so a new exposure never sits unnoticed for long.",
+    "tunnelSubtitle": "Each pulse traveling down this line is a heartbeat — the same rhythm as DomeCortex AI's re-scans, running continuously in the background so a new exposure never sits unnoticed for long.",
     "trustTitle": "Built the way a security tool should be",
     "trustPoint1Title": "Read-only reconnaissance",
     "trustPoint1Desc": "Discovery only ever reads what's already publicly reachable (DNS, TLS, HTTP) — it never attempts to exploit, modify, or authenticate against anything.",
@@ -151,9 +151,9 @@
     "trustPoint4Desc": "Outbound scanning is checked against private/internal address ranges before every connection, so the platform itself can't be turned into a tool against internal infrastructure.",
     "faqTitle": "Questions, answered",
     "faq1Q": "Do I need to install anything?",
-    "faq1A": "No. SentinelAI only needs a domain name — everything it discovers is reachable the same way a browser or search engine would reach it.",
+    "faq1A": "No. DomeCortex AI only needs a domain name — everything it discovers is reachable the same way a browser or search engine would reach it.",
     "faq2Q": "Can I scan a domain I don't own?",
-    "faq2A": "Only scan domains you own or are authorized to test. SentinelAI performs read-only, non-intrusive reconnaissance, but you're responsible for having the right to monitor any domain you add.",
+    "faq2A": "Only scan domains you own or are authorized to test. DomeCortex AI performs read-only, non-intrusive reconnaissance, but you're responsible for having the right to monitor any domain you add.",
     "faq3Q": "What happens on the Free plan?",
     "faq3A": "You get one domain, weekly scans, and full access to security scoring and findings — no credit card, no time limit.",
     "faq4Q": "Can I cancel anytime?",
@@ -161,7 +161,7 @@
     "faq5Q": "How is the security score calculated?",
     "faq5A": "It starts at 100 and deducts real, traceable points across five categories — SSL, headers, exposure, configuration, and asset changes. Every point lost links to a specific finding you can inspect.",
     "faq6Q": "I'm not technical at all — is this really for me?",
-    "faq6A": "Yes. SentinelAI is built so a business owner with no security background can use it end-to-end: plain-language findings instead of jargon, a prioritized to-do list instead of a raw scan dump, and nothing to install. If you get stuck, a real person reads every message sent through the contact form.",
+    "faq6A": "Yes. DomeCortex AI is built so a business owner with no security background can use it end-to-end: plain-language findings instead of jargon, a prioritized to-do list instead of a raw scan dump, and nothing to install. If you get stuck, a real person reads every message sent through the contact form.",
     "faq7Q": "What do I actually do with the results?",
     "faq7A": "Every finding tells you what it means and what to do about it in plain language, and — when AI analysis is configured — a specific step-by-step fix. You don't need to interpret raw technical output yourself.",
     "faq8Q": "Will the alerts be full of technical terms I won't understand?",
@@ -185,7 +185,7 @@
   },
   "features": {
     "title": "Built for teams who need to know, not just scan",
-    "subtitle": "SentinelAI goes from raw discovery to a prioritized, explained, exportable action list — automatically.",
+    "subtitle": "DomeCortex AI goes from raw discovery to a prioritized, explained, exportable action list — automatically.",
     "feature1Title": "Continuous asset discovery",
     "feature1Desc": "Every scan resolves DNS (A/AAAA/CNAME/MX/TXT/NS), enumerates common subdomains, inspects the live TLS certificate on port 443, probes HTTP/HTTPS for headers and redirects, and fingerprints server/framework technology from real response signatures — then stores the result as a versioned asset, so you can see exactly what changed and when.",
     "feature2Title": "Auditable security scoring",
@@ -213,7 +213,7 @@
   "plans": {
     "free": {
       "name": "Free",
-      "description": "Try SentinelAI on a single domain.",
+      "description": "Try DomeCortex AI on a single domain.",
       "feature1": "1 domain",
       "feature2": "Weekly scans",
       "feature3": "Security score & findings",
@@ -254,7 +254,7 @@
   },
   "status": {
     "title": "Status",
-    "subtitle": "A real, live check of SentinelAI's own systems — not a historical uptime record.",
+    "subtitle": "A real, live check of DomeCortex AI's own systems — not a historical uptime record.",
     "apiName": "API",
     "databaseName": "Database",
     "checking": "Checking...",
@@ -266,7 +266,7 @@
   },
   "contact": {
     "title": "Contact us",
-    "subtitle": "Questions about SentinelAI? Send us a message and we'll get back to you.",
+    "subtitle": "Questions about DomeCortex AI? Send us a message and we'll get back to you.",
     "sentMessage": "Thanks — your message has been sent. We'll be in touch.",
     "name": "Name",
     "email": "Email",
@@ -390,7 +390,7 @@
   },
   "domains": {
     "title": "Domains",
-    "subtitle": "Domains SentinelAI monitors for this organization.",
+    "subtitle": "Domains DomeCortex AI monitors for this organization.",
     "placeholder": "example.com",
     "add": "Add domain",
     "adding": "Adding...",
@@ -537,7 +537,7 @@
     "payWithCrypto": "Pay with crypto instead",
     "startingCryptoCheckout": "Starting crypto checkout...",
     "cryptoErrorDefault": "Could not start crypto checkout — it may not be configured on this deployment yet.",
-    "cryptoFootnote": "Crypto checkout is an additional payment method for your existing, logged-in organization — the charge is created for your real account (via Coinbase Commerce) exactly like a card payment, with the same audit-log entry. There is no anonymous or guest checkout option; every payment on SentinelAI is always tied to an identified account, whichever payment method you use."
+    "cryptoFootnote": "Crypto checkout is an additional payment method for your existing, logged-in organization — the charge is created for your real account (via Coinbase Commerce) exactly like a card payment, with the same audit-log entry. There is no anonymous or guest checkout option; every payment on DomeCortex AI is always tied to an identified account, whichever payment method you use."
   },
   "assetCard": {
     "active": "Active",

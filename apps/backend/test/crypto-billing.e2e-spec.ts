@@ -19,8 +19,8 @@ import { AppModule } from './../src/app.module';
 describe('Crypto billing (e2e)', () => {
   let app: INestApplication<App>;
 
-  const ownerEmail = `e2e-crypto-owner-${Date.now()}@sentinelai.dev`;
-  const memberEmail = `e2e-crypto-member-${Date.now()}@sentinelai.dev`;
+  const ownerEmail = `e2e-crypto-owner-${Date.now()}@domecortex.dev`;
+  const memberEmail = `e2e-crypto-member-${Date.now()}@domecortex.dev`;
 
   let ownerToken: string;
   let memberToken: string;

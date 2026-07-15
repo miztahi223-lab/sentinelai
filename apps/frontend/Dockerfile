@@ -21,6 +21,18 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # yet) rather than a fake placeholder domain.
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+# Same "baked in at build time" reasoning — DSNs are safe to expose
+# client-side by design (not a secret). SENTRY_ORG/PROJECT/AUTH_TOKEN are
+# only used by the build-time source-map-upload step (optional — the build
+# skips it without a real token rather than failing).
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+ARG SENTRY_ORG=""
+ENV SENTRY_ORG=$SENTRY_ORG
+ARG SENTRY_PROJECT=""
+ENV SENTRY_PROJECT=$SENTRY_PROJECT
+ARG SENTRY_AUTH_TOKEN=""
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
 RUN npm run build
 
 # --- runtime: only the standalone server output + static assets, nothing else ---
@@ -39,13 +51,13 @@ ENV NODE_ENV=production
 # exact failure mode is what surfaced it during verification).
 ENV HOSTNAME=0.0.0.0
 
-RUN addgroup -S sentinelai && adduser -S sentinelai -G sentinelai
+RUN addgroup -S domecortex && adduser -S domecortex -G domecortex
 
 COPY --from=build /app/public ./public
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 
-USER sentinelai
+USER domecortex
 
 EXPOSE 3000
 

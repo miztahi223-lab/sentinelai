@@ -96,7 +96,7 @@ function scoreColor(score: number): string {
  * No raster company logo image exists anywhere in this codebase (checked
  * before claiming this handles "Company Logo" — `apps/frontend/public` has
  * no logo file) — the wordmark rendered here is the same real brand mark
- * every other surface of this product uses (styled "Sentinel" + "AI"
+ * every other surface of this product uses (styled "DomeCortex" + "AI"
  * text), not a placeholder graphic standing in for a real logo that
  * doesn't exist.
  */
@@ -140,9 +140,9 @@ export class PdfGeneratorService {
     doc
       .fontSize(22)
       .fillColor('#111827')
-      .text('Sentinel', { continued: true })
+      .text('DomeCortex', { continued: true })
       .fillColor(BRAND_COLOR)
-      .text('AI', { continued: true })
+      .text(' AI', { continued: true })
       .fillColor('#111827')
       .text(' — Security Report');
     doc.moveDown(0.3);
@@ -364,7 +364,7 @@ export class PdfGeneratorService {
         .fontSize(8)
         .fillColor('#9ca3af')
         .text(
-          `SentinelAI — Page ${i + 1} of ${range.count}`,
+          `DomeCortex AI — Page ${i + 1} of ${range.count}`,
           50,
           doc.page.height - 40,
           { align: 'center', width: doc.page.width - 100 },

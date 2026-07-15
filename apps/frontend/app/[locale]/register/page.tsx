@@ -60,7 +60,7 @@ function RegisterForm() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link href="/" className="text-2xl font-semibold tracking-tight text-white">
-            Sentinel<span className="text-indigo-400">AI</span>
+            DomeCortex <span className="text-indigo-400">AI</span>
           </Link>
           <p className="mt-2 text-sm text-gray-400">{t("registerTitle")}</p>
         </div>

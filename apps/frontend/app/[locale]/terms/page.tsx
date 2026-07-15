@@ -7,8 +7,8 @@ import { buildMetadata } from "@/lib/seo";
 const LAST_UPDATED = "July 2026";
 
 const META_DESCRIPTION: Record<Locale, string> = {
-  en: "The terms that govern using SentinelAI's attack-surface monitoring service.",
-  he: "התנאים המסדירים את השימוש בשירות ניטור נוכחות המקוונת של SentinelAI.",
+  en: "The terms that govern using DomeCortex AI's attack-surface monitoring service.",
+  he: "התנאים המסדירים את השימוש בשירות ניטור נוכחות המקוונת של DomeCortex AI.",
 };
 
 const CONTENT: Record<Locale, { title: string; sections: { heading: string; body: string }[] }> = {
@@ -17,15 +17,15 @@ const CONTENT: Record<Locale, { title: string; sections: { heading: string; body
     sections: [
       {
         heading: "1. Acceptance of these terms",
-        body: "By creating an account or using SentinelAI (the \"Service\"), you agree to these Terms of Service. If you're using the Service on behalf of an organization, you're agreeing on that organization's behalf and confirming you have the authority to do so.",
+        body: "By creating an account or using DomeCortex AI (the \"Service\"), you agree to these Terms of Service. If you're using the Service on behalf of an organization, you're agreeing on that organization's behalf and confirming you have the authority to do so.",
       },
       {
         heading: "2. What the Service does",
-        body: "SentinelAI performs read-only, non-intrusive discovery and monitoring of publicly reachable information about domains you add — DNS records, subdomains, TLS certificates, and HTTP responses — and produces a security score, findings, alerts, and reports based on that information.",
+        body: "DomeCortex AI performs read-only, non-intrusive discovery and monitoring of publicly reachable information about domains you add — DNS records, subdomains, TLS certificates, and HTTP responses — and produces a security score, findings, alerts, and reports based on that information.",
       },
       {
         heading: "3. Authorized use only — this is the most important section",
-        body: "You may only add and scan domains that you own, or that you have clear, documented authorization to monitor. SentinelAI is a defensive reconnaissance tool, not a penetration-testing or exploitation tool, but running any kind of scan against infrastructure you don't control or have permission to test can violate the law and other parties' terms of service. You are solely responsible for confirming you have the right to monitor any domain you add, and for any consequences of failing to do so.",
+        body: "You may only add and scan domains that you own, or that you have clear, documented authorization to monitor. DomeCortex AI is a defensive reconnaissance tool, not a penetration-testing or exploitation tool, but running any kind of scan against infrastructure you don't control or have permission to test can violate the law and other parties' terms of service. You are solely responsible for confirming you have the right to monitor any domain you add, and for any consequences of failing to do so.",
       },
       {
         heading: "4. Accounts",
@@ -41,7 +41,7 @@ const CONTENT: Record<Locale, { title: string; sections: { heading: string; body
       },
       {
         heading: "7. Disclaimer and limitation of liability",
-        body: "The Service is provided \"as is.\" Security scoring and findings are informational and best-effort — they are not a guarantee that a domain is secure, nor a substitute for a professional security assessment. To the maximum extent permitted by law, SentinelAI is not liable for indirect, incidental, or consequential damages arising from use of the Service.",
+        body: "The Service is provided \"as is.\" Security scoring and findings are informational and best-effort — they are not a guarantee that a domain is secure, nor a substitute for a professional security assessment. To the maximum extent permitted by law, DomeCortex AI is not liable for indirect, incidental, or consequential damages arising from use of the Service.",
       },
       {
         heading: "8. Changes to these terms",
@@ -58,15 +58,15 @@ const CONTENT: Record<Locale, { title: string; sections: { heading: string; body
     sections: [
       {
         heading: "1. הסכמה לתנאים אלה",
-        body: "על ידי יצירת חשבון או שימוש ב-SentinelAI (\"השירות\"), אתם מסכימים לתנאי שימוש אלה. אם אתם משתמשים בשירות מטעם ארגון, אתם מסכימים בשם אותו ארגון ומאשרים שיש לכם את הסמכות לעשות זאת.",
+        body: "על ידי יצירת חשבון או שימוש ב-DomeCortex AI (\"השירות\"), אתם מסכימים לתנאי שימוש אלה. אם אתם משתמשים בשירות מטעם ארגון, אתם מסכימים בשם אותו ארגון ומאשרים שיש לכם את הסמכות לעשות זאת.",
       },
       {
         heading: "2. מה השירות עושה",
-        body: "SentinelAI מבצע גילוי וניטור לקריאה בלבד ולא פולשני של מידע נגיש באופן ציבורי על דומיינים שאתם מוסיפים — רשומות DNS, תת-דומיינים, אישורי TLS ותגובות HTTP — ומפיק ציון אבטחה, ממצאים, התראות ודוחות על סמך מידע זה.",
+        body: "DomeCortex AI מבצע גילוי וניטור לקריאה בלבד ולא פולשני של מידע נגיש באופן ציבורי על דומיינים שאתם מוסיפים — רשומות DNS, תת-דומיינים, אישורי TLS ותגובות HTTP — ומפיק ציון אבטחה, ממצאים, התראות ודוחות על סמך מידע זה.",
       },
       {
         heading: "3. שימוש מורשה בלבד — זה הסעיף החשוב ביותר",
-        body: "אתם רשאים להוסיף ולסרוק רק דומיינים שבבעלותכם, או שיש לכם הרשאה ברורה ומתועדת לנטר אותם. SentinelAI הוא כלי סיור מודיעיני הגנתי, לא כלי לבדיקות חדירה או ניצול, אבל הרצת כל סוג של סריקה נגד תשתית שאינה בשליטתכם או שאין לכם הרשאה לבדוק עלולה להפר את החוק ואת תנאי השימוש של צדדים אחרים. האחריות המלאה לוודא שיש לכם את הזכות לנטר כל דומיין שאתם מוסיפים, ולכל תוצאה של אי-עמידה בכך, מוטלת עליכם בלבד.",
+        body: "אתם רשאים להוסיף ולסרוק רק דומיינים שבבעלותכם, או שיש לכם הרשאה ברורה ומתועדת לנטר אותם. DomeCortex AI הוא כלי סיור מודיעיני הגנתי, לא כלי לבדיקות חדירה או ניצול, אבל הרצת כל סוג של סריקה נגד תשתית שאינה בשליטתכם או שאין לכם הרשאה לבדוק עלולה להפר את החוק ואת תנאי השימוש של צדדים אחרים. האחריות המלאה לוודא שיש לכם את הזכות לנטר כל דומיין שאתם מוסיפים, ולכל תוצאה של אי-עמידה בכך, מוטלת עליכם בלבד.",
       },
       {
         heading: "4. חשבונות",
@@ -82,7 +82,7 @@ const CONTENT: Record<Locale, { title: string; sections: { heading: string; body
       },
       {
         heading: "7. כתב ויתור והגבלת אחריות",
-        body: "השירות ניתן \"כפי שהוא\" (as is). דירוג האבטחה והממצאים הם אינפורמטיביים ומבוססי מאמץ סביר — הם אינם מהווים ערובה לכך שדומיין מאובטח, ואינם תחליף להערכת אבטחה מקצועית. במידה המרבית המותרת על פי חוק, SentinelAI אינו אחראי לנזקים עקיפים, אגביים או תוצאתיים הנובעים משימוש בשירות.",
+        body: "השירות ניתן \"כפי שהוא\" (as is). דירוג האבטחה והממצאים הם אינפורמטיביים ומבוססי מאמץ סביר — הם אינם מהווים ערובה לכך שדומיין מאובטח, ואינם תחליף להערכת אבטחה מקצועית. במידה המרבית המותרת על פי חוק, DomeCortex AI אינו אחראי לנזקים עקיפים, אגביים או תוצאתיים הנובעים משימוש בשירות.",
       },
       {
         heading: "8. שינויים בתנאים אלה",
@@ -105,7 +105,7 @@ export async function generateMetadata({
   return buildMetadata({
     locale,
     path: "/terms",
-    title: `${CONTENT[locale].title} — SentinelAI`,
+    title: `${CONTENT[locale].title} — DomeCortex AI`,
     description: META_DESCRIPTION[locale],
   });
 }

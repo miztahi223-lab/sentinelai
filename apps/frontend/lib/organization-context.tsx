@@ -12,7 +12,7 @@ interface OrganizationContextValue {
 
 const OrganizationContext = createContext<OrganizationContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "sentinelai_current_org_id";
+const STORAGE_KEY = "domecortex_current_org_id";
 
 /**
  * Added once team invitations (a real member can now belong to more than

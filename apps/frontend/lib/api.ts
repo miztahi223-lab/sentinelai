@@ -3,8 +3,8 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
-const ACCESS_TOKEN_KEY = "sentinelai_access_token";
-const REFRESH_TOKEN_KEY = "sentinelai_refresh_token";
+const ACCESS_TOKEN_KEY = "domecortex_access_token";
+const REFRESH_TOKEN_KEY = "domecortex_refresh_token";
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;

@@ -3,7 +3,7 @@ import Image from "next/image";
 /**
  * A stylized macOS-style browser chrome wrapping a real product screenshot.
  * Purely decorative framing — the screenshot itself (passed via `src`) is a
- * genuine, unedited capture of the live SentinelAI dashboard (see
+ * genuine, unedited capture of the live DomeCortex AI dashboard (see
  * `docs/PROGRESS.md`, "Enhancement: real product preview" for how it was
  * taken). No fabricated data is drawn here; this component only adds a
  * window frame and an address bar around a real screenshot.
@@ -11,7 +11,7 @@ import Image from "next/image";
 export function BrowserFrame({
   src,
   alt,
-  url = "app.sentinelai.dev/dashboard",
+  url = "app.domecortex.dev/dashboard",
 }: {
   src: string;
   alt: string;

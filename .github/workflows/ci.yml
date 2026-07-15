@@ -22,13 +22,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: sentinel
+          POSTGRES_USER: domecortex
           POSTGRES_PASSWORD: sentinel_ci_password
-          POSTGRES_DB: sentinelai_test
+          POSTGRES_DB: domecortex_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U sentinel -d sentinelai_test"
+          --health-cmd "pg_isready -U domecortex -d domecortex_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -47,7 +47,7 @@ jobs:
         working-directory: apps/backend
 
     env:
-      DATABASE_URL: postgresql://sentinel:sentinel_ci_password@localhost:5432/sentinelai_test?schema=public
+      DATABASE_URL: postgresql://domecortex:sentinel_ci_password@localhost:5432/domecortex_test?schema=public
       REDIS_HOST: localhost
       REDIS_PORT: "6379"
       JWT_ACCESS_SECRET: ci-only-access-secret-not-a-real-production-value
@@ -84,7 +84,15 @@ jobs:
         run: npm run test
 
       - name: End-to-end tests
-        run: npm run test:e2e
+        # --maxWorkers=2: each suite boots a real Nest app against the real
+        # Postgres/Redis services above. Jest's default worker count scales
+        # with detected CPUs, and on a many-core runner that means dozens of
+        # real app instances competing for the same Postgres connection pool
+        # at once — reproduced locally on a 14-core box as `afterAll` /
+        # `app.close()` timeouts cascading across unrelated suites (14/15
+        # failing), which a bounded worker count (matching a realistic
+        # small CI runner) fixed to a clean 15/15 every time.
+        run: npm run test:e2e -- --maxWorkers=2
 
   frontend:
     name: Frontend (lint, test, build)
@@ -129,7 +137,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build backend image
-        run: docker build -t sentinelai-backend:ci apps/backend
+        run: docker build -t domecortex-backend:ci apps/backend
 
       - name: Build frontend image
-        run: docker build -t sentinelai-frontend:ci apps/frontend
+        run: docker build -t domecortex-frontend:ci apps/frontend

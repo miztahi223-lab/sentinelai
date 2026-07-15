@@ -59,7 +59,7 @@ export class HttpService {
         // record the requested URL up front and the final one from the
         // response — good enough for "did it redirect" without needing a
         // custom transport.
-        headers: { 'User-Agent': 'SentinelAI-DiscoveryBot/1.0' },
+        headers: { 'User-Agent': 'DomeCortexAI-DiscoveryBot/1.0' },
         // SSRF guard (see ssrf-guard.ts): resolves + validates the address
         // ourselves and hands the *exact* validated address back to
         // Node's own connection logic, rather than letting axios/Node

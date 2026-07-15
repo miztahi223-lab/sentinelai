@@ -14,7 +14,7 @@ interface DomainVerificationProps {
 // each side rather than guessed independently, so instructions never drift
 // from what a real DNS lookup will actually accept.
 function verificationTxtValue(token: string): string {
-  return `sentinelai-verify=${token}`;
+  return `domecortex-verify=${token}`;
 }
 
 export function DomainVerification({ domain }: DomainVerificationProps) {

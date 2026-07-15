@@ -31,7 +31,7 @@ ENV NODE_ENV=production
 
 # Run as a non-root user rather than the container default root — a
 # compromised Node process shouldn't have root inside its own container.
-RUN addgroup -S sentinelai && adduser -S sentinelai -G sentinelai
+RUN addgroup -S domecortex && adduser -S domecortex -G domecortex
 
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
@@ -41,9 +41,9 @@ COPY package*.json ./
 COPY docker-entrypoint.sh ./
 RUN chmod +x ./docker-entrypoint.sh
 
-RUN mkdir -p /app/storage/reports && chown -R sentinelai:sentinelai /app
+RUN mkdir -p /app/storage/reports && chown -R domecortex:domecortex /app
 
-USER sentinelai
+USER domecortex
 
 EXPOSE 3001
 

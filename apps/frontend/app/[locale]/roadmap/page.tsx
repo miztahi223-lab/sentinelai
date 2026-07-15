@@ -26,7 +26,7 @@ const CONTENT: Record<
       },
       {
         heading: "Custom report branding",
-        body: "Reports carry SentinelAI's own branding today. Letting an organization add its own logo to reports it generates is planned, for teams that share these with their own clients or leadership.",
+        body: "Reports carry DomeCortex AI's own branding today. Letting an organization add its own logo to reports it generates is planned, for teams that share these with their own clients or leadership.",
       },
       {
         heading: "Two-factor authentication",
@@ -52,7 +52,7 @@ const CONTENT: Record<
       },
       {
         heading: "מיתוג מותאם אישית לדוחות",
-        body: "דוחות נושאים כיום את המיתוג של SentinelAI עצמו. אפשרות לארגון להוסיף את הלוגו שלו לדוחות שהוא מייצר מתוכננת, עבור צוותים שמשתפים אותם עם הלקוחות או ההנהלה שלהם.",
+        body: "דוחות נושאים כיום את המיתוג של DomeCortex AI עצמו. אפשרות לארגון להוסיף את הלוגו שלו לדוחות שהוא מייצר מתוכננת, עבור צוותים שמשתפים אותם עם הלקוחות או ההנהלה שלהם.",
       },
       {
         heading: "אימות דו-שלבי",
@@ -75,7 +75,7 @@ export async function generateMetadata({
   return buildMetadata({
     locale,
     path: "/roadmap",
-    title: `${CONTENT[locale].title} — SentinelAI`,
+    title: `${CONTENT[locale].title} — DomeCortex AI`,
     description: CONTENT[locale].subtitle,
   });
 }

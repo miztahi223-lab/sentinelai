@@ -66,7 +66,7 @@ export function Sidebar() {
     <>
       <div className="flex h-14 items-center justify-between border-b border-gray-800 bg-gray-950 px-4 lg:hidden">
         <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-white">
-          Sentinel<span className="text-indigo-400">AI</span>
+          DomeCortex <span className="text-indigo-400">AI</span>
         </Link>
         <button
           type="button"
@@ -102,7 +102,7 @@ export function Sidebar() {
       >
         <div className="mb-6 flex items-center justify-between px-2">
           <Link href="/dashboard" className="text-xl font-semibold tracking-tight text-white">
-            Sentinel<span className="text-indigo-400">AI</span>
+            DomeCortex <span className="text-indigo-400">AI</span>
           </Link>
           <button
             type="button"

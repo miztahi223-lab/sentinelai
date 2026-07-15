@@ -45,7 +45,7 @@ export default function InvitationAcceptPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm text-center">
         <Link href="/" className="text-2xl font-semibold tracking-tight text-white">
-          Sentinel<span className="text-indigo-400">AI</span>
+          DomeCortex <span className="text-indigo-400">AI</span>
         </Link>
 
         <div className="mt-8 space-y-4 rounded-xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl">

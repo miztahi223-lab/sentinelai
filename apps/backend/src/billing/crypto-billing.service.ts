@@ -104,7 +104,7 @@ export class CryptoBillingService {
         'X-CC-Version': '2018-03-22',
       },
       body: JSON.stringify({
-        name: `SentinelAI — ${params.plan} plan`,
+        name: `DomeCortex AI — ${params.plan} plan`,
         description: `Monthly subscription for ${params.organizationName}`,
         pricing_type: 'fixed_price',
         local_price: { amount: amountUsd.toFixed(2), currency: 'USD' },

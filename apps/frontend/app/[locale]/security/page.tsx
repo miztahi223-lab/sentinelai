@@ -20,7 +20,7 @@ const CONTENT: Record<
 > = {
   en: {
     title: "Security",
-    subtitle: "How SentinelAI itself is built — not just what it checks for you.",
+    subtitle: "How DomeCortex AI itself is built — not just what it checks for you.",
     sections: [
       {
         heading: "Read-only reconnaissance, always",
@@ -44,13 +44,13 @@ const CONTENT: Record<
       },
       {
         heading: "Found a security issue?",
-        body: "If you believe you've found a security vulnerability in SentinelAI itself, please tell us through the contact page rather than a public issue or social media — we read and respond to every message sent that way.",
+        body: "If you believe you've found a security vulnerability in DomeCortex AI itself, please tell us through the contact page rather than a public issue or social media — we read and respond to every message sent that way.",
       },
     ],
   },
   he: {
     title: "אבטחה",
-    subtitle: "איך SentinelAI עצמו בנוי — לא רק מה הוא בודק עבורכם.",
+    subtitle: "איך DomeCortex AI עצמו בנוי — לא רק מה הוא בודק עבורכם.",
     sections: [
       {
         heading: "סיור מודיעיני לקריאה בלבד, תמיד",
@@ -74,7 +74,7 @@ const CONTENT: Record<
       },
       {
         heading: "מצאתם בעיית אבטחה?",
-        body: "אם אתם סבורים שמצאתם פגיעות אבטחה ב-SentinelAI עצמו, אנא ספרו לנו דרך עמוד יצירת הקשר ולא דרך issue ציבורי או רשת חברתית — אנחנו קוראים ומגיבים לכל הודעה שנשלחת בדרך הזו.",
+        body: "אם אתם סבורים שמצאתם פגיעות אבטחה ב-DomeCortex AI עצמו, אנא ספרו לנו דרך עמוד יצירת הקשר ולא דרך issue ציבורי או רשת חברתית — אנחנו קוראים ומגיבים לכל הודעה שנשלחת בדרך הזו.",
       },
     ],
   },
@@ -89,7 +89,7 @@ export async function generateMetadata({
   return buildMetadata({
     locale,
     path: "/security",
-    title: `${CONTENT[locale].title} — SentinelAI`,
+    title: `${CONTENT[locale].title} — DomeCortex AI`,
     description: CONTENT[locale].subtitle,
   });
 }

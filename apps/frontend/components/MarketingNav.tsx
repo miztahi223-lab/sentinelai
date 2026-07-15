@@ -14,7 +14,7 @@ export function MarketingNav() {
           href="/"
           className="text-xl font-semibold tracking-tight text-white transition hover:opacity-90"
         >
-          Sentinel<span className="text-indigo-400">AI</span>
+          DomeCortex <span className="text-indigo-400">AI</span>
         </Link>
         <div className="hidden items-center gap-6 text-sm text-gray-400 sm:flex">
           <Link href="/features" className="transition hover:text-gray-100">

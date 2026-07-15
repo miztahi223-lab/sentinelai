@@ -103,7 +103,7 @@ export default async function Home({
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "SentinelAI",
+    name: "DomeCortex AI",
     url: `${SITE_URL}/${locale}`,
     description: tMeta("description"),
   };
@@ -298,7 +298,7 @@ export default async function Home({
         </section>
 
         {/* A real before/after: the exact same real finding, shown once in
-            raw technical wording and once through SentinelAI's plain-
+            raw technical wording and once through DomeCortex AI's plain-
             language translation layer (see lib/plainLanguageFindings.ts).
             Both sides are real — this isn't a mocked-up comparison. */}
         <section className="border-t border-gray-800/80 py-20">
@@ -467,7 +467,7 @@ export default async function Home({
         </section>
 
         {/* Why now — a real, sourced industry statistic, not an invented
-            claim about SentinelAI's own (small) user base. */}
+            claim about DomeCortex AI's own (small) user base. */}
         <section className="border-t border-gray-800/80 py-20">
           <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-6 lg:grid-cols-2">
             <div>

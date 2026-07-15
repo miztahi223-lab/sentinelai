@@ -66,7 +66,7 @@ export function ScanSequence() {
   }, [reducedMotion]);
 
   const steps = [
-    { text: `$ sentinelai scan yourbusiness.com`, tone: "command" },
+    { text: `$ domecortex scan yourbusiness.com`, tone: "command" },
     { text: t("scanStep1"), tone: "info" },
     { text: t("scanStep2"), tone: "info" },
     { text: t("scanStep3"), tone: "info" },
@@ -85,7 +85,7 @@ export function ScanSequence() {
           <span className="h-2.5 w-2.5 rounded-full bg-gray-700" />
         </div>
         <span className="mx-auto font-mono text-xs text-emerald-500/70">
-          sentinelai — scan.sh
+          domecortex — scan.sh
         </span>
       </div>
       {/* Forced `dir="ltr"` — terminal/command output reads left-to-right

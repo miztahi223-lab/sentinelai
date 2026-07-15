@@ -14,7 +14,7 @@ import {
 } from '../common/totp.util';
 
 const BACKUP_CODE_COUNT = 10;
-const ISSUER = 'SentinelAI';
+const ISSUER = 'DomeCortex AI';
 
 export class MfaNotSetUpError extends Error {
   constructor() {

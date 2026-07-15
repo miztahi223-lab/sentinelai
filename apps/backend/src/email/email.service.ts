@@ -21,7 +21,7 @@ import * as nodemailer from 'nodemailer';
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter | null = null;
-  private from = 'SentinelAI <no-reply@sentinelai.local>';
+  private from = 'DomeCortex AI <no-reply@domecortex.local>';
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -79,9 +79,9 @@ export class EmailService implements OnModuleInit {
     const verifyUrl = `${this.configService.get<string>('FRONTEND_URL')}/verify-email?token=${token}`;
     await this.send(
       to,
-      'Verify your SentinelAI account',
-      `<p>Welcome to SentinelAI. Please verify your email by clicking <a href="${verifyUrl}">this link</a>.</p>`,
-      `Welcome to SentinelAI. Verify your email: ${verifyUrl}`,
+      'Verify your DomeCortex AI account',
+      `<p>Welcome to DomeCortex AI. Please verify your email by clicking <a href="${verifyUrl}">this link</a>.</p>`,
+      `Welcome to DomeCortex AI. Verify your email: ${verifyUrl}`,
     );
   }
 
@@ -89,7 +89,7 @@ export class EmailService implements OnModuleInit {
     const resetUrl = `${this.configService.get<string>('FRONTEND_URL')}/reset-password?token=${token}`;
     await this.send(
       to,
-      'Reset your SentinelAI password',
+      'Reset your DomeCortex AI password',
       `<p>We received a request to reset your password. Click <a href="${resetUrl}">here</a> to choose a new one. This link expires in 1 hour. If you did not request this, you can ignore this email.</p>`,
       `Reset your password: ${resetUrl} (expires in 1 hour)`,
     );
@@ -99,7 +99,7 @@ export class EmailService implements OnModuleInit {
     const dashboardUrl = `${this.configService.get<string>('FRONTEND_URL')}/alerts`;
     await this.send(
       to,
-      `SentinelAI alert: ${subject}`,
+      `DomeCortex AI alert: ${subject}`,
       `<p>${message}</p><p><a href="${dashboardUrl}">View all alerts</a></p>`,
       `${message}\n\nView all alerts: ${dashboardUrl}`,
     );
@@ -119,7 +119,7 @@ export class EmailService implements OnModuleInit {
       );
     }
     await this.send(
-      recipient ?? 'unconfigured-contact-recipient@sentinelai.local',
+      recipient ?? 'unconfigured-contact-recipient@domecortex.local',
       `[Contact form] ${params.subject}`,
       `<p><strong>From:</strong> ${params.name} &lt;${params.email}&gt;</p><p>${params.message}</p>`,
       `From: ${params.name} <${params.email}>\n\n${params.message}`,
@@ -135,10 +135,10 @@ export class EmailService implements OnModuleInit {
     const acceptUrl = `${this.configService.get<string>('FRONTEND_URL')}/invitations/${token}`;
     await this.send(
       to,
-      `${inviterName} invited you to join ${organizationName} on SentinelAI`,
-      `<p>${inviterName} has invited you to join <strong>${organizationName}</strong> on SentinelAI. ` +
+      `${inviterName} invited you to join ${organizationName} on DomeCortex AI`,
+      `<p>${inviterName} has invited you to join <strong>${organizationName}</strong> on DomeCortex AI. ` +
         `Click <a href="${acceptUrl}">here</a> to accept. This invitation expires in 7 days.</p>`,
-      `${inviterName} has invited you to join ${organizationName} on SentinelAI: ${acceptUrl} (expires in 7 days)`,
+      `${inviterName} has invited you to join ${organizationName} on DomeCortex AI: ${acceptUrl} (expires in 7 days)`,
     );
   }
 
@@ -152,8 +152,8 @@ export class EmailService implements OnModuleInit {
     const periodLabel = period === 'daily' ? 'day' : 'week';
     const subject =
       alerts.length > 0
-        ? `Your ${period} SentinelAI summary for ${organizationName}: ${alerts.length} alert(s)`
-        : `Your ${period} SentinelAI summary for ${organizationName}: all clear`;
+        ? `Your ${period} DomeCortex AI summary for ${organizationName}: ${alerts.length} alert(s)`
+        : `Your ${period} DomeCortex AI summary for ${organizationName}: all clear`;
 
     const listHtml = alerts
       .map((a) => `<li>[${a.severity}] ${a.message}</li>`)
@@ -181,7 +181,7 @@ export class EmailService implements OnModuleInit {
   async sendReportEmail(to: string, reportTitle: string, pdfPath: string) {
     await this.send(
       to,
-      `SentinelAI report: ${reportTitle}`,
+      `DomeCortex AI report: ${reportTitle}`,
       `<p>Your requested security report "${reportTitle}" is attached.</p>`,
       `Your requested security report "${reportTitle}" is attached.`,
       [

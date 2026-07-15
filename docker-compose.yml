@@ -3,30 +3,30 @@ version: "3.9"
 services:
   postgres:
     image: postgres:16
-    container_name: sentinelai-postgres
+    container_name: domecortex-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: sentinel
-      POSTGRES_PASSWORD: sentinel
-      POSTGRES_DB: sentinelai
+      POSTGRES_USER: domecortex
+      POSTGRES_PASSWORD: domecortex
+      POSTGRES_DB: domecortex
     ports:
       - "5432:5432"
     volumes:
-      - sentinelai_postgres_data:/var/lib/postgresql/data
+      - domecortex_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinelai"]
+      test: ["CMD-SHELL", "pg_isready -U domecortex -d domecortex"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: sentinelai-redis
+    container_name: domecortex-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
-      - sentinelai_redis_data:/data
+      - domecortex_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -34,5 +34,5 @@ services:
       retries: 10
 
 volumes:
-  sentinelai_postgres_data:
-  sentinelai_redis_data:
+  domecortex_postgres_data:
+  domecortex_redis_data:

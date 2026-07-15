@@ -1,8 +1,8 @@
-# SentinelAI
+# DomeCortex AI
 
 **Know what attackers can see before they do.**
 
-SentinelAI is an external attack-surface monitoring SaaS: point it at your organization's
+DomeCortex AI is an external attack-surface monitoring SaaS: point it at your organization's
 domains and it continuously discovers your internet-facing assets (DNS records, TLS
 certificates, HTTP endpoints, detected technologies), scores your security posture, raises
 alerts on meaningful changes, and produces shareable PDF reports — the kind of reconnaissance
@@ -34,9 +34,10 @@ docs/
 **Backend stack**: NestJS · PostgreSQL 16 (via Prisma 7, `@prisma/adapter-pg`) · Redis 7 +
 BullMQ (background workers) · Argon2id password hashing · JWT access tokens + rotating opaque
 refresh tokens · Stripe (billing) · Anthropic API (AI finding analysis) · pdfkit (reports) ·
-nodemailer (email) · Pino (structured logging).
+nodemailer (email) · Pino (structured logging) · Sentry (error tracking).
 
-**Frontend stack**: Next.js · React 19 · Tailwind CSS v4 · TanStack Query · Recharts.
+**Frontend stack**: Next.js · React 19 · Tailwind CSS v4 · TanStack Query · Recharts · Sentry (error
+tracking).
 
 **Core domain modules** (`apps/backend/src/`):
 

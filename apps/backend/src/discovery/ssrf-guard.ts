@@ -6,7 +6,7 @@ import ipaddr from 'ipaddr.js';
 const dnsLookupAsync = promisify(dnsLookup);
 
 /**
- * This module exists because SentinelAI's entire purpose is "the user
+ * This module exists because DomeCortex AI's entire purpose is "the user
  * tells us a hostname, we make outbound HTTP/TLS connections to it" — which
  * is exactly the shape of a Server-Side Request Forgery vector if left
  * unguarded. A user could register a domain (one they legitimately control

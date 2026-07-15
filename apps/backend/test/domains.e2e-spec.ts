@@ -14,8 +14,8 @@ describe('Domains (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const ownerEmail = `e2e-domains-owner-${Date.now()}@sentinelai.dev`;
-  const outsiderEmail = `e2e-domains-outsider-${Date.now()}@sentinelai.dev`;
+  const ownerEmail = `e2e-domains-owner-${Date.now()}@domecortex.dev`;
+  const outsiderEmail = `e2e-domains-outsider-${Date.now()}@domecortex.dev`;
 
   let ownerToken: string;
   let outsiderToken: string;
@@ -93,7 +93,7 @@ describe('Domains (e2e)', () => {
 
   it('refuses to verify a real domain that does not actually have the TXT record', async () => {
     // example.com is a real domain this test does not control the DNS of —
-    // it genuinely has no `sentinelai-verify=...` TXT record, so this must
+    // it genuinely has no `domecortex-verify=...` TXT record, so this must
     // fail honestly rather than ever flipping `verified` to true.
     const res = await request(app.getHttpServer())
       .patch(`/api/domains/${domainId}/verify`)

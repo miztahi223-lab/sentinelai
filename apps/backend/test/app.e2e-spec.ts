@@ -16,7 +16,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 describe('Auth flow (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
-  const testEmail = `e2e-test-${Date.now()}@sentinelai.dev`;
+  const testEmail = `e2e-test-${Date.now()}@domecortex.dev`;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({

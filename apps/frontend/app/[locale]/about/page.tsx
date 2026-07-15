@@ -12,7 +12,7 @@ const CONTENT: Record<
   { title: string; subtitle: string; sections: { heading: string; body: string }[] }
 > = {
   en: {
-    title: "About SentinelAI",
+    title: "About DomeCortex AI",
     subtitle: "Attack-surface monitoring built for businesses that don't have a security team.",
     sections: [
       {
@@ -20,7 +20,7 @@ const CONTENT: Record<
         body: "Most small and medium-sized businesses accumulate an online footprint faster than anyone tracks it — a forgotten staging subdomain, an expiring certificate, a misconfigured header. A large security vendor will sell you a dashboard built for an enterprise security team. Most SMBs don't have one.",
       },
       {
-        heading: "What SentinelAI does",
+        heading: "What DomeCortex AI does",
         body: "Point it at your domains and it continuously discovers what's actually reachable about your organization from the outside — DNS records, subdomains, TLS certificates, exposed services — scores your security posture on a transparent 0-100 scale, and explains every finding in plain language instead of technical jargon, with a specific recommended fix.",
       },
       {
@@ -34,7 +34,7 @@ const CONTENT: Record<
     ],
   },
   he: {
-    title: "אודות SentinelAI",
+    title: "אודות DomeCortex AI",
     subtitle: "ניטור נוכחות מקוונת שנבנה עבור עסקים שאין להם צוות אבטחה.",
     sections: [
       {
@@ -42,7 +42,7 @@ const CONTENT: Record<
         body: "רוב העסקים הקטנים והבינוניים צוברים נוכחות מקוונת מהר יותר מכפי שמישהו עוקב אחריה — תת-דומיין נטוש בסביבת בדיקות, אישור שעומד לפוג, כותרת שהוגדרה לא נכון. ספק אבטחה גדול ימכור לכם לוח בקרה שנבנה עבור צוות אבטחה ארגוני. לרוב העסקים הקטנים והבינוניים אין כזה.",
       },
       {
-        heading: "מה SentinelAI עושה",
+        heading: "מה DomeCortex AI עושה",
         body: "כוונו אותו לדומיינים שלכם והוא מגלה ברציפות מה באמת נגיש לגבי הארגון שלכם מבחוץ — רשומות DNS, תת-דומיינים, אישורי TLS, שירותים חשופים — מדרג את רמת האבטחה שלכם בסולם שקוף של 0-100, ומסביר כל ממצא בשפה פשוטה במקום ז'רגון טכני, עם תיקון מומלץ וספציפי.",
       },
       {
@@ -66,7 +66,7 @@ export async function generateMetadata({
   return buildMetadata({
     locale,
     path: "/about",
-    // `title` is already "About SentinelAI" — no need to append the brand
+    // `title` is already "About DomeCortex AI" — no need to append the brand
     // name again like the other pages do.
     title: CONTENT[locale].title,
     description: CONTENT[locale].subtitle,

@@ -23,7 +23,7 @@ const CONTENT: Record<
     sections: [
       {
         heading: "Our commitment",
-        body: "SentinelAI is being built to conform to WCAG 2.0 Level AA and Israeli Standard 5568, in line with the Equal Rights for Persons with Disabilities Regulations (Accessibility of Services). This is an ongoing effort, not a one-time checkbox — accessibility is reviewed as part of building every new feature, not bolted on afterward.",
+        body: "DomeCortex AI is being built to conform to WCAG 2.0 Level AA and Israeli Standard 5568, in line with the Equal Rights for Persons with Disabilities Regulations (Accessibility of Services). This is an ongoing effort, not a one-time checkbox — accessibility is reviewed as part of building every new feature, not bolted on afterward.",
       },
       {
         heading: "What's implemented today",
@@ -35,7 +35,7 @@ const CONTENT: Record<
       },
       {
         heading: "Ran into a problem?",
-        body: "If you encounter any accessibility barrier using SentinelAI — with a screen reader, keyboard-only navigation, or anything else — please tell us through the contact page. A real person reads every message, and accessibility reports are treated as priority bug reports, not general feedback.",
+        body: "If you encounter any accessibility barrier using DomeCortex AI — with a screen reader, keyboard-only navigation, or anything else — please tell us through the contact page. A real person reads every message, and accessibility reports are treated as priority bug reports, not general feedback.",
       },
       {
         heading: "Last reviewed",
@@ -49,7 +49,7 @@ const CONTENT: Record<
     sections: [
       {
         heading: "המחויבות שלנו",
-        body: "SentinelAI נבנה כדי לעמוד בתקן WCAG 2.0 רמה AA ובתקן הישראלי 5568, בהתאם לתקנות שוויון זכויות לאנשים עם מוגבלות (נגישות השירות). זהו מאמץ מתמשך ולא סעיף חד-פעמי — נגישות נבדקת כחלק מבניית כל תכונה חדשה, לא מתווספת בדיעבד.",
+        body: "DomeCortex AI נבנה כדי לעמוד בתקן WCAG 2.0 רמה AA ובתקן הישראלי 5568, בהתאם לתקנות שוויון זכויות לאנשים עם מוגבלות (נגישות השירות). זהו מאמץ מתמשך ולא סעיף חד-פעמי — נגישות נבדקת כחלק מבניית כל תכונה חדשה, לא מתווספת בדיעבד.",
       },
       {
         heading: "מה מיושם היום",
@@ -61,7 +61,7 @@ const CONTENT: Record<
       },
       {
         heading: "נתקלתם בבעיה?",
-        body: "אם נתקלתם במכשול נגישות כלשהו בשימוש ב-SentinelAI — עם קורא מסך, ניווט במקלדת בלבד, או כל דבר אחר — אנא ספרו לנו דרך עמוד יצירת הקשר. אדם אמיתי קורא כל הודעה, ודיווחי נגישות מטופלים כדיווחי באג בעדיפות גבוהה, לא כמשוב כללי.",
+        body: "אם נתקלתם במכשול נגישות כלשהו בשימוש ב-DomeCortex AI — עם קורא מסך, ניווט במקלדת בלבד, או כל דבר אחר — אנא ספרו לנו דרך עמוד יצירת הקשר. אדם אמיתי קורא כל הודעה, ודיווחי נגישות מטופלים כדיווחי באג בעדיפות גבוהה, לא כמשוב כללי.",
       },
       {
         heading: "עודכן לאחרונה",
@@ -80,7 +80,7 @@ export async function generateMetadata({
   return buildMetadata({
     locale,
     path: "/accessibility",
-    title: `${CONTENT[locale].title} — SentinelAI`,
+    title: `${CONTENT[locale].title} — DomeCortex AI`,
     description: CONTENT[locale].subtitle,
   });
 }

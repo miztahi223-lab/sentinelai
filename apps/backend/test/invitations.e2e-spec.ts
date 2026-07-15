@@ -17,9 +17,9 @@ describe('Team invitations (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const ownerEmail = `e2e-owner-${Date.now()}@sentinelai.dev`;
-  const inviteeEmail = `e2e-invitee-${Date.now()}@sentinelai.dev`;
-  const outsiderEmail = `e2e-outsider-${Date.now()}@sentinelai.dev`;
+  const ownerEmail = `e2e-owner-${Date.now()}@domecortex.dev`;
+  const inviteeEmail = `e2e-invitee-${Date.now()}@domecortex.dev`;
+  const outsiderEmail = `e2e-outsider-${Date.now()}@domecortex.dev`;
 
   let ownerToken: string;
   let inviteeToken: string;
@@ -118,7 +118,7 @@ describe('Team invitations (e2e)', () => {
     await request(app.getHttpServer())
       .post('/api/invitations')
       .set('Authorization', `Bearer ${outsiderToken}`)
-      .send({ organizationId, email: 'someone-else@sentinelai.dev' })
+      .send({ organizationId, email: 'someone-else@domecortex.dev' })
       .expect(403);
   });
 

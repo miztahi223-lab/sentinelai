@@ -2713,3 +2713,140 @@ backdrop confirmed keyboard-dismissible at a real 375px viewport.
 engineering remediation, not a certified third-party accessibility audit — an accredited Israeli
 Standard 5568 auditor has not reviewed this build. Recommended (per the standing legal caveat
 given alongside this work) before relying on this for actual regulatory compliance.
+
+## Enhancement 33: real error tracking/monitoring (Sentry)
+
+Requested as the next scoped step after the 12-phase plan, MFA, and accessibility remediation
+were all done and the repo was clean — `docs/DEPLOY.md` itself flagged this as one of three
+genuinely remaining gaps (alongside a CI deploy step and a lawyer review of Terms/Privacy).
+
+**Backend (`@sentry/nestjs`)**: `apps/backend/src/instrument.ts` calls `Sentry.init()` and must be
+the very first import in `main.ts` (before `@nestjs/core`, `pg`, etc.) so Sentry's
+auto-instrumentation can hook into those modules before they're required. `SENTRY_DSN` is the same
+"inert until a real credential exists" pattern as `STRIPE_SECRET_KEY`/`AI_API_KEY` — `enabled`
+stays `false` (and `tracesSampleRate` `0`) until a real DSN is configured, rather than silently
+trying to send events nowhere. `resolveSentryOptions()` is a small pure function so this gating
+logic is unit-tested directly rather than only exercised indirectly.
+
+`app.module.ts` registers `SentryModule.forRoot()` and wires `SentryGlobalFilter` as the global
+`APP_FILTER` (confirmed from the SDK's own source that it only reports real 5xx/unhandled
+exceptions to Sentry — expected 4xx `HttpException`s are filtered out via `isExpectedError` before
+`super.catch()` still returns Nest's normal response shape, so no client-visible behavior changes).
+
+**Frontend (`@sentry/nextjs`)**: this Next.js 16 app uses the newer `instrumentation-client.ts` /
+`instrumentation.ts` file conventions (not the older `sentry.client.config.ts` wizard output) —
+confirmed against this exact Next version's own bundled docs
+(`node_modules/next/dist/docs/.../instrumentation-client.md`) before writing anything, since
+`AGENTS.md` warns this Next version has breaking changes from training data. `sentry.server.config.ts`/
+`sentry.edge.config.ts`/`instrumentation-client.ts` all share the same `resolveSentryOptions()`
+helper (`lib/sentry-options.ts`) keyed off `NEXT_PUBLIC_SENTRY_DSN` — one gating function instead of
+three copies that could silently drift, the same reasoning as the free-scan/authenticated-scan
+scoring util from Enhancement 10. Added `app/global-error.tsx` (a plain, hardcoded dark-theme
+fallback — deliberately outside `[locale]/layout.tsx` since Next requires global-error at the true
+app root, where no locale/theme provider can be trusted to still be working) that reports React
+render errors via `Sentry.captureException`. `next.config.ts` wraps the config with
+`withSentryConfig`, using `tunnelRoute: "/monitoring"` so Sentry's own requests go through this
+app's same origin — the existing strict `connect-src 'self' ...` CSP never needs loosening for it,
+and ad-blockers that block `sentry.io` directly don't silently drop reports either. Source-map
+upload (`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN`) is optional and silently skipped without
+a real auth token, same inert-until-configured pattern.
+
+**A real bug found while verifying, not a hypothetical one**: the first version of the backend e2e
+test that exercised `SentryGlobalFilter` called `Sentry.init()` with full default integrations
+(including OpenTelemetry's `http.Server` auto-instrumentation) inside a Jest e2e spec. Running the
+full e2e suite in parallel workers afterward, **14 of 15 suites** started failing on
+`afterAll → app.close()` timeouts. Bisected via `git stash` to confirm this wasn't pre-existing
+sandbox flakiness (a clean `git stash` re-run at the same parallelism still showed a similar failure
+count, and a serial `--runInBand` run on baseline was 15/15 clean) — the actual fix was
+`defaultIntegrations: false, integrations: []` in the test's own `Sentry.init()` call, since a bare
+client is all `SentryGlobalFilter` needs (it only ever calls `captureException` directly). After the
+fix, two consecutive full serial e2e runs were 15/15 suites and 70/70 tests clean.
+
+**Verified for real**: backend gained `instrument.spec.ts` (the DSN-gating logic) and
+`test/sentry.e2e-spec.ts` — a genuine unhandled exception thrown through a real Nest HTTP pipeline
+with the exact filter registered in `app.module.ts`, asserting it reaches a real outgoing Sentry
+envelope (via a fake DSN + custom in-memory transport, since spying on `@sentry/core`'s frozen
+exports isn't possible in Jest) and that the client still gets the same 500 response shape. Backend:
+`tsc --noEmit`/`eslint` clean, `nest build` succeeds, 79 unit tests pass (78 + the new
+`instrument.spec.ts`), all 15 e2e suites (70 tests) pass serially. Frontend gained
+`lib/sentry-options.test.ts` — `tsc --noEmit`/`eslint`/`next build`/`vitest` all clean (57 tests, up
+from 54). Live-verified in a real browser (Playwright): homepage and dashboard load with the exact
+same two pre-existing, unrelated console messages as an unmodified `git stash` baseline (a dev-mode
+React `eval()` CSP notice and an expected 401 from the unauthenticated `/api/auth/me` check) — no
+new errors introduced. Both production Docker images (backend and frontend, including the new
+`NEXT_PUBLIC_SENTRY_DSN`/`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN` build args) were built
+fresh from a separate compose project (`sentinelai-sentrycheck`, real dev stack untouched) and
+confirmed to build cleanly, then torn down.
+
+**Explicitly not done, by necessity of this environment, not by oversight**: no real Sentry
+project/DSN exists here, so nothing has actually been sent to Sentry's servers — everything above
+is verified up to the point a real DSN would take over, the same boundary as Stripe/AI/SMTP.
+`docs/DEPLOY.md` updated accordingly (removed from the "not done" list, replaced with an honest
+"wired in but inert without a real DSN" note, and the two remaining real gaps — CI deploy step,
+lawyer review — are unchanged).
+
+**CI workflow verified end-to-end after the fact**: re-ran every step of `.github/workflows/ci.yml`
+locally against fresh service containers with the exact same env vars/commands (backend:
+`prisma generate` → `migrate deploy` → lint → build → unit → e2e; frontend: lint → test → build with
+`NEXT_PUBLIC_API_URL=/api`; `docker-build`: plain `docker build` on both Dockerfiles, no compose,
+matching CI exactly) rather than assume the earlier local verification covered it. Found the same
+`--maxWorkers`-driven e2e flakiness this time too, at the default worker count on a 14-core sandbox
+(3 suites failing on `afterAll`/`app.close()` timeouts); confirmed clean 15/15 at `--maxWorkers=2`
+(a realistic small-CI-runner concurrency) twice. Since a many-core CI runner could hit the same
+contention `ci.yml` was never actually protected against, added `--maxWorkers=2` to the "End-to-end
+tests" step — a genuine latent fragility this check surfaced, not a Sentry-caused regression. All
+other steps (lint/build/unit tests/frontend build/both Docker image builds) passed unmodified.
+
+## Enhancement 34: rebrand — SentinelAI → DomeCortex AI
+
+Requested: rename the product, plus lean the positioning into an "Iron Dome for small business
+websites" angle (Israel's missile-defense system as a metaphor for continuous, always-on
+protection) — explicitly scoped as name + positioning, not a full local-market pivot (no
+Hebrew-specific pricing/case-studies rewrite).
+
+**Note on this doc and `docs/SESSION_2026-07-11.md`**: past entries above still say "SentinelAI"
+throughout — deliberately left as-is. Those are chronological build logs describing what was
+actually built and discussed *at the time*; retroactively editing them to say "DomeCortex AI"
+would misrepresent history. Every current-state doc (README, DEPLOY.md, this entry onward) uses
+the new name.
+
+**Scope**: a systematic rename across 59 files — every backend brand string (MFA TOTP issuer,
+email templates/from-address, PDF report header, Coinbase charge name, discovery User-Agent,
+domain-verification TXT record prefix), every frontend surface (nav/sidebar wordmark, landing
+page copy, all 11 marketing/legal pages in both locales, `messages/en.json`/`he.json`, SEO
+metadata, localStorage key names), Docker resource names (container/volume/network names, the
+`sentinel` Postgres username placeholder), and `.env.example`/`.env.production`/local `.env`
+files. Package names (`backend`/`frontend`) were never brand-tied, so left alone; the actual
+GitHub repo/directory name was deliberately **not** touched — a repo rename is a much bigger,
+external action nobody asked for here.
+
+**Two spots needed hand-fixing, not caught by the mechanical find/replace**: the site-wide
+two-tone wordmark treatment (`Sentinel` in white + `AI` in indigo, split across a `<span>` so a
+plain substring match never saw it as one contiguous string) — updated to `DomeCortex` + a
+literal space + indigo `AI` across `Sidebar.tsx`/`MarketingNav.tsx`/`register`/`login`/etc., and
+the identical split rendered again in the PDF header via three chained PDFKit `.text()` calls.
+Also manually cleaned up the discovery module's `User-Agent` header, which the mechanical rename
+left as `DomeCortex AI-DiscoveryBot/1.0` (an awkward raw space before the hyphen) — changed to the
+concatenated `DomeCortexAI-DiscoveryBot/1.0`, matching the original slug convention.
+
+**A real test failure caught during verification, not a false start**: `totp.util.spec.ts`
+asserted the literal substring `issuer=DomeCortex AI` in a generated `otpauth://` URL. `SentinelAI`
+had no space, so the old assertion happened to work by coincidence; `DomeCortex AI` does have one,
+and `URLSearchParams` encodes it as `+` (confirmed directly in `node`), not left as a raw space —
+fixed the assertion to `issuer=DomeCortex+AI` rather than loosen the test.
+
+**Positioning**: updated the two highest-visibility copy slots rather than scattering the Iron
+Dome metaphor everywhere — the hero eyebrow ("An Iron Dome for small business websites" /
+"כיפת ברזל דיגיטלית לעסקים קטנים") and the meta description used for SEO/social previews, in both
+locales. Left the rest of the landing page's copy (features, FAQ, pricing) untouched since it
+already reads well and doesn't need the metaphor repeated.
+
+**Verified for real**: backend — `tsc --noEmit`/`eslint` clean, `nest build` succeeds, 81 unit
+tests pass (after the `totp.util.spec.ts` fix above), all 15 e2e suites (70 tests) pass serially
+against a freshly renamed local Postgres/Redis (`domecortex`/`domecortex` — brought up fresh,
+migrations re-applied clean). Frontend — `tsc --noEmit`/`eslint`/`next build`/`vitest` all clean
+(57 tests, no regressions). Live-verified in a real browser in both English and Hebrew/RTL: nav
+wordmark renders correctly (two-tone split intact), hero eyebrow shows the new positioning line,
+page `<title>` reflects the new brand, footer copyright updated, and the free-scan widget's CLI
+mock command line (`$ domecortex scan yourbusiness.com`) renders correctly — no new console errors
+beyond the same pre-existing dev-mode `eval()` notice present on an unmodified `git stash` baseline.

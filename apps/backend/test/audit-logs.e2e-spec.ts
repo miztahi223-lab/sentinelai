@@ -15,8 +15,8 @@ describe('Audit logs (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
-  const ownerEmail = `e2e-audit-owner-${Date.now()}@sentinelai.dev`;
-  const memberEmail = `e2e-audit-member-${Date.now()}@sentinelai.dev`;
+  const ownerEmail = `e2e-audit-owner-${Date.now()}@domecortex.dev`;
+  const memberEmail = `e2e-audit-member-${Date.now()}@domecortex.dev`;
 
   let ownerToken: string;
   let memberToken: string;
