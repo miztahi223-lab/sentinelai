@@ -47,6 +47,22 @@ const SECURITY_HEADERS = [
     key: "Strict-Transport-Security",
     value: "max-age=31536000; includeSubDomains",
   },
+  // Denies every browser-hardware/embedding feature this app has no real
+  // use for (no page requests a camera, microphone, or the user's
+  // location) — `()` on each directive means "allowed nowhere, not even
+  // this origin", rather than a false narrower allowlist that implies
+  // some page actually needs it.
+  {
+    key: "Permissions-Policy",
+    value: [
+      "camera=()",
+      "microphone=()",
+      "geolocation=()",
+      "payment=()",
+      "usb=()",
+      "interest-cohort=()",
+    ].join(", "),
+  },
 ];
 
 const nextConfig: NextConfig = {
@@ -59,6 +75,11 @@ const nextConfig: NextConfig = {
   // `.next/standalone/server.js`) — plain `next start` prints a warning and
   // won't correctly serve static assets against a standalone build.
   output: "standalone",
+  // Stops Next.js sending `X-Powered-By: Next.js` on every response — a
+  // real, actionable finding this app's own discovery scanner flags on
+  // other people's sites (`technology.service.ts`), so leaving it on here
+  // would be the product failing its own check.
+  poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },

@@ -3,6 +3,7 @@ import './instrument';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -18,6 +19,18 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
   app.use(helmet());
+  // helmet (as of the major version pinned here) doesn't ship a built-in
+  // Permissions-Policy middleware — added directly so the API responses
+  // carry the same hardening the frontend's own pages do (see
+  // `next.config.ts`), denying every browser-hardware feature this JSON
+  // API has no use for.
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+    );
+    next();
+  });
 
   const configService = app.get(ConfigService);
   const frontendUrl = configService.get<string>(
