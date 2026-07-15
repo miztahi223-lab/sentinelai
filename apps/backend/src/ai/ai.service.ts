@@ -48,6 +48,25 @@ interface OpenAiCompatibleResponse {
 }
 
 type AiProvider = 'anthropic' | 'groq';
+export type SupportedLocale = 'en' | 'he';
+
+const LANGUAGE_NAMES: Record<SupportedLocale, string> = {
+  en: 'English',
+  he: 'Hebrew',
+};
+
+// Every prompt below asks for this verbatim, right after the language
+// instruction — a small business owner with no security background is
+// exactly who this product is for (see the landing page's own "no
+// security background needed" claim), so "explain it like you would to a
+// smart non-technical friend" is a real requirement, not a nicety.
+function plainLanguageInstruction(locale: SupportedLocale): string {
+  return (
+    `Write your answer in ${LANGUAGE_NAMES[locale]}, in plain, non-technical language a ` +
+    'small business owner with no security background can actually understand — avoid ' +
+    'jargon, or briefly explain any technical term you have to use.'
+  );
+}
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -166,22 +185,31 @@ export class AiService {
     return text;
   }
 
-  async analyzeFinding(finding: {
-    title: string;
-    description: string;
-    severity: string;
-    category: string;
-  }): Promise<FindingAnalysis> {
+  async analyzeFinding(
+    finding: {
+      title: string;
+      description: string;
+      severity: string;
+      category: string;
+    },
+    locale: SupportedLocale = 'en',
+  ): Promise<FindingAnalysis> {
     const prompt = [
       'You are a security analyst assistant. For the following security finding, respond with',
       'exactly five sections, each on its own line prefixed by the label shown, in plain text —',
-      'no markdown, no headers (#), no bullet points, and put each label\'s content on the same',
+      "no markdown, no headers (#), no bullet points, and put each label's content on the same",
       'line as its label, immediately after the colon:',
       'EXPLANATION: <plain-language explanation of the technical issue, 1-2 sentences>',
       'IMPACT: <concrete business impact if exploited, 1-2 sentences>',
       'REMEDIATION: <specific, actionable fix, 1-2 sentences>',
       'DIFFICULTY: <one word, exactly one of: Easy, Moderate, Hard — how hard the fix itself is to implement>',
       'PRIORITY: <one word, exactly one of: Low, Medium, High, Urgent — how urgently to act, factoring in both severity and how easy the fix is>',
+      '',
+      `${plainLanguageInstruction(locale)} The EXPLANATION/IMPACT/REMEDIATION content itself`,
+      'should be in that language — but keep the DIFFICULTY and PRIORITY values themselves as',
+      'exactly one of the English words listed above (Easy/Moderate/Hard,',
+      'Low/Medium/High/Urgent), even when the rest of your answer is in another language, since',
+      'those exact words are parsed by the application.',
       '',
       `Severity: ${finding.severity}`,
       `Category: ${finding.category}`,
@@ -200,7 +228,10 @@ export class AiService {
   // than trust one rigid same-line pattern, this pulls the labeled value
   // whether it's inline after the colon or on the next non-empty line, and
   // strips markdown heading markers before matching either way.
-  private extractLabeledSection(raw: string, label: string): string | undefined {
+  private extractLabeledSection(
+    raw: string,
+    label: string,
+  ): string | undefined {
     const lines = raw.split('\n').map((line) => line.replace(/^#+\s*/, ''));
     for (let i = 0; i < lines.length; i++) {
       const match = new RegExp(`^${label}:?\\s*(.*)$`, 'i').exec(
@@ -262,15 +293,19 @@ export class AiService {
     return 'MEDIUM';
   }
 
-  async generateExecutiveSummary(params: {
-    domainName: string;
-    score: number;
-    findingCount: number;
-    topFindings: { severity: string; title: string }[];
-  }): Promise<string> {
+  async generateExecutiveSummary(
+    params: {
+      domainName: string;
+      score: number;
+      findingCount: number;
+      topFindings: { severity: string; title: string }[];
+    },
+    locale: SupportedLocale = 'en',
+  ): Promise<string> {
     const prompt = [
       'You are a security analyst writing a one-paragraph executive summary (non-technical,',
       'for a business stakeholder) of a domain security scan. Be concise and specific.',
+      plainLanguageInstruction(locale),
       '',
       `Domain: ${params.domainName}`,
       `Security score: ${params.score}/100`,

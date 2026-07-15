@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale } from "next-intl";
 import { api } from "./api";
 
 export interface Subscription {
@@ -123,9 +124,13 @@ export interface Finding {
 
 export function useAnalyzeFinding() {
   const queryClient = useQueryClient();
+  const locale = useLocale();
   return useMutation({
     mutationFn: async (findingId: string) => {
-      const { data } = await api.post<Finding>(`/ai/findings/${findingId}/analyze`);
+      const { data } = await api.post<Finding>(
+        `/ai/findings/${findingId}/analyze`,
+        { locale },
+      );
       return data;
     },
     onSuccess: () => {
@@ -433,11 +438,37 @@ export function usePublicScan() {
   });
 }
 
+export interface ScanStatus {
+  id: string;
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+  progress: number;
+}
+
+// Polls a specific scan's own row (not the risk/findings it eventually
+// produces) so the UI can show a real percentage while PENDING/RUNNING —
+// distinct from `useDomainRisk`'s polling, which only ever reflects the
+// *last completed* scan and has no notion of one currently in progress.
+// Stops polling on its own once the scan reaches a terminal state.
+export function useScanStatus(scanId: string | undefined) {
+  return useQuery({
+    queryKey: ["scan-status", scanId],
+    queryFn: async () => {
+      const { data } = await api.get<ScanStatus>(`/scans/${scanId}`);
+      return data;
+    },
+    enabled: !!scanId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "PENDING" || status === "RUNNING" ? 1500 : false;
+    },
+  });
+}
+
 export function useTriggerScan(domainId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const { data } = await api.post("/scans", { domainId });
+      const { data } = await api.post<ScanStatus>("/scans", { domainId });
       return data;
     },
     onSuccess: async () => {

@@ -22,6 +22,7 @@ import { StatTile } from "@/components/StatTile";
 import { CertificateExpirations } from "@/components/CertificateExpirations";
 import { QuickActions } from "@/components/QuickActions";
 import { OnboardingSteps } from "@/components/OnboardingSteps";
+import { ScanProgressBar } from "@/components/ScanProgressBar";
 import { toPlainLanguage } from "@/lib/plainLanguageFindings";
 
 const CHANGE_KIND: Record<string, "info" | "warning" | "critical"> = {
@@ -95,6 +96,8 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      <ScanProgressBar scanId={triggerScan.data?.id} />
 
       {!domainsLoading && !onboardingComplete && (
         <OnboardingSteps

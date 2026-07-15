@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  Body,
   Controller,
   ForbiddenException,
   NotFoundException,
@@ -15,6 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { AiNotConfiguredError, AiProviderError, AiService } from './ai.service';
 import { scoreFromFindings } from '../risk-engine/scoring.util';
+import { AnalyzeLocaleDto } from './dto/analyze-locale.dto';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
@@ -50,6 +52,7 @@ export class AiController {
   async analyzeFinding(
     @Param('findingId') findingId: string,
     @CurrentUser() user: RequestUser,
+    @Body() body: AnalyzeLocaleDto,
   ) {
     const finding = await this.prisma.finding.findUnique({
       where: { id: findingId },
@@ -66,7 +69,10 @@ export class AiController {
     }
 
     return this.runAiCall(async () => {
-      const analysis = await this.aiService.analyzeFinding(finding);
+      const analysis = await this.aiService.analyzeFinding(
+        finding,
+        body.locale,
+      );
       return this.prisma.finding.update({
         where: { id: findingId },
         data: {
@@ -84,6 +90,7 @@ export class AiController {
   async executiveSummary(
     @Param('scanId') scanId: string,
     @CurrentUser() user: RequestUser,
+    @Body() body: AnalyzeLocaleDto,
   ) {
     const scan = await this.prisma.scan.findUnique({
       where: { id: scanId },
@@ -102,15 +109,18 @@ export class AiController {
     const score = scoreFromFindings(scan.findings);
 
     return this.runAiCall(async () => {
-      const summary = await this.aiService.generateExecutiveSummary({
-        domainName: scan.domain?.name ?? 'unknown domain',
-        score,
-        findingCount: scan.findings.length,
-        topFindings: scan.findings
-          .sort((a, b) => (a.severity > b.severity ? -1 : 1))
-          .slice(0, 5)
-          .map((f) => ({ severity: f.severity, title: f.title })),
-      });
+      const summary = await this.aiService.generateExecutiveSummary(
+        {
+          domainName: scan.domain?.name ?? 'unknown domain',
+          score,
+          findingCount: scan.findings.length,
+          topFindings: scan.findings
+            .sort((a, b) => (a.severity > b.severity ? -1 : 1))
+            .slice(0, 5)
+            .map((f) => ({ severity: f.severity, title: f.title })),
+        },
+        body.locale,
+      );
       // Not persisted: `Report` doesn't have a summary-text column yet
       // (Step 12 will decide whether executive summaries belong on Report
       // or should stay computed-on-demand like this) — returned directly

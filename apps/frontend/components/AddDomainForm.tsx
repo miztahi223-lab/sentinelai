@@ -53,6 +53,7 @@ export function AddDomainForm({ organizationId, onAdded }: AddDomainFormProps) {
           {createDomain.isPending ? t("adding") : t("add")}
         </button>
       </form>
+      <p className="mt-1.5 max-w-md text-xs text-gray-500">{t("hint")}</p>
       {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
     </div>
   );

@@ -14,23 +14,38 @@ export interface HttpProbeResult {
   error?: string;
 }
 
-const TIMEOUT_MS = 10_000;
+// Was 10s, tried sequentially (HTTPS, then HTTP only after HTTPS fully
+// failed) — a real, measured problem for any subdomain that doesn't run a
+// web server at all, not just a hypothetical slow case: `autodiscover.`
+// (the CNAME every real Microsoft 365 mailbox setup creates — see
+// `docs/DEPLOY.md`) resolves to real Microsoft IPs that never answer a
+// plain HTTP GET, so the old code spent the full 10s timeout on HTTPS and
+// then another full 10s on the HTTP fallback — 20+ of every scan's ~21
+// seconds was one non-web subdomain, confirmed by timing an actual
+// production scan of this app's own domain end-to-end (discovery phase:
+// 20900ms) down to this exact call. Both schemes now race concurrently
+// instead of running one after the other, and the per-scheme timeout is
+// tighter — halving the old worst case twice over (20s -> ~6s).
+const TIMEOUT_MS = 6_000;
 const MAX_BODY_SNIPPET = 4096;
 
 /**
- * Probes a hostname over HTTPS first, falling back to HTTP — this mirrors
- * how a real attacker/browser would approach an unknown host, and lets the
- * risk engine later flag "HTTPS unavailable, HTTP-only" as its own finding.
+ * Probes a hostname over HTTPS and HTTP concurrently (not sequentially —
+ * see the `TIMEOUT_MS` comment above) and prefers the HTTPS result when
+ * both succeed. This mirrors how a real attacker/browser would approach an
+ * unknown host, and lets the risk engine later flag "HTTPS unavailable,
+ * HTTP-only" as its own finding.
  */
 @Injectable()
 export class HttpService {
   private readonly logger = new Logger(HttpService.name);
 
   async probe(hostname: string): Promise<HttpProbeResult> {
-    const httpsResult = await this.tryScheme(hostname, 'https');
+    const [httpsResult, httpResult] = await Promise.all([
+      this.tryScheme(hostname, 'https'),
+      this.tryScheme(hostname, 'http'),
+    ]);
     if (httpsResult.reachable) return httpsResult;
-
-    const httpResult = await this.tryScheme(hostname, 'http');
     return httpResult.reachable ? httpResult : httpsResult;
   }
 

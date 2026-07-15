@@ -68,15 +68,43 @@ export class ScanProcessor extends WorkerHost {
       data: { status: ScanStatus.RUNNING, startedAt: new Date() },
     });
 
+    // Throttled to at most one write per 5%, not per callback — the probe
+    // loop this ultimately tracks can fire many times a second, and there
+    // is no value in hitting Postgres that often for a number a client is
+    // polling every few seconds at most. Fire-and-forget (not awaited): a
+    // progress update is a nice-to-have, not something worth blocking or
+    // failing the actual scan over if one write is slow/errors.
+    let lastReportedBucket = -1;
+    const reportProgress = (fraction: number) => {
+      const bucket = Math.floor((fraction * 100) / 5);
+      if (bucket === lastReportedBucket) return;
+      lastReportedBucket = bucket;
+      this.prisma.scan
+        .update({
+          where: { id: scanId },
+          data: { progress: Math.round(fraction * 100) },
+        })
+        .catch((error: Error) =>
+          this.logger.warn(
+            `Scan ${scanId}: failed to persist progress: ${error.message}`,
+          ),
+        );
+    };
+
     try {
+      // Discovery's own duration is already logged by
+      // `DiscoveryService.runForDomain` itself — no need for a second,
+      // redundant timer around the same call here.
       const result = await this.discoveryService.runForDomain(
         domainId,
         hostname,
+        reportProgress,
       );
       const scan = await this.prisma.scan.findUniqueOrThrow({
         where: { id: scanId },
       });
 
+      const alertsStart = Date.now();
       for (const asset of result.newAssets) {
         await this.createAlert({
           organizationId: scan.organizationId,
@@ -109,14 +137,26 @@ export class ScanProcessor extends WorkerHost {
         });
       }
 
+      this.logger.debug(
+        `Scan ${scanId}: alerts phase took ${Date.now() - alertsStart}ms (${result.newAssets.length} new, ${result.removedAssets.length} removed)`,
+      );
+
       // Risk analysis (Step 10) runs as the last step of every scan, over
       // the asset snapshot discovery just persisted — this is what
       // produces the `Finding` rows and score the dashboard reads.
+      const riskStart = Date.now();
       const risk = await this.riskEngineService.analyzeDomain(scanId, domainId);
+      this.logger.debug(
+        `Scan ${scanId}: risk-engine phase took ${Date.now() - riskStart}ms`,
+      );
 
       await this.prisma.scan.update({
         where: { id: scanId },
-        data: { status: ScanStatus.COMPLETED, finishedAt: new Date() },
+        data: {
+          status: ScanStatus.COMPLETED,
+          finishedAt: new Date(),
+          progress: 100,
+        },
       });
 
       this.logger.log(

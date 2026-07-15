@@ -281,6 +281,11 @@ model Scan {
   domainId        String?
   type            ScanType      @default(MANUAL)
   status          ScanStatus    @default(PENDING)
+  // 0-100, updated as the scan actually progresses (subdomain discovery
+  // and probing is the dominant real cost — see `ScanProcessor`'s
+  // `reportProgress`) so the dashboard can show real percentage-complete
+  // rather than just pending/running/done.
+  progress        Int           @default(0)
   triggeredBy     String?
   startedAt       DateTime?
   finishedAt      DateTime?

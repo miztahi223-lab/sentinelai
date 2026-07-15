@@ -50,12 +50,23 @@ export class DiscoveryService {
   async runForDomain(
     domainId: string,
     hostname: string,
+    // Optional: called with a 0-1 fraction as the scan actually
+    // progresses, so a caller (`ScanProcessor`) can persist a real
+    // percentage rather than just pending/running/done. Weighted toward
+    // the subdomain HTTP-probe loop below since that's the dominant real
+    // cost of a scan (confirmed by timing an actual production run —
+    // DNS/SSL/root-HTTP/subdomain-enumeration together take well under a
+    // second; probing each discovered subdomain is where real wall-clock
+    // time goes).
+    onProgress?: (fraction: number) => void,
   ): Promise<DiscoveryRunSummary> {
     const startedAt = new Date();
     this.logger.log(`Starting discovery for ${hostname}`);
     const observedAssetIds: string[] = [];
     const newAssets: Asset[] = [];
+    const report = (fraction: number) => onProgress?.(Math.min(1, fraction));
 
+    report(0.05);
     const [
       dnsResult,
       dmarcResult,
@@ -72,6 +83,7 @@ export class DiscoveryService {
       this.httpService.probe(hostname),
       this.subdomainService.enumerate(hostname),
     ]);
+    report(0.15);
 
     const track = (result: { asset: Asset; isNew: boolean }) => {
       observedAssetIds.push(result.asset.id);
@@ -185,9 +197,17 @@ export class DiscoveryService {
     // they've ever stood up, and a forgotten one is very often where the
     // real exposure is. ---
     const toProbe = discoveredSubdomains.slice(0, MAX_SUBDOMAINS_TO_PROBE);
+    let probesCompleted = 0;
     const probeResults = await Promise.all(
       toProbe.map(async (sub) => {
         const probe = await this.httpService.probe(sub.hostname);
+        probesCompleted += 1;
+        // 0.15-0.85 range: this loop is the dominant real cost of a scan
+        // (see the comment on `onProgress` above), so it gets most of the
+        // progress bar's range. Guards `toProbe.length === 0` (no
+        // subdomains found — the whole range collapses to the 0.15 floor
+        // instead of a division by zero).
+        report(0.15 + 0.7 * (probesCompleted / Math.max(toProbe.length, 1)));
         return { sub, probe };
       }),
     );
@@ -237,6 +257,7 @@ export class DiscoveryService {
       domainId,
       observedAssetIds,
     );
+    report(0.95);
 
     const finishedAt = new Date();
     this.logger.log(
