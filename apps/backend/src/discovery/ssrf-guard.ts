@@ -132,18 +132,79 @@ export function assertHostnameNotLiteralBlockedIp(hostname: string): void {
  * exactly the address this callback supplies. Only ever invoked by Node for
  * *hostnames* that need resolution — see `assertHostnameNotLiteralBlockedIp`
  * above for the literal-IP case this can never cover.
+ *
+ * A real bug lived here until this was actually exercised through a live
+ * `tls.connect()` in production (see the "real tls.connect()" test below):
+ * Node's
+ * `net`/`tls` connect logic has requested dual-stack candidates via
+ * `dns.lookup(hostname, { all: true }, cb)` by default since `autoSelectFamily`
+ * became Node's default (Node 20+, confirmed on this app's Node 22 runtime)
+ * — in that mode Node expects the callback as `(err, addresses: {address,
+ * family}[])`, not the single `(err, address, family)` triple this always
+ * called back with. The mismatch didn't throw where you'd expect; it
+ * surfaced several layers up as a confusing `Invalid IP address: undefined`
+ * once Node's internals tried to read a resolved address out of what they
+ * expected to be an array. Every `SslService.inspect()` call was silently
+ * failing this way — logged as "SSL not inspected" for every domain, not
+ * just ones with a real problem. `options.all` is checked explicitly below
+ * so both calling conventions get the right shape back.
  */
 export function safeLookup(
   hostname: string,
   options: unknown,
-  callback: (
-    err: NodeJS.ErrnoException | null,
-    address: string,
-    family: 4 | 6 | undefined,
-  ) => void,
+  callback:
+    | ((
+        err: NodeJS.ErrnoException | null,
+        address: string,
+        family: 4 | 6 | undefined,
+      ) => void)
+    | ((
+        err: NodeJS.ErrnoException | null,
+        addresses: { address: string; family: 4 | 6 }[],
+      ) => void),
 ): void {
+  const wantsAll =
+    typeof options === 'object' &&
+    options !== null &&
+    (options as { all?: boolean }).all === true;
+
   resolveAndAssertSafe(hostname).then(
-    ({ address, family }) => callback(null, address, family === 6 ? 6 : 4),
-    (error: Error) => callback(error as NodeJS.ErrnoException, '', undefined),
+    ({ address, family }) => {
+      const normalizedFamily: 4 | 6 = family === 6 ? 6 : 4;
+      if (wantsAll) {
+        (
+          callback as (
+            err: null,
+            addresses: { address: string; family: 4 | 6 }[],
+          ) => void
+        )(null, [{ address, family: normalizedFamily }]);
+      } else {
+        (
+          callback as (
+            err: null,
+            address: string,
+            family: 4 | 6,
+          ) => void
+        )(null, address, normalizedFamily);
+      }
+    },
+    (error: Error) => {
+      if (wantsAll) {
+        (
+          callback as (
+            err: NodeJS.ErrnoException,
+            addresses: { address: string; family: 4 | 6 }[],
+          ) => void
+        )(error as NodeJS.ErrnoException, []);
+      } else {
+        (
+          callback as (
+            err: NodeJS.ErrnoException,
+            address: string,
+            family: 4 | 6 | undefined,
+          ) => void
+        )(error as NodeJS.ErrnoException, '', undefined);
+      }
+    },
   );
 }
