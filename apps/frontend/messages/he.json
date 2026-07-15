@@ -24,7 +24,22 @@
     "accessibility": "נגישות"
   },
   "accessibility": {
-    "skipToContent": "דלג לתוכן הראשי"
+    "skipToContent": "דלג לתוכן הראשי",
+    "widgetLabel": "פתיחת תפריט נגישות",
+    "widgetTitle": "התאמות נגישות",
+    "fontSize": "גודל טקסט",
+    "fontSize_normal": "רגיל",
+    "fontSize_large": "גדול",
+    "fontSize_xlarge": "גדול מאוד",
+    "increaseFontSize": "הגדלת טקסט",
+    "decreaseFontSize": "הקטנת טקסט",
+    "highContrast": "ניגודיות גבוהה",
+    "grayscale": "גווני אפור",
+    "underlineLinks": "הדגשת קישורים בקו תחתון",
+    "readableFont": "גופן קריא",
+    "reduceMotion": "עצירת אנימציות",
+    "resetAll": "איפוס הכל",
+    "close": "סגירה"
   },
   "notFound": {
     "title": "העמוד לא נמצא",

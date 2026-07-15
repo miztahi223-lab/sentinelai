@@ -24,7 +24,22 @@
     "accessibility": "Accessibility"
   },
   "accessibility": {
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "widgetLabel": "Open accessibility menu",
+    "widgetTitle": "Accessibility settings",
+    "fontSize": "Text size",
+    "fontSize_normal": "Normal",
+    "fontSize_large": "Large",
+    "fontSize_xlarge": "Extra large",
+    "increaseFontSize": "Increase text size",
+    "decreaseFontSize": "Decrease text size",
+    "highContrast": "High contrast",
+    "grayscale": "Grayscale",
+    "underlineLinks": "Underline links",
+    "readableFont": "Readable font",
+    "reduceMotion": "Stop animations",
+    "resetAll": "Reset all",
+    "close": "Close"
   },
   "notFound": {
     "title": "Page not found",

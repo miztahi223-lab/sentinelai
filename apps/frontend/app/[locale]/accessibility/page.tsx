@@ -30,6 +30,10 @@ const CONTENT: Record<
         body: "Full keyboard navigation, a \"skip to main content\" link on every page, visible focus indicators on every interactive element, real semantic HTML landmarks (header/nav/main/footer, not generic divs), alternative text on every image, labeled form fields (not placeholder-only labels), and text/background color combinations that meet the required contrast ratios.",
       },
       {
+        heading: "The accessibility menu",
+        body: "The accessibility icon in the corner of every page opens a real, functioning toolbar — not a decorative badge — for adjusting text size, switching to a high-contrast color scheme, grayscale, underlining links, a more legible font, and stopping animations. Your choices are saved on this device and applied automatically on your next visit.",
+      },
+      {
         heading: "What this doesn't cover yet",
         body: "This statement reflects genuine engineering work, not a certified third-party audit — we have not yet engaged an accredited accessibility auditor to formally certify conformance with Israeli Standard 5568. If a professional audit finds specific gaps, we will list and fix them here.",
       },
@@ -54,6 +58,10 @@ const CONTENT: Record<
       {
         heading: "מה מיושם היום",
         body: "ניווט מלא במקלדת, קישור \"דלג לתוכן הראשי\" בכל עמוד, אינדיקציית פוקוס גלויה על כל רכיב אינטראקטיבי, תגיות HTML סמנטיות אמיתיות (header/nav/main/footer, לא divים גנריים), טקסט חלופי לכל תמונה, שדות טופס עם תוויות אמיתיות (לא placeholder בלבד), וצירופי צבעי טקסט/רקע העומדים ביחסי הניגודיות הנדרשים.",
+      },
+      {
+        heading: "תפריט הנגישות",
+        body: "סמל הנגישות בפינת כל עמוד פותח סרגל כלים אמיתי ופעיל — לא תג עיצובי — להתאמת גודל טקסט, מעבר לערכת צבעים בניגודיות גבוהה, גווני אפור, הדגשת קישורים בקו תחתון, גופן קריא יותר, ועצירת אנימציות. ההעדפות שלכם נשמרות על המכשיר הזה ומוחלות אוטומטית בביקור הבא.",
       },
       {
         heading: "מה זה עדיין לא מכסה",

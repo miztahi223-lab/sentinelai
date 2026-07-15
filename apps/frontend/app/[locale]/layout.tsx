@@ -7,6 +7,7 @@ import "../globals.css";
 import { QueryProvider } from "@/lib/query-provider";
 import { AuthProvider } from "@/lib/auth-context";
 import { SkipLink } from "@/components/SkipLink";
+import { AccessibilityWidget } from "@/components/AccessibilityWidget";
 import { routing, directionForLocale, type Locale } from "@/i18n/routing";
 import { buildMetadata } from "@/lib/seo";
 
@@ -94,6 +95,7 @@ export default async function RootLayout({
           <QueryProvider>
             <AuthProvider>{children}</AuthProvider>
           </QueryProvider>
+          <AccessibilityWidget />
         </NextIntlClientProvider>
       </body>
     </html>

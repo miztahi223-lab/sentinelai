@@ -136,3 +136,61 @@ html {
 .animate-gentle-float {
   animation: gentle-float 6s ease-in-out infinite;
 }
+
+/* Accessibility widget (components/AccessibilityWidget.tsx) — real,
+   functioning overrides toggled on <html>, not decorative. Font-size
+   scaling works site-wide because every layout dimension in this app is
+   set with Tailwind's rem-based utilities, which all cascade off the root
+   font-size changed here. */
+html.a11y-font-lg {
+  font-size: 112.5%;
+}
+html.a11y-font-xl {
+  font-size: 125%;
+}
+
+/* A real high-contrast mode, not just "a bit darker" — pure black/white
+   with a bright, unambiguous focus/link color, on top of the app's
+   existing always-dark theme. */
+html.a11y-contrast body {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+html.a11y-contrast :is(a, button, [role="button"]):focus-visible {
+  outline: 3px solid #ffd60a !important;
+  outline-offset: 2px !important;
+}
+html.a11y-contrast a {
+  color: #ffd60a !important;
+}
+html.a11y-contrast :is(.bg-gray-900, .bg-gray-950, .bg-gray-900\/60, .bg-gray-800) {
+  background-color: #000 !important;
+  border-color: #fff !important;
+}
+
+html.a11y-grayscale {
+  filter: grayscale(1);
+}
+
+html.a11y-underline-links a {
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+/* A widely-available, highly-legible sans-serif stack — chosen over the
+   app's default Geist for readers who find geometric/condensed sans fonts
+   harder to parse (a common, real dyslexia/low-vision accommodation
+   request), not a cosmetic swap. */
+html.a11y-readable-font body {
+  font-family: Arial, Verdana, "Noto Sans Hebrew", sans-serif !important;
+  letter-spacing: 0.01em;
+}
+
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
