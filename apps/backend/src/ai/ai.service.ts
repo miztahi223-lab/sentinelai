@@ -23,7 +23,7 @@ export interface FindingAnalysis {
 export class AiNotConfiguredError extends Error {
   constructor() {
     super(
-      'AI analysis is not configured — set AI_API_KEY (an Anthropic API key) to enable it.',
+      'AI analysis is not configured — set AI_API_KEY (and optionally AI_PROVIDER) to enable it.',
     );
     this.name = 'AiNotConfiguredError';
   }
@@ -43,14 +43,29 @@ interface AnthropicMessageResponse {
   content: { type: string; text?: string }[];
 }
 
+interface OpenAiCompatibleResponse {
+  choices: { message: { content: string } }[];
+}
+
+type AiProvider = 'anthropic' | 'groq';
+
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
-const MODEL = 'claude-3-5-haiku-latest';
+const ANTHROPIC_MODEL = 'claude-3-5-haiku-latest';
+
+// Groq: free to start (no credit card — https://console.groq.com/keys), an
+// OpenAI-compatible chat-completions endpoint in front of fast open models.
+// Good enough for the short, structured completions this service asks for
+// (a few labeled lines, or one summary paragraph), so it's offered as the
+// zero-cost way to turn this feature on before paying for Anthropic.
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 /**
  * Generates human-readable explanation / business impact / remediation
- * text for a security finding, and executive summaries for a full scan,
- * via the Anthropic Messages API.
+ * text for a security finding, and executive summaries for a full scan, via
+ * a real LLM API — Anthropic (paid) or Groq (free tier) depending on
+ * AI_PROVIDER.
  *
  * There is no AI provider API key available in this build environment
  * (`AI_API_KEY` is unset — see `.env.example`). Rather than fabricate
@@ -69,17 +84,19 @@ export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly client: AxiosInstance;
   private readonly apiKey?: string;
+  private readonly provider: AiProvider;
 
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('AI_API_KEY') || undefined;
-    this.client = axios.create({
-      baseURL: ANTHROPIC_API_URL,
-      timeout: 30_000,
-    });
+    const configuredProvider = (
+      this.configService.get<string>('AI_PROVIDER') || 'anthropic'
+    ).toLowerCase();
+    this.provider = configuredProvider === 'groq' ? 'groq' : 'anthropic';
+    this.client = axios.create({ timeout: 30_000 });
     if (!this.apiKey) {
       this.logger.warn(
         'AI_API_KEY is not configured — AI finding analysis/executive summaries are disabled. ' +
-          'Set AI_API_KEY to an Anthropic API key to enable them.',
+          'Set AI_API_KEY (and AI_PROVIDER=groq for the free option) to enable them.',
       );
     }
   }
@@ -93,37 +110,56 @@ export class AiService {
       throw new AiNotConfiguredError();
     }
 
-    let response: { data: AnthropicMessageResponse };
+    const isGroq = this.provider === 'groq';
+    let response: { data: AnthropicMessageResponse | OpenAiCompatibleResponse };
     try {
-      response = await this.client.post<AnthropicMessageResponse>(
-        '',
-        {
-          model: MODEL,
-          max_tokens: maxTokens,
-          messages: [{ role: 'user', content: prompt }],
-        },
-        {
-          headers: {
-            'x-api-key': this.apiKey,
-            'anthropic-version': ANTHROPIC_VERSION,
-            'content-type': 'application/json',
-          },
-        },
-      );
+      response = isGroq
+        ? await this.client.post<OpenAiCompatibleResponse>(
+            GROQ_API_URL,
+            {
+              model: GROQ_MODEL,
+              max_tokens: maxTokens,
+              messages: [{ role: 'user', content: prompt }],
+            },
+            {
+              headers: {
+                authorization: `Bearer ${this.apiKey}`,
+                'content-type': 'application/json',
+              },
+            },
+          )
+        : await this.client.post<AnthropicMessageResponse>(
+            ANTHROPIC_API_URL,
+            {
+              model: ANTHROPIC_MODEL,
+              max_tokens: maxTokens,
+              messages: [{ role: 'user', content: prompt }],
+            },
+            {
+              headers: {
+                'x-api-key': this.apiKey,
+                'anthropic-version': ANTHROPIC_VERSION,
+                'content-type': 'application/json',
+              },
+            },
+          );
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         const upstreamMessage =
           (error.response.data as { error?: { message?: string } })?.error
             ?.message ?? error.message;
         this.logger.error(
-          `Anthropic API request failed: ${error.response.status} ${upstreamMessage}`,
+          `${isGroq ? 'Groq' : 'Anthropic'} API request failed: ${error.response.status} ${upstreamMessage}`,
         );
         throw new AiProviderError(error.response.status, upstreamMessage);
       }
       throw error;
     }
 
-    const text = response.data.content?.[0]?.text;
+    const text = isGroq
+      ? (response.data as OpenAiCompatibleResponse).choices?.[0]?.message
+          ?.content
+      : (response.data as AnthropicMessageResponse).content?.[0]?.text;
     if (typeof text !== 'string') {
       throw new Error('Unexpected response shape from AI provider');
     }
@@ -138,7 +174,9 @@ export class AiService {
   }): Promise<FindingAnalysis> {
     const prompt = [
       'You are a security analyst assistant. For the following security finding, respond with',
-      'exactly five sections, each on its own line prefixed by the label shown:',
+      'exactly five sections, each on its own line prefixed by the label shown, in plain text —',
+      'no markdown, no headers (#), no bullet points, and put each label\'s content on the same',
+      'line as its label, immediately after the colon:',
       'EXPLANATION: <plain-language explanation of the technical issue, 1-2 sentences>',
       'IMPACT: <concrete business impact if exploited, 1-2 sentences>',
       'REMEDIATION: <specific, actionable fix, 1-2 sentences>',
@@ -155,15 +193,42 @@ export class AiService {
     return this.parseFindingAnalysis(raw);
   }
 
+  // Models are asked to keep each label and its content on one line, but
+  // not every model reliably follows that (observed for real: Groq's Llama
+  // 3.3 sometimes emits the label as its own markdown heading — "##
+  // EXPLANATION" — with the content on the following line instead). Rather
+  // than trust one rigid same-line pattern, this pulls the labeled value
+  // whether it's inline after the colon or on the next non-empty line, and
+  // strips markdown heading markers before matching either way.
+  private extractLabeledSection(raw: string, label: string): string | undefined {
+    const lines = raw.split('\n').map((line) => line.replace(/^#+\s*/, ''));
+    for (let i = 0; i < lines.length; i++) {
+      const match = new RegExp(`^${label}:?\\s*(.*)$`, 'i').exec(
+        lines[i].trim(),
+      );
+      if (!match) continue;
+      const inline = match[1].trim();
+      if (inline) return inline;
+      const next = lines
+        .slice(i + 1)
+        .map((line) => line.trim())
+        .find((line) => line.length > 0);
+      if (next) return next;
+    }
+    return undefined;
+  }
+
   private parseFindingAnalysis(raw: string): FindingAnalysis {
     const explanation =
-      /EXPLANATION:\s*(.+)/i.exec(raw)?.[1]?.trim() ?? raw.trim();
-    const businessImpact = /IMPACT:\s*(.+)/i.exec(raw)?.[1]?.trim() ?? '';
-    const remediation = /REMEDIATION:\s*(.+)/i.exec(raw)?.[1]?.trim() ?? '';
+      this.extractLabeledSection(raw, 'EXPLANATION') ?? raw.trim();
+    const businessImpact = this.extractLabeledSection(raw, 'IMPACT') ?? '';
+    const remediation = this.extractLabeledSection(raw, 'REMEDIATION') ?? '';
     const difficulty = this.parseDifficulty(
-      /DIFFICULTY:\s*(\w+)/i.exec(raw)?.[1],
+      this.extractLabeledSection(raw, 'DIFFICULTY')?.split(/\s+/)[0],
     );
-    const priority = this.parsePriority(/PRIORITY:\s*(\w+)/i.exec(raw)?.[1]);
+    const priority = this.parsePriority(
+      this.extractLabeledSection(raw, 'PRIORITY')?.split(/\s+/)[0],
+    );
     return { explanation, businessImpact, remediation, difficulty, priority };
   }
 

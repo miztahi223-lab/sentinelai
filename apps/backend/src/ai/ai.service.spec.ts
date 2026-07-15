@@ -100,6 +100,36 @@ describe('AiService', () => {
       expect(result.priority).toBe('MEDIUM');
     });
 
+    it('parses a response where the model used markdown headings instead of inline labels', () => {
+      // Real output observed from Groq's llama-3.3-70b-versatile despite the
+      // prompt explicitly asking for inline "LABEL: content" — the label
+      // lands on its own "## LABEL" line, with content on the next line.
+      const raw = [
+        '## EXPLANATION',
+        'The TLS certificate has expired.',
+        '',
+        '## IMPACT',
+        'Visitors see a security warning.',
+        '',
+        '## REMEDIATION',
+        'Install a valid certificate.',
+        '',
+        '## DIFFICULTY',
+        'Hard',
+        '',
+        '## PRIORITY',
+        'Urgent',
+      ].join('\n');
+
+      expect(parse(raw)).toEqual({
+        explanation: 'The TLS certificate has expired.',
+        businessImpact: 'Visitors see a security warning.',
+        remediation: 'Install a valid certificate.',
+        difficulty: 'HARD',
+        priority: 'URGENT',
+      });
+    });
+
     it('falls back to a safe middle value when the model returns an unrecognized word', () => {
       const raw = [
         'EXPLANATION: x',
