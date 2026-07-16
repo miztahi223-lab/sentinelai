@@ -420,3 +420,23 @@ model AuditLog {
   @@index([userId])
   @@map("audit_logs")
 }
+
+// Every contact-form submission, persisted before the notification email
+// is even attempted — the visitor's message must survive an SMTP outage
+// or misconfiguration (a real, observed failure mode: a tenant-level
+// "SMTP AUTH disabled" block on a fresh Microsoft 365 setup made every
+// submission 500 and vanish with no record until this existed).
+// `emailSentAt` is null until the notification actually goes out — a
+// later job/manual sweep can retry unsent ones without guessing which
+// ones already succeeded.
+model ContactMessage {
+  id          String    @id @default(uuid())
+  name        String
+  email       String
+  subject     String
+  message     String
+  emailSentAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("contact_messages")
+}
