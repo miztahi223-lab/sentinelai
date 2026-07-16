@@ -32,18 +32,32 @@ export default function ReportsPage() {
   }
 
   async function handleDownload(reportId: string, title: string) {
+    setError(null);
     setDownloadingId(reportId);
     try {
       await downloadReport(reportId, title);
+    } catch (err) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string })?.message
+        : undefined;
+      setError(message ?? t("downloadErrorDefault"));
     } finally {
       setDownloadingId(null);
     }
   }
 
   async function handleEmail(reportId: string) {
+    setError(null);
     setEmailedId(null);
-    const result = await emailReport.mutateAsync(reportId);
-    setEmailedId(result.sentTo);
+    try {
+      const result = await emailReport.mutateAsync(reportId);
+      setEmailedId(result.sentTo);
+    } catch (err) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string })?.message
+        : undefined;
+      setError(message ?? t("emailErrorDefault"));
+    }
   }
 
   const hasReports = (reports?.length ?? 0) > 0;

@@ -3,11 +3,13 @@ import {
   Controller,
   Get,
   Body,
+  Logger,
   NotFoundException,
   Param,
   Post,
   Query,
   Res,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
@@ -24,6 +26,8 @@ import { EmailService } from '../email/email.service';
 @Controller('reports')
 @UseGuards(JwtAuthGuard)
 export class ReportsController {
+  private readonly logger = new Logger(ReportsController.name);
+
   constructor(
     private readonly reportsService: ReportsService,
     private readonly prisma: PrismaService,
@@ -81,11 +85,26 @@ export class ReportsController {
     const requester = await this.usersService.findById(user.userId);
     if (!requester) throw new NotFoundException('User not found');
 
-    await this.emailService.sendReportEmail(
-      requester.email,
-      report.title,
-      report.fileUrl,
-    );
+    // The report itself is already safely persisted on disk — unlike a
+    // contact-form submission, there's no data to lose here if the send
+    // fails, but a bare 500 with no message (an outbound-SMTP failure
+    // masquerading as an unrelated server error) is still a real, honest
+    // gap: the requester deserves to know "the email didn't go out",
+    // distinct from "the report itself is broken".
+    try {
+      await this.emailService.sendReportEmail(
+        requester.email,
+        report.title,
+        report.fileUrl,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to email report ${id} to ${requester.email}: ${(error as Error).message}`,
+      );
+      throw new ServiceUnavailableException(
+        'Could not send the email right now — the report itself is fine, try downloading it instead.',
+      );
+    }
     return { success: true, sentTo: requester.email };
   }
 }

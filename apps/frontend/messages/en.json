@@ -447,7 +447,9 @@
     "email": "Email to me",
     "emailing": "Sending...",
     "emailSent": "Sent to {email}.",
-    "errorDefault": "Could not generate the report."
+    "errorDefault": "Could not generate the report.",
+    "downloadErrorDefault": "Could not download the report — try again in a moment.",
+    "emailErrorDefault": "Could not send the email — try again in a moment, or download the report instead."
   },
   "alerts": {
     "title": "Alerts",
